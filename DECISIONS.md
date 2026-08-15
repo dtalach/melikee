@@ -163,12 +163,86 @@ put headers flush against the top edge.
 
 ---
 
+## Real product lookup (Claude vision + Claude web search)
+
+**26. The image is *read*, not matched.** The obvious tool for "photo →
+product" is a visual similarity index (Google Cloud Vision Product Search,
+Rekognition Custom Labels), and it is the wrong one here: those match a photo
+against a catalogue of product images you have already indexed, and MeLikee has
+no catalogue. Reading wins because almost everything a teenager photographs has
+its own name printed on it, and reading generalises to a product that came out
+this morning.
+
+**27. Two passes, not one.** Pass one is Opus 5 vision with a structured output
+schema — brand, product name, model number, category, colour, variant, every
+legible string, a confidence and a search query. Pass two takes that reading and
+runs Claude's server-side `web_search_20260209` tool to find listings that
+actually exist right now. Splitting them means a barcode scan and a spoken want
+skip pass one entirely — a UPC and a sentence are already queries — and it means
+the expensive perception step is not repeated when a search needs retrying.
+
+**28. Opus 5 for both, with an env override.** Reading a model number off a box
+in bad shop lighting is exactly where the frontier model earns its price, and a
+confidently wrong product is the failure the whole app is built to avoid.
+`MELIKEE_VISION_MODEL` and `MELIKEE_SEARCH_MODEL` exist so cost can be tuned
+without a code change.
+
+**29. Thinking is off for the vision pass, on for the search pass.** Reading a
+label is perception, not reasoning — Opus 5 does it better with a bigger image
+than with a longer thought. Ranking four real listings against what someone
+meant is reasoning, so that pass keeps adaptive thinking.
+
+**30. Photos are downscaled to a 1568px long edge before they leave the phone.**
+A 12MP capture is the slowest part of a shop-floor capture and Claude resizes it
+away anyway. 1568px still reads a model number.
+
+**31. `skipProcessing` was removed from the capture.** It was there for speed,
+but it also skips the orientation fix, and a sideways photo is one the model has
+to read sideways.
+
+**32. There is a server, and it exists only to hold the key.** Anything in the
+app bundle is readable by anyone who installs it, so `api/recognize.ts` is a
+Vercel function that holds `ANTHROPIC_API_KEY` and returns only the answer. The
+build was checked for leakage: the web bundle contains no Anthropic SDK.
+
+**33. Failed lookups are a designed screen, not an error.** A scripted matcher
+always found something; a real one sometimes looks at a wall. `MissCard` gives
+every miss a reason in the app's voice and three ways out — retry the same
+lookup, keep the photo and match it later, or go back — because the design
+review's rule still holds: losing the wish is the failure that matters.
+
+**34. Demo mode is kept, and says so on its face.** With no endpoint deployed,
+no API key, or no camera to photograph with, the scripted catalogue still runs
+the whole ritual — but the found card's freshness line reads "demo match · not a
+live price" instead of a price age. A demo that silently pretends to be real is
+worse than no demo. Everything else — a real search that found nothing, a
+timeout, a refusal — is a real answer and the user hears it.
+
+**35. Repeat barcode and voice lookups are cached for 30 minutes** in the warm
+function instance. Scanning the same barcode twice in a shop is normal
+behaviour and a repeat search costs real money. Photos are not cached: every
+photo is a different photo.
+
+**36. The invented store-comparison prices are gone.** Item detail used to
+derive two "competitor" prices from the item's own (`base * 1.04`). Harmless
+against a scripted matcher; a lie next to a real one. The card now shows the
+retailers the search actually found, with their actual prices, and disappears
+when only one was found.
+
+**37. Price freshness is computed, not asserted.** "price checked 2h ago" was a
+fixed string. Now every match carries the moment it was checked and the whisper
+counts up from it — and says "price may have moved" when it has no idea.
+
+---
+
 ## Known gaps
 
-- **No persistence.** State resets on reload, per the agreed scope. One
-  `zustand/middleware` `persist` wrapper away if you want it.
-- **No backend**: no auth, no real product lookup, no real QR encoding (the QR
-  is a placeholder block), no real friend graph.
+- **No backend beyond the lookup endpoint**: no auth, no real QR encoding (the
+  QR is a placeholder block), no real friend graph.
+- **The lookup has not been run against a live API key.** No key was available
+  in the build environment, so the endpoint is verified by typecheck against the
+  Anthropic SDK's own types and by the app's fallback path, not by a real
+  round trip. `scripts/try-recognize.mjs` is there to make that a one-liner.
 - **Only Ava has a browsable friend list** — the other three friends have no
   fixture list, so their rows have no "Their list" link.
 - **The gifter page reads your own live data.** Opening `/g/maya` shows Maya's
@@ -178,8 +252,10 @@ put headers flush against the top edge.
   export, and a scripted click-through of every flow at 393×852 with no console
   errors. Camera, barcode and dictation are wired to the real APIs but have only
   been exercised through their no-hardware fallbacks — they need a device pass.
-- **The repo has no git remote configured,** so the work is committed locally
-  but could not be pushed. Add a remote and `git push -u origin melikee-app`.
+- **Lookup latency is real.** Two Claude passes plus a web search take
+  meaningfully longer than the 1.6s the reveal was choreographed for. The wait
+  now explains itself after seven seconds, but a capture that takes twenty is
+  still a capture that takes twenty.
 
 ---
 

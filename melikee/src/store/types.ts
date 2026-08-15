@@ -1,3 +1,5 @@
+import type { StorePrice } from '@/services/recognition/contract';
+
 /** Who can see a list. Every list carries a default visibility (turn 7). */
 export type Visibility = 'friends' | 'invite' | 'me';
 
@@ -31,6 +33,12 @@ export type Shiny = {
   photoUri?: string;
   /** True while a fallback-saved photo is still waiting on a match. */
   pending?: boolean;
+  /** Where to buy it, when the lookup found a link. */
+  buyUrl?: string;
+  /** When that price was last checked, ISO. Saved items outlive their prices. */
+  checkedAt?: string;
+  /** Other retailers the lookup found, with their own prices. */
+  otherStores?: StorePrice[];
 };
 
 export type Friend = {
@@ -101,18 +109,12 @@ export type FriendListItem = {
 
 export type RequestStatus = 'pending' | 'accepted' | 'declined';
 
-/** A product match returned by the recognition service. */
-export type ProductMatch = {
-  name: string;
-  price: string;
-  /** "Best Buy + 2 stores" — where it can be had. */
-  stores: string;
-  /** The single store used as the item's home store. */
-  storeName: string;
-  upc: string;
-  /** Why this candidate matched — "best match, 96%", "different color". */
-  reason: string;
-};
+/**
+ * A product match returned by the recognition service. It is defined in the
+ * recognition contract rather than here, because the serverless function
+ * produces it and cannot import anything from the app's aliased tree.
+ */
+export type { ProductMatch, StorePrice } from '@/services/recognition/contract';
 
 /** How a capture was started; changes the copy throughout the flow. */
 export type CaptureMode = 'scan' | 'snap' | 'say';

@@ -13,12 +13,14 @@ import { useTopInset } from '@/hooks/useTopInset';
 
 import { CaptureModeBar } from '@/screens/camera/CaptureModeBar';
 import { FoundCard } from '@/screens/camera/FoundCard';
+import { MissCard } from '@/screens/camera/MissCard';
 import { NearMatches } from '@/screens/camera/NearMatches';
 import { WorkingOurMagic } from '@/screens/camera/WorkingOurMagic';
 import { Waveform } from '@/screens/camera/Waveform';
 import { useDictation } from '@/hooks/useDictation';
 import { setShutterHandler } from '@/services/captureBridge';
 import { captureHint } from '@/services/productMatch';
+import { preparePhoto } from '@/services/photo';
 import { BellIcon, CloseIcon, GiftIcon, ViewfinderBrackets } from '@/ui/icons';
 import { SlapIn, SnapFlash, SparkleBurst } from '@/ui/motion';
 import { AppText, GlowGround, Squish, Sticker } from '@/ui/primitives';
@@ -47,7 +49,12 @@ export function CameraScreen({
   const transcript = useCaptureStore((s) => s.transcript);
   const error = useCaptureStore((s) => s.error);
   const match = useCaptureStore(selectMatch);
+  const candidateCount = useCaptureStore((s) => s.candidates.length);
+  const checkedAt = useCaptureStore((s) => s.checkedAt);
+  const demo = useCaptureStore((s) => s.demo);
+  const missCode = useCaptureStore((s) => s.missCode);
   const begin = useCaptureStore((s) => s.begin);
+  const retry = useCaptureStore((s) => s.retry);
   const cancel = useCaptureStore((s) => s.cancel);
   const claim = useCaptureStore((s) => s.claim);
   const finish = useCaptureStore((s) => s.finish);
@@ -92,16 +99,19 @@ export function CameraScreen({
       return;
     }
 
-    let photoUri: string | undefined;
+    // `skipProcessing` is gone on purpose. It was there for speed, but it also
+    // skips the orientation fix, and a sideways photo is a photo Claude has to
+    // read sideways — the model number on the box is the whole match.
+    let prepared: Awaited<ReturnType<typeof preparePhoto>> = {};
     try {
-      const photo = await cameraRef.current?.takePictureAsync({ quality: 0.6, skipProcessing: true });
-      photoUri = photo?.uri;
+      const photo = await cameraRef.current?.takePictureAsync({ quality: 0.8 });
+      prepared = await preparePhoto(photo);
     } catch {
       // No camera (simulator, denied permission, web without a device): the
       // ritual still runs — losing the wish would be the worse failure.
-      photoUri = undefined;
+      prepared = {};
     }
-    await begin({ mode: 'snap', photoUri });
+    await begin({ mode: 'snap', photoUri: prepared.uri, image: prepared.image });
   }, [begin, dictation, showToast]);
 
   // While this screen is on top, the dock's shutter fires a capture.
@@ -135,6 +145,7 @@ export function CameraScreen({
     if (!match) return;
     addShiny(match, {
       photoUri: useCaptureStore.getState().photoUri,
+      checkedAt: useCaptureStore.getState().checkedAt,
       provenance:
         mode === 'scan' ? 'by scan · just now' : mode === 'say' ? 'by voice · just now' : 'by camera · just now',
     });
@@ -363,6 +374,9 @@ export function CameraScreen({
           mode={mode}
           flying={phase === 'fly'}
           photoUri={useCaptureStore.getState().photoUri}
+          checkedAt={checkedAt}
+          demo={demo}
+          alternates={candidateCount - 1}
           onWantIt={wantIt}
           onSeeAlternates={showAlternates}
           onFlightDone={finish}
@@ -370,6 +384,17 @@ export function CameraScreen({
       ) : null}
 
       {phase === 'alts' ? <NearMatches onSaveForLater={saveForLater} /> : null}
+
+      {phase === 'miss' && missCode ? (
+        <MissCard
+          code={missCode}
+          mode={mode}
+          photoUri={useCaptureStore.getState().photoUri}
+          onRetry={() => void retry()}
+          onSaveForLater={saveForLater}
+          onDismiss={cancel}
+        />
+      ) : null}
 
       {/* The sparkle burst lands where the shutter sits. */}
       {phase === 'fly' ? (

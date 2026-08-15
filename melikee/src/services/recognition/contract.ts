@@ -1,0 +1,94 @@
+/**
+ * The wire contract between the app and the recognition endpoint.
+ *
+ * This file is imported by *both* sides — the Expo app and the serverless
+ * function in `api/` — so it must stay dependency-free and must not use the
+ * `@/` path alias, which only the Metro/TypeScript side understands. Plain
+ * types, plain relative imports, nothing else.
+ */
+
+/** A product match returned by the recognition service. */
+export type ProductMatch = {
+  name: string;
+  price: string;
+  /** "Best Buy + 2 stores" — where it can be had. */
+  stores: string;
+  /** The single store used as the item's home store. */
+  storeName: string;
+  upc: string;
+  /** Why this candidate matched — "best match, 96%", "different colour". */
+  reason: string;
+  /** A direct link to the product page, when the search found one. */
+  buyUrl?: string;
+  /** Other retailers carrying the same thing, with the prices they quoted. */
+  otherStores?: StorePrice[];
+  /** 0–100. How sure the service is that this is the right product. */
+  confidence?: number;
+};
+
+/** One retailer's current price for a product. */
+export type StorePrice = {
+  storeName: string;
+  price: string;
+  buyUrl?: string;
+};
+
+/** What the vision pass read off the photo, before anything was searched. */
+export type ProductReading = {
+  brand: string;
+  productName: string;
+  modelNumber: string;
+  category: string;
+  color: string;
+  variant: string;
+  /** Every legible string on the product or its packaging. */
+  visibleText: string[];
+  /** How confident the eye is that it identified a specific product. */
+  confidence: 'high' | 'medium' | 'low';
+  /** The query the eye would type into a shop's search box. */
+  searchQuery: string;
+};
+
+export type RecognizeImage = {
+  /** Base64, no data-URI prefix. */
+  data: string;
+  mediaType: 'image/jpeg' | 'image/png' | 'image/webp';
+};
+
+export type RecognizeRequest =
+  | { mode: 'scan'; upc: string }
+  | { mode: 'say'; transcript: string }
+  | { mode: 'snap'; image: RecognizeImage };
+
+/**
+ * Why a lookup came back empty. The app maps each of these to different copy,
+ * so they are part of the contract rather than a debugging detail.
+ *
+ * - `not_configured` — the endpoint has no API key. Development, mostly.
+ * - `no_product`     — Claude looked and there was no product in the frame.
+ * - `no_match`       — a real product, but the search turned up no listings.
+ * - `refused`        — the model declined to describe the image.
+ * - `upstream`       — the API errored or timed out.
+ * - `bad_request`    — the app sent something malformed.
+ */
+export type RecognizeErrorCode =
+  | 'not_configured'
+  | 'no_product'
+  | 'no_match'
+  | 'refused'
+  | 'upstream'
+  | 'bad_request';
+
+export type RecognizeResponse =
+  | {
+      ok: true;
+      candidates: ProductMatch[];
+      /** Only present for photo captures. */
+      reading?: ProductReading;
+      /** How fresh the prices are — the app never presents one as fact. */
+      checkedAt: string;
+    }
+  | { ok: false; code: RecognizeErrorCode; message: string };
+
+/** The route the app posts to, relative to the API base. */
+export const RECOGNIZE_PATH = '/api/recognize';

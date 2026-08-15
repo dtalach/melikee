@@ -5,9 +5,10 @@
  * The note underneath is mode-aware, so the wait explains itself: a barcode
  * promises an exact match, a photo promises a search.
  */
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { magicNote } from '@/services/productMatch';
+import { magicNote, MAGIC_PATIENCE_MS, MAGIC_PATIENCE_NOTE } from '@/services/productMatch';
 import { SparkleIcon } from '@/ui/icons';
 import { Orbit, Spin, Twinkle } from '@/ui/motion';
 import { AppText } from '@/ui/primitives';
@@ -17,6 +18,15 @@ import type { CaptureMode } from '@/store/types';
 
 export function WorkingOurMagic({ mode }: { mode: CaptureMode }) {
   const theme = useTheme();
+
+  // A scripted match landed in 1.6s. A real one reads a photo and then searches
+  // actual shops, which sometimes takes long enough that silence starts to read
+  // as "it's broken". After a few seconds the note says what's happening.
+  const [patient, setPatient] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setPatient(true), MAGIC_PATIENCE_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <View
@@ -57,7 +67,7 @@ export function WorkingOurMagic({ mode }: { mode: CaptureMode }) {
 
       <AppText style={{ fontSize: 14, fontWeight: '700' }}>Working our magic…</AppText>
       <AppText tone="muted" style={{ fontSize: 11, fontWeight: '600' }}>
-        {magicNote(mode)}
+        {patient ? MAGIC_PATIENCE_NOTE : magicNote(mode)}
       </AppText>
     </View>
   );

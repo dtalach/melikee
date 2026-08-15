@@ -14,7 +14,7 @@ import { useTopInset } from '@/hooks/useTopInset';
 import { ChevronLeftIcon, ShareIcon } from '@/ui/icons';
 import { RiseIn } from '@/ui/motion';
 import { AppText, Button, Card, Photo, Squish, Sticker } from '@/ui/primitives';
-import { PRICE_FRESHNESS } from '@/services/productMatch';
+import { priceFreshness } from '@/services/productMatch';
 import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useAppStore } from '@/store/useAppStore';
@@ -32,14 +32,12 @@ export default function ItemDetailRoute() {
 
   if (!item) return null;
 
-  const base = Number.parseFloat(item.price.replace(/[$,]/g, '')) || 0;
-  const money = (value: number) => `$${Math.round(value).toLocaleString()}`;
-
-  // The item's own store leads; two others follow for comparison.
-  const comparisons = ['Amazon', 'Walmart', 'Target']
-    .filter((store) => store !== item.store)
-    .slice(0, 2)
-    .map((store, index) => ({ store, price: money(base * (1.04 + index * 0.04)) }));
+  // The comparison rows used to be invented from the item's own price. That
+  // was fine against a scripted matcher and is not fine next to a real one — a
+  // made-up price sitting under a true one is the kind of lie a gift decision
+  // gets made on. Now the card shows the stores the lookup actually found, and
+  // shows nothing when it only found one.
+  const comparisons = item.otherStores ?? [];
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -80,7 +78,9 @@ export default function ItemDetailRoute() {
               {item.price}
             </AppText>
             <AppText tone="muted" style={{ fontSize: 12 }}>
-              {item.pending ? 'still matching' : `lowest of 3 stores · ${PRICE_FRESHNESS}`}
+              {item.pending
+                ? 'still matching'
+                : `${item.store} · ${priceFreshness(item.checkedAt)}`}
             </AppText>
             {item.secret ? (
               <View
@@ -98,12 +98,12 @@ export default function ItemDetailRoute() {
             ) : null}
           </View>
 
-          {!item.pending ? (
+          {!item.pending && comparisons.length ? (
             <Card border={theme.violet66}>
               <View style={{ paddingHorizontal: 14 }}>
                 <StoreRow store={item.store} price={item.price} highlight />
                 {comparisons.map((row) => (
-                  <StoreRow key={row.store} store={row.store} price={row.price} />
+                  <StoreRow key={row.storeName} store={row.storeName} price={row.price} />
                 ))}
               </View>
             </Card>
@@ -124,8 +124,12 @@ export default function ItemDetailRoute() {
               size="lg"
               style={{ flex: 1 }}
               onPress={() =>
+                // A real lookup hands back the actual product page. Search is
+                // only the fallback for items that predate it, or came from a
+                // friend's feed rather than a shop.
                 Linking.openURL(
-                  `https://www.google.com/search?q=${encodeURIComponent(`${item.name} ${item.store}`)}`,
+                  item.buyUrl ??
+                    `https://www.google.com/search?q=${encodeURIComponent(`${item.name} ${item.store}`)}`,
                 ).catch(() => undefined)
               }
             />

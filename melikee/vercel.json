@@ -3,9 +3,14 @@
   "buildCommand": "npx expo export --platform web",
   "outputDirectory": "dist",
   "installCommand": "npm install",
+  "functions": {
+    "api/recognize.ts": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     {
-      "source": "/((?!_expo/|assets/|favicon).*)",
+      "source": "/((?!api/|_expo/|assets/|favicon).*)",
       "destination": "/"
     }
   ]

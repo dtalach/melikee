@@ -76,6 +76,61 @@ src/
 - **Language:** the brand is MeLikee ("me likee, me wantee"), the objects are
   *shinies*, and the claim verb — gifter side only — is *dibs*.
 
+## Real product lookup
+
+Photo, barcode and voice all resolve to real products through `api/recognize.ts`
+— a serverless function that runs two Claude passes:
+
+1. **Read the photo.** Opus 5 vision extracts brand, product name, model
+   number, category, colour, variant and every legible string into a fixed
+   schema. Barcode scans and spoken wants skip this — they are already queries.
+2. **Find where to buy it.** A second Opus 5 call with Claude's server-side web
+   search tool turns that into current listings: store, price, link, and up to
+   three other retailers with their own prices.
+
+The endpoint exists for exactly one reason: **the API key must never ship inside
+the app.** Anything in the bundle is readable by anyone who installs it.
+
+### Switching it on
+
+Set one environment variable on the deployment:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Optionally `MELIKEE_VISION_MODEL` / `MELIKEE_SEARCH_MODEL` to trade cost for
+quality (both default to `claude-opus-5`).
+
+For a device build, the app also needs to know where the endpoint lives, since
+a phone has no origin to be relative to:
+
+```
+EXPO_PUBLIC_MELIKEE_API=https://your-app.vercel.app
+```
+
+The web build needs nothing — it calls `/api/recognize` on its own origin.
+
+### Checking it
+
+```bash
+node scripts/try-recognize.mjs --url https://your-app.vercel.app
+# → {"ok":true,"service":"melikee-recognize","configured":true}
+
+node scripts/try-recognize.mjs --url https://your-app.vercel.app --scan 027242925175
+node scripts/try-recognize.mjs --url https://your-app.vercel.app --snap ./photo.jpg
+```
+
+`configured: false` means the function is deployed but has no key.
+
+### Without it
+
+With no key, no deployment, or no camera, the app falls back to a small scripted
+catalogue so the whole ritual still runs — and says so: the found card's
+freshness line reads *"demo match · not a live price"*. A real search that finds
+nothing is different, and gets an honest miss screen with a way to retry or keep
+the photo.
+
 ## Verifying it
 
 `scripts/verify-flows.mjs` drives the built web app in a headless browser and

@@ -7,7 +7,7 @@
  */
 import { View } from 'react-native';
 
-import { foundImageLabel, PRICE_FRESHNESS } from '@/services/productMatch';
+import { foundImageLabel, priceFreshness } from '@/services/productMatch';
 import { FlyToShutter, PopIn, Twinkle } from '@/ui/motion';
 import { AppText, Button, Photo, Squish } from '@/ui/primitives';
 import { brand, layout } from '@/theme/tokens';
@@ -19,6 +19,9 @@ export function FoundCard({
   mode,
   flying,
   photoUri,
+  checkedAt,
+  demo,
+  alternates,
   onWantIt,
   onSeeAlternates,
   onFlightDone,
@@ -27,6 +30,11 @@ export function FoundCard({
   mode: CaptureMode;
   flying: boolean;
   photoUri?: string;
+  checkedAt?: string;
+  /** True when the match came from the demo catalogue, not a real lookup. */
+  demo: boolean;
+  /** How many other candidates there are — no point offering none. */
+  alternates: number;
   onWantIt: () => void;
   onSeeAlternates: () => void;
   onFlightDone: () => void;
@@ -54,18 +62,21 @@ export function FoundCard({
         <AppText tone="lime" style={{ fontSize: 12, fontWeight: '800' }}>
           {match.price} · {match.stores}
         </AppText>
-        {/* Prices drift — never present one as fact. */}
+        {/* Prices drift — never present one as fact. And a demo match says so
+            here rather than passing itself off as a real shop price. */}
         <AppText tone="muted" style={{ fontSize: 10, fontWeight: '600' }}>
-          {PRICE_FRESHNESS}
+          {demo ? 'demo match · not a live price' : priceFreshness(checkedAt)}
         </AppText>
 
         <Button label="Want it!" size="md" onPress={onWantIt} style={{ alignSelf: 'stretch' }} />
 
-        <Squish onPress={onSeeAlternates}>
-          <AppText tone="muted" style={{ fontSize: 11, fontWeight: '700', textAlign: 'center' }}>
-            not it — see near matches
-          </AppText>
-        </Squish>
+        {alternates > 0 ? (
+          <Squish onPress={onSeeAlternates}>
+            <AppText tone="muted" style={{ fontSize: 11, fontWeight: '700', textAlign: 'center' }}>
+              not it — see near matches
+            </AppText>
+          </Squish>
+        ) : null}
       </View>
     </View>
   );

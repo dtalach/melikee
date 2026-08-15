@@ -86,7 +86,10 @@ type AppState = {
   setReduceMotion: (v: boolean) => void;
 
   /** Adds a match to the default list and opens the filing tray. */
-  addShiny: (match: ProductMatch, opts?: { photoUri?: string; provenance?: string }) => string;
+  addShiny: (
+    match: ProductMatch,
+    opts?: { photoUri?: string; provenance?: string; checkedAt?: string },
+  ) => string;
   /** Saves an unmatched photo so the wish is never lost. */
   savePendingPhoto: (photoUri?: string) => void;
   /** Copies someone else's find from the Feed into your own list. */
@@ -177,6 +180,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       provenance: opts?.provenance ?? 'just now',
       secret: false,
       photoUri: opts?.photoUri,
+      buyUrl: match.buyUrl,
+      checkedAt: opts?.checkedAt,
+      otherStores: match.otherStores,
     };
     set((s) => ({
       items: [item, ...s.items],
