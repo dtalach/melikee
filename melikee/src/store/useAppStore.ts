@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware';
 
 import {
   avaList,
-  me,
   seedDirectory,
   seedFeed,
   seedFriends,
@@ -11,11 +10,13 @@ import {
   seedLists,
   seedSentInvites,
 } from '@/data/seed';
+import { demoProfile, makeProfile } from '@/store/profile';
 import type {
   DirectoryPerson,
   FeedPost,
   Friend,
   ProductMatch,
+  Profile,
   RequestStatus,
   SentInvite,
   SheetKind,
@@ -53,6 +54,13 @@ type AppState = {
   activeTab: Tab;
   setActiveTab: (tab: Tab) => void;
 
+  // ── Identity ─────────────────────────────────────────────────────────────
+  /** False until someone has told the app who they are. */
+  onboarded: boolean;
+  profile: Profile;
+  /** True while the app is furnished with the seed fixtures rather than real use. */
+  demoContent: boolean;
+
   // ── Preferences ──────────────────────────────────────────────────────────
   themePreference: ThemePreference;
   /** Honours the OS setting by default; the reward ritual degrades to a fade. */
@@ -73,8 +81,9 @@ type AppState = {
   /** The shiny the filing tray is currently talking about. */
   filing: { itemId: string; secondsLeft: number } | null;
 
-  /** Riley's inbound follow request, and which lists they'd get. */
-  request: { status: RequestStatus; access: Record<string, boolean> };
+  /** Riley's inbound follow request, and which lists they'd get. Null on a
+   * real account, which has nobody knocking yet. */
+  request: { status: RequestStatus; access: Record<string, boolean> } | null;
 
   /** Dibs called on a friend's list, and on your own page as a gifter sees it. */
   friendDibs: Record<string, boolean>;
@@ -91,6 +100,15 @@ type AppState = {
   searchQuery: string;
 
   // ── Actions ──────────────────────────────────────────────────────────────
+  /** Finish onboarding: become this person, on an empty account. */
+  completeOnboarding: (input: { name: string; birthday?: { month: number; day: number } }) => void;
+  /** Skip onboarding and look around Maya's account instead. */
+  useDemoAccount: () => void;
+  /** Set or clear the birthday the countdown runs on. */
+  setBirthday: (birthday?: { month: number; day: number }) => void;
+  /** Back to the welcome screen with nothing kept. */
+  startOver: () => void;
+
   setThemePreference: (p: ThemePreference) => void;
   setReduceMotion: (v: boolean) => void;
 
@@ -141,11 +159,28 @@ type AppState = {
 let idCounter = 100;
 const nextId = () => String(idCounter++);
 
+/**
+ * What a brand-new account gets: somewhere for everything, and somewhere
+ * nobody else can see. Both are `starter`, so neither can be deleted.
+ */
+const starterLists = (): WishList[] => [
+  { id: 'w', name: 'My wants', visibility: 'friends', accent: '#c8f542', starter: true },
+  { id: 'sec', name: 'Secret stash', visibility: 'me', accent: '#a78bfa', starter: true },
+];
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       activeTab: 'camera',
       setActiveTab: (activeTab) => set({ activeTab }),
+
+      // The app starts furnished, because the alternative is that the very
+      // first screenshot of it is empty. Onboarding sits on top of that and
+      // clears it the moment someone says who they are; the welcome screen
+      // also offers to leave it alone and just look around.
+      onboarded: false,
+      profile: demoProfile,
+      demoContent: true,
 
       // Dark is the brand's home ground — the design was built on it and every
       // glow, sticker and sparkle is tuned for it. Light mode is a real, complete
@@ -175,6 +210,58 @@ export const useAppStore = create<AppState>()(
       toast: null,
       sheet: null,
       searchQuery: '',
+
+      completeOnboarding: ({ name, birthday }) =>
+        set({
+          onboarded: true,
+          demoContent: false,
+          profile: makeProfile(name, birthday),
+          // The camera's onboarding sticker keeps showing until the first
+          // capture — arriving is not the same as having done it once.
+          firstRun: true,
+          // Two starter lists and nothing in them. The occasion list is not
+          // created for you: it belongs to an occasion you have not named.
+          lists: starterLists(),
+          items: [],
+          friends: [],
+          sentInvites: [],
+          feed: [],
+          request: null,
+          lastListId: 'w',
+          friendDibs: {},
+          gifterDibs: {},
+          notes: {},
+          filing: null,
+        }),
+
+      useDemoAccount: () => set({ onboarded: true }),
+
+      setBirthday: (birthday) =>
+        set((s) => ({
+          profile: { ...s.profile, birthdayMonth: birthday?.month, birthdayDay: birthday?.day },
+        })),
+
+      startOver: () =>
+        set({
+          onboarded: false,
+          demoContent: true,
+          profile: demoProfile,
+          firstRun: true,
+          lists: seedLists,
+          items: seedItems,
+          friends: seedFriends,
+          sentInvites: seedSentInvites,
+          directory: seedDirectory,
+          feed: seedFeed,
+          request: { status: 'pending', access: { w: true, s16: false } },
+          lastListId: 'w',
+          friendDibs: {},
+          gifterDibs: {},
+          notes: {},
+          filing: null,
+          sheet: null,
+          activeTab: 'camera',
+        }),
 
       setThemePreference: (themePreference) => set({ themePreference }),
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
@@ -357,12 +444,16 @@ export const useAppStore = create<AppState>()(
       setSearchQuery: (searchQuery) => set({ searchQuery }),
 
       answerRequest: (status) => {
-        set((s) => ({ request: { ...s.request, status } }));
+        set((s) => (s.request ? { request: { ...s.request, status } } : s));
         if (status === 'accepted') get().showToast('Riley’s in your flock');
       },
 
       setRequestAccess: (listId, value) =>
-        set((s) => ({ request: { ...s.request, access: { ...s.request.access, [listId]: value } } })),
+        set((s) =>
+          s.request
+            ? { request: { ...s.request, access: { ...s.request.access, [listId]: value } } }
+            : s,
+        ),
 
       toggleFriendDibs: (itemId) => {
         const wasDibsed = !!get().friendDibs[itemId];
@@ -397,6 +488,9 @@ export const useAppStore = create<AppState>()(
        * would mean reopening a sheet they closed by quitting the app.
        */
       partialize: (s) => ({
+        onboarded: s.onboarded,
+        profile: s.profile,
+        demoContent: s.demoContent,
         themePreference: s.themePreference,
         reduceMotion: s.reduceMotion,
         firstRun: s.firstRun,
@@ -425,14 +519,29 @@ export const useAppStore = create<AppState>()(
 
 // ── Selectors ──────────────────────────────────────────────────────────────
 
+/**
+ * What the bell on the camera is counting. It used to be the literal number 3,
+ * which a brand-new account with no friends and an empty Feed wore as a lie.
+ *
+ * The Feed's two digest cards — a price drop and a reaction — are still fixture
+ * content, and they only render once you have people, so the badge only counts
+ * them then. The follow request is real state and counts when it's waiting.
+ */
+export const attentionCount = (s: AppState): number =>
+  (s.friends.length > 0 ? 2 : 0) + (s.request?.status === 'pending' ? 1 : 0);
+
 /** "1 shiny" / "3 shinies" — the prototype said "1 shinies" everywhere. */
 export const shinies = (count: number) => `${count} ${count === 1 ? 'shiny' : 'shinies'}`;
 
 export const visibilityLabel = (v: Visibility) =>
   v === 'friends' ? 'friends can see it' : v === 'invite' ? 'invite-only' : 'just you';
 
-/** Shinies count shown on Me — seeded above the real items, as in the design. */
-export const shinyCountOffset = 8;
+/**
+ * The Me screen's shiny count was seeded eight above the real one, to make the
+ * design's profile look lived-in. That is a flattering lie to tell a real
+ * account, so it now only applies to the demo.
+ */
+export const shinyCountOffset = (demoContent: boolean) => (demoContent ? 8 : 0);
 
 /**
  * Note for anyone adding selectors here: a selector must return a stable
@@ -441,4 +550,4 @@ export const shinyCountOffset = 8;
  * makes the store look changed on every render and loops. Select the raw array
  * and derive with `useMemo` in the component instead.
  */
-export const meProfile = me;
+

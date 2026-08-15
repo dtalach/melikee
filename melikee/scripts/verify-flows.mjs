@@ -29,7 +29,7 @@ const errors = [];
 const SHUTTER = { x: 196, y: 790 };
 
 /** Each flow gets a fresh page, so one failure can't cascade into the rest. */
-async function flow(name, fn) {
+async function flow(name, fn, { onboard = 'demo' } = {}) {
   const ctx = await browser.newContext({
     viewport: { width: 393, height: 852 },
     deviceScaleFactor: 2,
@@ -40,7 +40,17 @@ async function flow(name, fn) {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`[${name}] ${m.text()}`); });
   page.on('pageerror', (e) => errors.push(`[${name}] PAGEERROR: ${e.message}`));
   await page.goto(BASE_URL, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(2200);
+  await page.waitForTimeout(1600);
+
+  // Every flow now opens on first run. Most of them are about the seeded app,
+  // so they take the demo account and carry on; the onboarding flow itself
+  // opts out and walks the real path.
+  if (onboard === 'demo') {
+    await page.getByText('Just show me a demo account', { exact: true })
+      .click({ timeout: 6000 })
+      .catch(() => errors.push(`[${name}] could not skip onboarding`));
+    await page.waitForTimeout(1200);
+  }
 
   const helpers = {
     page,
@@ -72,6 +82,34 @@ async function flow(name, fn) {
   await fn(helpers);
   await ctx.close();
 }
+
+// ── First run ─────────────────────────────────────────────────────────────
+await flow(
+  'onboarding',
+  async ({ shot, tap, page }) => {
+    await shot('40-welcome', 600);
+    await tap('Let’s go');
+    await page.locator('input').first().fill('Dev');
+    await shot('41-name', 500);
+    await tap('Next');
+    await shot('42-birthday', 500);
+    await tap('Mar');
+    await tap('9');
+    await tap('Mar 9 it is');
+    await shot('43-camera-ask', 500);
+    await tap('Start snapping');
+    await shot('44-fresh-camera', 1400);
+
+    // A real new account: empty lists, no friends, nobody in the feed.
+    await page.getByText('Lists', { exact: true }).last().click({ timeout: 4000 });
+    await page.waitForTimeout(900);
+    await shot('45-fresh-lists', 500);
+    const shinies = await page.getByText('0 shinies', { exact: false }).count();
+    if (shinies < 2) errors.push('[onboarding] the new account did not start empty');
+    else console.log('  started empty');
+  },
+  { onboard: 'none' },
+);
 
 // ── The capture ritual, end to end ────────────────────────────────────────
 await flow('capture', async ({ shot, tap, shutter }) => {

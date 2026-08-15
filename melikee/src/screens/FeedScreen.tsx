@@ -195,7 +195,9 @@ export function FeedScreen() {
                 </View>
               </Card>
 
-              {/* Requests are return triggers, so they surface here. */}
+              {/* Requests are return triggers, so they surface here — when
+                  there is one. A real new account has nobody knocking. */}
+              {request ? (
               <Card border={theme.violet55}>
                 <View style={{ paddingHorizontal: 14, paddingVertical: 10, gap: 9 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -247,6 +249,7 @@ export function FeedScreen() {
                   ) : null}
                 </View>
               </Card>
+              ) : null}
             </View>
 
             {/* What your people want. */}

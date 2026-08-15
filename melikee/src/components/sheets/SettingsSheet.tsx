@@ -8,7 +8,7 @@ import { View } from 'react-native';
 
 import { BottomSheet } from '@/components/sheets/BottomSheet';
 import { AppText, Eyebrow, Squish, Toggle } from '@/ui/primitives';
-import { layout } from '@/theme/tokens';
+import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useAppStore } from '@/store/useAppStore';
 import type { ThemePreference } from '@/theme/ThemeProvider';
@@ -27,6 +27,9 @@ export function SettingsSheet() {
   const reduceMotion = useAppStore((s) => s.reduceMotion);
   const setReduceMotion = useAppStore((s) => s.setReduceMotion);
   const closeSheet = useAppStore((s) => s.closeSheet);
+  const demoContent = useAppStore((s) => s.demoContent);
+  const profile = useAppStore((s) => s.profile);
+  const startOver = useAppStore((s) => s.startOver);
 
   return (
     <BottomSheet onClose={closeSheet}>
@@ -97,6 +100,36 @@ export function SettingsSheet() {
       <AppText tone="muted" style={{ fontSize: 10.5, textAlign: 'center' }}>
         Secret stash and secret shinies never show. To anyone.
       </AppText>
+
+      {/* Onboarding is otherwise a one-way door, and there are two good reasons
+          to go back through it: you are demoing the app to someone, or you want
+          your own account back afterwards. */}
+      <Squish
+        onPress={() => {
+          startOver();
+          closeSheet();
+        }}
+      >
+        <View
+          style={{
+            borderWidth: 2,
+            borderColor: brand.pink,
+            borderRadius: layout.radius.chip,
+            paddingVertical: 11,
+            alignItems: 'center',
+            gap: 2,
+          }}
+        >
+          <AppText style={{ fontSize: 13, fontWeight: '800', color: brand.pink }}>
+            {demoContent ? 'Back to the start' : 'Start over'}
+          </AppText>
+          <AppText tone="muted" style={{ fontSize: 10.5 }}>
+            {demoContent
+              ? 'you’re looking at the demo account, not yours'
+              : `deletes ${profile.name}’s lists and shinies, and asks again`}
+          </AppText>
+        </View>
+      </Squish>
     </BottomSheet>
   );
 }

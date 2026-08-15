@@ -26,7 +26,8 @@ import {
 } from '@/ui/primitives';
 import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
-import { meProfile, shinyCountOffset, useAppStore } from '@/store/useAppStore';
+import { shinyCountOffset, useAppStore } from '@/store/useAppStore';
+import { birthdayLabel, daysUntilBirthday, profileLink } from '@/store/profile';
 
 export function MeScreen() {
   const theme = useTheme();
@@ -34,8 +35,13 @@ export function MeScreen() {
   const topInset = useTopInset();
 
   const items = useAppStore((s) => s.items);
+  const profile = useAppStore((s) => s.profile);
+  const demoContent = useAppStore((s) => s.demoContent);
   const openSheet = useAppStore((s) => s.openSheet);
   const markLinkCopied = useAppStore((s) => s.markLinkCopied);
+
+  const birthday = birthdayLabel(profile);
+  const daysToBirthday = daysUntilBirthday(profile);
 
   const stickerTones = ['lime', 'pink', 'violet'] as const;
   const rotations = [-2, 1.5, -1];
@@ -81,22 +87,26 @@ export function MeScreen() {
             </View>
           </Squish>
 
-          <Avatar initial={meProfile.initial} size={70} />
+          <Avatar initial={profile.initial} size={70} />
 
           <AppText style={{ fontSize: 21, fontWeight: '800', letterSpacing: -0.42 }}>
-            {meProfile.name}{' '}
+            {profile.name}{' '}
             <AppText tone="violet" style={{ fontSize: 14, fontWeight: '600' }}>
-              {meProfile.handle}
+              {profile.handle}
             </AppText>
           </AppText>
 
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
-            {meProfile.tasteTags.map((tag, index) => (
-              <Sticker key={tag} tone={stickerTones[index % 3]} rotate={rotations[index % 3]}>
-                {tag}
-              </Sticker>
-            ))}
-          </View>
+          {/* Taste tags are inferred from your shinies, so a new account has
+              none to infer from yet. */}
+          {profile.tasteTags?.length ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+              {profile.tasteTags.map((tag, index) => (
+                <Sticker key={tag} tone={stickerTones[index % 3]} rotate={rotations[index % 3]}>
+                  {tag}
+                </Sticker>
+              ))}
+            </View>
+          ) : null}
 
           <AppText tone="muted" style={{ fontSize: 11, textAlign: 'center' }}>
             your taste, read from your shinies — helps friends gift you right
@@ -107,7 +117,7 @@ export function MeScreen() {
           {/* The hero action: how people who don't have the app reach you. */}
           <Squish
             onPress={() =>
-              router.push({ pathname: '/g/[handle]', params: { handle: meProfile.slug } })
+              router.push({ pathname: '/g/[handle]', params: { handle: profile.slug } })
             }
           >
             <Card border={theme.lime66}>
@@ -122,7 +132,7 @@ export function MeScreen() {
               >
                 <QrPlaceholder size={54} />
                 <View style={{ flex: 1 }}>
-                  <AppText style={{ fontSize: 13, fontWeight: '800' }}>{meProfile.link}</AppText>
+                  <AppText style={{ fontSize: 13, fontWeight: '800' }}>{profileLink(profile)}</AppText>
                   <AppText tone="muted" style={{ fontSize: 11, marginTop: 2, lineHeight: 15 }}>
                     how friends find you — tap to preview what grandma sees, no app needed
                   </AppText>
@@ -131,7 +141,7 @@ export function MeScreen() {
                   label="Share"
                   size="sm"
                   onPress={async () => {
-                    await Clipboard.setStringAsync(`https://${meProfile.link}`);
+                    await Clipboard.setStringAsync(`https://${profileLink(profile)}`);
                     markLinkCopied();
                   }}
                 />
@@ -139,46 +149,59 @@ export function MeScreen() {
             </Card>
           </Squish>
 
-          <Card border="rgba(255,93,162,0.4)">
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 10,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-              }}
-            >
-              <GiftIcon size={16} color={brand.pink} />
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <AppText style={{ fontSize: 13, fontWeight: '700' }}>
-                    Birthday · {meProfile.birthday}
-                  </AppText>
-                  <View
-                    style={{
-                      backgroundColor: brand.pink,
-                      borderRadius: 5,
-                      paddingHorizontal: 7,
-                      paddingVertical: 2,
-                    }}
-                  >
-                    <AppText style={{ fontSize: 9.5, fontWeight: '800', color: brand.pinkInk }}>
-                      {meProfile.daysToBirthday} days
+          {/* The whole app leans on the birthday — the camera counts down to
+              it and the Feed nudges friends about it. When it is missing, the
+              card becomes the place to fix that rather than a blank. */}
+          <Squish onPress={() => openSheet({ kind: 'birthday' })}>
+            <Card border="rgba(255,93,162,0.4)">
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                }}
+              >
+                <GiftIcon size={16} color={brand.pink} />
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <AppText style={{ fontSize: 13, fontWeight: '700' }}>
+                      {birthday ? `Birthday · ${birthday}` : 'Add your birthday'}
                     </AppText>
+                    {daysToBirthday !== undefined ? (
+                      <View
+                        style={{
+                          backgroundColor: brand.pink,
+                          borderRadius: 5,
+                          paddingHorizontal: 7,
+                          paddingVertical: 2,
+                        }}
+                      >
+                        <AppText style={{ fontSize: 9.5, fontWeight: '800', color: brand.pinkInk }}>
+                          {daysToBirthday === 0 ? 'today' : `${daysToBirthday} days`}
+                        </AppText>
+                      </View>
+                    ) : null}
                   </View>
+                  <AppText tone="muted" style={{ fontSize: 11, marginTop: 2 }}>
+                    {birthday
+                      ? 'friends who can see a list of yours can see this'
+                      : 'so the countdown works and friends get a nudge'}
+                  </AppText>
                 </View>
-                <AppText tone="muted" style={{ fontSize: 11, marginTop: 2 }}>
-                  friends with your Sweet 16 list can see this
-                </AppText>
               </View>
-            </View>
-          </Card>
+            </Card>
+          </Squish>
 
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Stat value={String(items.length + shinyCountOffset)} label="shinies" tone={theme.limeText} />
-            <Stat value={String(meProfile.reactionsReceived)} label="reactions" tone={brand.pink} />
-            <Stat value={String(meProfile.dibsCalled)} label="dibs called" tone={theme.violet} />
+            <Stat
+              value={String(items.length + shinyCountOffset(demoContent))}
+              label="shinies"
+              tone={theme.limeText}
+            />
+            <Stat value={String(profile.reactionsReceived)} label="reactions" tone={brand.pink} />
+            <Stat value={String(profile.dibsCalled)} label="dibs called" tone={theme.violet} />
           </View>
 
           {/* The privacy promise, said out loud on the owner's side. */}
@@ -186,27 +209,30 @@ export function MeScreen() {
             dibs stay secret — you’ll never see which shinies are claimed
           </AppText>
 
-          <Card border={theme.violet44}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-              }}
-            >
-              <Photo style={{ width: 44, height: 44 }} radius={layout.radius.tile} />
-              <View style={{ flex: 1 }}>
-                <AppText tone="muted" style={{ fontSize: 10.5, fontWeight: '800', letterSpacing: 0.63 }}>
-                  MOST-LOVED SHINY
-                </AppText>
-                <AppText style={{ fontSize: 12.5, fontWeight: '700', marginTop: 2 }}>
-                  {meProfile.mostLovedShiny.name} · 🔥 {meProfile.mostLovedShiny.fires}
-                </AppText>
+          {/* Nothing can be most-loved until somebody has loved something. */}
+          {profile.mostLovedShiny ? (
+            <Card border={theme.violet44}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                }}
+              >
+                <Photo style={{ width: 44, height: 44 }} radius={layout.radius.tile} />
+                <View style={{ flex: 1 }}>
+                  <AppText tone="muted" style={{ fontSize: 10.5, fontWeight: '800', letterSpacing: 0.63 }}>
+                    MOST-LOVED SHINY
+                  </AppText>
+                  <AppText style={{ fontSize: 12.5, fontWeight: '700', marginTop: 2 }}>
+                    {profile.mostLovedShiny.name} · 🔥 {profile.mostLovedShiny.fires}
+                  </AppText>
+                </View>
               </View>
-            </View>
-          </Card>
+            </Card>
+          ) : null}
         </View>
       </RiseIn>
     </ScrollView>

@@ -7,6 +7,8 @@ import { View } from 'react-native';
 import { FilingTray } from '@/components/FilingTray';
 import { Sheets } from '@/components/sheets/Sheets';
 import { Toast } from '@/components/Toast';
+import { Onboarding } from '@/screens/Onboarding';
+import { useAppStore } from '@/store/useAppStore';
 import { useHydrated } from '@/store/persistence';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
@@ -30,11 +32,16 @@ export default function RootLayout() {
 function Shell() {
   const theme = useTheme();
   const hydrated = useHydrated();
+  const onboarded = useAppStore((s) => s.onboarded);
 
   // Saved state arrives a tick after the first render. Showing that tick would
   // flash the seed lists at someone who has their own, so the shell holds on
   // the page ground instead — it resolves in a frame or two.
   if (!hydrated) return <View style={{ flex: 1, backgroundColor: theme.bg }} />;
+
+  // Onboarding covers the app rather than replacing it, so the account it
+  // creates lands on a camera that is already mounted and warm.
+  if (!onboarded) return <Onboarding />;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>

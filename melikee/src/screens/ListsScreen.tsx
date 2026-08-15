@@ -118,8 +118,8 @@ export function ListsScreen() {
             tone="muted"
             style={{ fontSize: 12, textAlign: 'center', paddingHorizontal: 20, paddingVertical: 6, lineHeight: 18 }}
           >
-            You start with these three. Snap your first shiny and it lands in My wants — make more
-            lists for birthdays, holidays, whatever.
+            Snap your first shiny and it lands in My wants. Make more lists for birthdays,
+            holidays, whatever — the Secret stash is never shown to anyone.
           </AppText>
         ) : null}
       </RiseIn>

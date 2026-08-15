@@ -26,7 +26,8 @@ import { SlapIn, SnapFlash, SparkleBurst } from '@/ui/motion';
 import { AppText, GlowGround, Squish, Sticker } from '@/ui/primitives';
 import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
-import { meProfile, useAppStore } from '@/store/useAppStore';
+import { attentionCount, useAppStore } from '@/store/useAppStore';
+import { daysUntilBirthday } from '@/store/profile';
 import { isBusy, selectMatch, useCaptureStore } from '@/store/useCaptureStore';
 
 export function CameraScreen({
@@ -61,6 +62,9 @@ export function CameraScreen({
   const showAlternates = useCaptureStore((s) => s.showAlternates);
 
   const firstRun = useAppStore((s) => s.firstRun);
+  const profile = useAppStore((s) => s.profile);
+  const waiting = useAppStore(attentionCount);
+  const daysToBirthday = daysUntilBirthday(profile);
   const addShiny = useAppStore((s) => s.addShiny);
   const savePendingPhoto = useAppStore((s) => s.savePendingPhoto);
   const showToast = useAppStore((s) => s.showToast);
@@ -208,6 +212,8 @@ export function CameraScreen({
             alignItems: 'center',
           }}
         >
+          {/* Without a birthday there is no countdown to make — the pill
+              becomes the way to go and set one. */}
           <Squish onPress={onOpenMe}>
             <View
               style={{
@@ -224,7 +230,11 @@ export function CameraScreen({
             >
               <GiftIcon size={15} color={brand.pink} />
               <AppText style={{ fontSize: 12, fontWeight: '700' }}>
-                {meProfile.daysToBirthday} days till your birthday
+                {daysToBirthday === undefined
+                  ? 'Add your birthday'
+                  : daysToBirthday === 0
+                    ? 'Happy birthday!'
+                    : `${daysToBirthday} days till your birthday`}
               </AppText>
             </View>
           </Squish>
@@ -245,24 +255,26 @@ export function CameraScreen({
               }}
             >
               <BellIcon size={16} color={theme.text} />
-              <View
-                style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -4,
-                  minWidth: 16,
-                  height: 16,
-                  borderRadius: 8,
-                  backgroundColor: brand.pink,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  paddingHorizontal: 4,
-                }}
-              >
-                <AppText style={{ fontSize: 9.5, fontWeight: '700', color: brand.pinkInk }}>
-                  3
-                </AppText>
-              </View>
+              {waiting > 0 ? (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -4,
+                    minWidth: 16,
+                    height: 16,
+                    borderRadius: 8,
+                    backgroundColor: brand.pink,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingHorizontal: 4,
+                  }}
+                >
+                  <AppText style={{ fontSize: 9.5, fontWeight: '700', color: brand.pinkInk }}>
+                    {waiting}
+                  </AppText>
+                </View>
+              ) : null}
             </View>
           </Squish>
         </View>

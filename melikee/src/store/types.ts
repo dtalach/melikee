@@ -110,6 +110,28 @@ export type FriendListItem = {
 export type RequestStatus = 'pending' | 'accepted' | 'declined';
 
 /**
+ * The signed-in user. Made during onboarding rather than shipped in the seed,
+ * so a new account is their own account and not Maya's.
+ */
+export type Profile = {
+  /** First name only — it's what the app calls you, not a legal record. */
+  name: string;
+  initial: string;
+  /** "@mayalikes". */
+  handle: string;
+  /** The path on the public page — "maya" in melikee.app/maya. */
+  slug: string;
+  /** Month index 0–11 and day of month. Absent until they say. */
+  birthdayMonth?: number;
+  birthdayDay?: number;
+  /** Taste tags inferred from your shinies. Fixture content, for now. */
+  tasteTags?: string[];
+  reactionsReceived: number;
+  dibsCalled: number;
+  mostLovedShiny?: { name: string; fires: number };
+};
+
+/**
  * A product match returned by the recognition service. It is defined in the
  * recognition contract rather than here, because the serverless function
  * produces it and cannot import anything from the app's aliased tree.
@@ -124,4 +146,5 @@ export type SheetKind =
   | { kind: 'share'; listId: string }
   | { kind: 'invite' }
   | { kind: 'newList' }
-  | { kind: 'settings' };
+  | { kind: 'settings' }
+  | { kind: 'birthday' };

@@ -76,6 +76,25 @@ src/
 - **Language:** the brand is MeLikee ("me likee, me wantee"), the objects are
   *shinies*, and the claim verb — gifter side only — is *dibs*.
 
+## First run and persistence
+
+The app opens on onboarding: a welcome, a name, a birthday, and the camera
+permission. The name becomes the handle and the public link, shown as you type.
+The birthday is skippable — the camera pill turns into *"Add your birthday"* and
+the Me card is the way back to it.
+
+What onboarding creates is a real, empty account: two starter lists, no shinies,
+no friends, no feed, nobody asking to follow you.
+
+**The demo account is still there**, offered by name on the welcome screen
+(*"Just show me a demo account"*) — the seed content is what makes the Feed,
+Friends and gifter screens worth looking at. Settings tells you which one you are
+in, and takes you back through the door either way.
+
+Everything a user makes is written to device storage and survives a reload. Only
+what they made: lists, shinies, friends, access, dibs, notes, profile and
+preferences. Not the tab they were on or the sheet they had open.
+
 ## Real product lookup
 
 Photo, barcode and voice all resolve to real products through `api/recognize.ts`

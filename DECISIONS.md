@@ -266,6 +266,60 @@ existing shiny is already using.
 
 ---
 
+## First run
+
+**44. A new account is not Maya.** Opening the app used to hand you her name,
+her handle, her public link, her three lists, her six shinies, four friends you
+had never met and a stranger asking to follow you. Four screens now stand in
+front of that: a welcome, a name, a birthday, and the camera permission.
+
+**45. The name is the only thing onboarding insists on,** because it is also the
+handle and the public link — the thing you send people. It is shown as
+`melikee.app/<handle>` while they type, so the consequence of the answer is
+visible before they commit to it.
+
+**46. The birthday is asked for, and skippable.** The camera screen leads with a
+countdown to it and the Feed nudges friends about it, so the app is diminished
+without one — but demanding a date before someone has seen anything is how you
+lose them at the door. Skipping turns the camera pill into "Add your birthday",
+which is the way back in.
+
+**47. Birthdays are stored as a month and a day, and the countdown is computed.**
+The seed carried `birthday: 'Oct 14'` *and* `daysToBirthday: 71` side by side.
+A countdown written down once is wrong the next morning, and now that state
+persists, it would have been wrong for months.
+
+**48. No native date picker.** It opens on today, spins through a year nobody
+wants, and asks for a birth year the app has no use for. Twelve month chips and
+a grid of days: nothing to type, and 31 February is unreachable.
+
+**49. Camera permission is asked during onboarding, not on the first shutter
+press.** Asking at the moment of intent, with the reason on screen, is both
+better manners and a better grant rate than ambushing someone mid-ritual.
+
+**50. The demo account is offered outright on the welcome screen.** Showing
+someone the whole populated app is a real need — the seed content is what makes
+the Feed, Friends and gifter screens worth looking at. So it is a choice you
+make on purpose ("Just show me a demo account") rather than the default someone
+is silently dropped into, and Settings says which one you are in.
+
+**51. Settings can send you back through the door,** because onboarding was
+otherwise one-way and there are two good reasons to return: you are about to
+demo the app, or you want your own account back afterwards.
+
+**52. The flattering fake numbers are demo-only.** The Me screen added eight to
+the shiny count to make the profile look lived-in, and shipped 23 reactions and
+3 dibs. A real new account reads 0, and the taste tags and most-loved-shiny
+cards — both of which claim to be inferred from your shinies — hide until there
+is something to infer from.
+
+**53. The directory of people to invite is kept for real accounts.** It is
+fixture data, but it is *search results*, not "your friends" — without it the
+invite sheet is a dead search box. The four seeded friends and the inbound
+follow request are not kept, because those are claims about your life.
+
+---
+
 ## Known gaps
 
 - **No backend beyond the lookup endpoint**: no auth, no real QR encoding (the

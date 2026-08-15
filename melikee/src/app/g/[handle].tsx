@@ -20,7 +20,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SparkleIcon } from '@/ui/icons';
 import { AppText, Squish } from '@/ui/primitives';
 import { brand, gifter, layout } from '@/theme/tokens';
-import { meProfile, useAppStore } from '@/store/useAppStore';
+import { useAppStore } from '@/store/useAppStore';
+import { birthdayLabel } from '@/store/profile';
 
 export default function GifterPageRoute() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function GifterPageRoute() {
   const { list: listParam } = useLocalSearchParams<{ handle: string; list?: string }>();
 
   const listId = listParam ?? 'w';
+  const profile = useAppStore((s) => s.profile);
   const list = useAppStore((s) => s.lists.find((l) => l.id === listId));
   const allItems = useAppStore((s) => s.items);
   // Secrets never leave the app, whoever holds the link. Derived in a memo
@@ -109,7 +111,7 @@ export default function GifterPageRoute() {
               }}
             >
               <AppText style={{ fontSize: 21, fontWeight: '800', color: gifter.violet }}>
-                {meProfile.initial}
+                {profile.initial}
               </AppText>
             </View>
           </LinearGradient>
@@ -117,7 +119,7 @@ export default function GifterPageRoute() {
           <AppText
             style={{ fontSize: 21, fontWeight: '800', letterSpacing: -0.42, color: gifter.text }}
           >
-            {meProfile.name}’s {title}
+            {profile.name}’s {title}
           </AppText>
 
           {/* The note the owner wrote — what makes this a message, not a list. */}
@@ -140,7 +142,7 @@ export default function GifterPageRoute() {
           ) : null}
 
           <AppText style={{ fontSize: 10.5, fontWeight: '600', color: gifter.muted }}>
-            birthday {meProfile.birthday} · prices checked today
+            birthday {birthdayLabel(profile)} · prices checked today
           </AppText>
         </View>
 
@@ -224,7 +226,7 @@ export default function GifterPageRoute() {
             <AppText
               style={{ fontSize: 11, lineHeight: 16.5, textAlign: 'center', color: gifter.muted }}
             >
-              Dibs are a secret between gifters — {meProfile.name} never sees what’s claimed. Buy it
+              Dibs are a secret between gifters — {profile.name} never sees what’s claimed. Buy it
               anywhere you like.
             </AppText>
           </View>

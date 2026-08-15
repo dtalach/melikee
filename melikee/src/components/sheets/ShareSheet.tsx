@@ -13,13 +13,15 @@ import { GiftIcon } from '@/ui/icons';
 import { AppText, Button, Eyebrow, Squish, webInputReset } from '@/ui/primitives';
 import { layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
-import { meProfile, useAppStore, visibilityLabel } from '@/store/useAppStore';
+import { useAppStore, visibilityLabel } from '@/store/useAppStore';
+import { profileLink } from '@/store/profile';
 import { suggestedShareNote } from '@/data/seed';
 
 export function ShareSheet({ listId }: { listId: string }) {
   const theme = useTheme();
   const router = useRouter();
 
+  const profile = useAppStore((s) => s.profile);
   const list = useAppStore((s) => s.lists.find((l) => l.id === listId));
   const note = useAppStore((s) => s.notes[listId] ?? '');
   const setNote = useAppStore((s) => s.setNote);
@@ -31,7 +33,7 @@ export function ShareSheet({ listId }: { listId: string }) {
   if (!list) return null;
 
   const slug = list.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const link = `${meProfile.link}/${slug}`;
+  const link = `${profileLink(profile)}/${slug}`;
 
   const copy = async () => {
     await Clipboard.setStringAsync(`https://${link}`);
@@ -45,7 +47,7 @@ export function ShareSheet({ listId }: { listId: string }) {
         ? `sms:?body=${encodeURIComponent(body)}`
         : channel === 'whatsapp'
           ? `whatsapp://send?text=${encodeURIComponent(body)}`
-          : `mailto:?subject=${encodeURIComponent(`${meProfile.name}'s ${list.name}`)}&body=${encodeURIComponent(body)}`;
+          : `mailto:?subject=${encodeURIComponent(`${profile.name}'s ${list.name}`)}&body=${encodeURIComponent(body)}`;
 
     const opened = await Linking.openURL(url).then(
       () => true,
@@ -143,7 +145,7 @@ export function ShareSheet({ listId }: { listId: string }) {
             style={{ fontSize: 12, fontWeight: '800' }}
             onPress={() => {
               closeSheet();
-              router.push({ pathname: '/g/[handle]', params: { handle: meProfile.slug, list: listId } });
+              router.push({ pathname: '/g/[handle]', params: { handle: profile.slug, list: listId } });
             }}
           >
             Preview their view →

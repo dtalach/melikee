@@ -1,3 +1,4 @@
+import { BirthdaySheet } from '@/components/sheets/BirthdaySheet';
 import { InviteSheet } from '@/components/sheets/InviteSheet';
 import { NewListSheet } from '@/components/sheets/NewListSheet';
 import { SettingsSheet } from '@/components/sheets/SettingsSheet';
@@ -18,5 +19,7 @@ export function Sheets() {
       return <NewListSheet />;
     case 'settings':
       return <SettingsSheet />;
+    case 'birthday':
+      return <BirthdaySheet />;
   }
 }

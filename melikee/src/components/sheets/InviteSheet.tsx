@@ -12,11 +12,13 @@ import { SearchIcon } from '@/ui/icons';
 import { AppText, Avatar, Button, Eyebrow, QrPlaceholder, Squish, webInputReset } from '@/ui/primitives';
 import { layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
-import { meProfile, useAppStore } from '@/store/useAppStore';
+import { useAppStore } from '@/store/useAppStore';
+import { profileLink } from '@/store/profile';
 
 export function InviteSheet() {
   const theme = useTheme();
 
+  const profile = useAppStore((s) => s.profile);
   const directory = useAppStore((s) => s.directory);
   const query = useAppStore((s) => s.searchQuery);
   const setSearchQuery = useAppStore((s) => s.setSearchQuery);
@@ -31,7 +33,7 @@ export function InviteSheet() {
   );
 
   const copyLink = async () => {
-    await Clipboard.setStringAsync(`https://${meProfile.link}`);
+    await Clipboard.setStringAsync(`https://${profileLink(profile)}`);
     markLinkCopied();
   };
 
@@ -148,7 +150,7 @@ export function InviteSheet() {
           >
             <Eyebrow style={{ fontSize: 10 }}>SEND YOUR LINK</Eyebrow>
             <AppText tone="lime" style={{ fontSize: 12, fontWeight: '800', marginTop: 2 }}>
-              {meProfile.link}
+              {profileLink(profile)}
             </AppText>
             <AppText tone="muted" style={{ fontSize: 10, marginTop: 2 }}>
               {linkCopied ? 'copied ✓' : 'tap to copy'}
