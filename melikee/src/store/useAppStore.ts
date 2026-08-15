@@ -133,7 +133,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   activeTab: 'camera',
   setActiveTab: (activeTab) => set({ activeTab }),
 
-  themePreference: 'system',
+  // Dark is the brand's home ground — the design was built on it and every
+  // glow, sticker and sparkle is tuned for it. Light mode is a real, complete
+  // theme, but it's a choice rather than the default a light phone imposes.
+  themePreference: 'dark',
   reduceMotion: false,
   firstRun: true,
 
@@ -368,19 +371,20 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 // ── Selectors ──────────────────────────────────────────────────────────────
 
+/** "1 shiny" / "3 shinies" — the prototype said "1 shinies" everywhere. */
+export const shinies = (count: number) => `${count} ${count === 1 ? 'shiny' : 'shinies'}`;
+
 export const visibilityLabel = (v: Visibility) =>
   v === 'friends' ? 'friends can see it' : v === 'invite' ? 'invite-only' : 'just you';
 
 /** Shinies count shown on Me — seeded above the real items, as in the design. */
 export const shinyCountOffset = 8;
 
-export const selectList = (id: string) => (s: AppState) => s.lists.find((l) => l.id === id);
-export const selectItem = (id: string) => (s: AppState) => s.items.find((i) => i.id === id);
-export const selectItemsIn = (listId: string) => (s: AppState) =>
-  s.items.filter((i) => i.listId === listId);
-
-/** The user's own public page, as an outsider sees it: no secrets, ever. */
-export const selectPublicItems = (listId: string) => (s: AppState) =>
-  s.items.filter((i) => i.listId === listId && !i.secret && !i.pending);
-
+/**
+ * Note for anyone adding selectors here: a selector must return a stable
+ * reference. `find` is fine (it hands back an object that already exists);
+ * `filter`/`map` are not — they allocate a fresh array on every read, which
+ * makes the store look changed on every render and loops. Select the raw array
+ * and derive with `useMemo` in the component instead.
+ */
 export const meProfile = me;

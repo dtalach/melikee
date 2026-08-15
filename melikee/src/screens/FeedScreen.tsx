@@ -8,7 +8,7 @@
  */
 import { useRouter } from 'expo-router';
 import { ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/useTopInset';
 
 import { NullState } from '@/screens/shared/NullState';
 import { FeedIcon, GiftIcon, PersonPlusIcon } from '@/ui/icons';
@@ -17,13 +17,13 @@ import { AppText, Avatar, Button, Card, Chip, Eyebrow, Photo, Squish, Sticker } 
 import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import { avaList, digest, trending } from '@/data/seed';
-import { useAppStore } from '@/store/useAppStore';
+import { shinies, useAppStore } from '@/store/useAppStore';
 import { useCaptureStore } from '@/store/useCaptureStore';
 
 export function FeedScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
 
   const friends = useAppStore((s) => s.friends);
   const feed = useAppStore((s) => s.feed);
@@ -37,10 +37,15 @@ export function FeedScreen() {
 
   const empty = friends.length === 0;
 
+  // The nudge's count is real: it drops as you call dibs on her list, which is
+  // the quiet urgency that gets gifts bought before the day.
+  const friendDibs = useAppStore((s) => s.friendDibs);
+  const avaRemaining = avaList.items.filter((item) => !friendDibs[item.id]).length;
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.bg }}
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: layout.dockClearance }}
+      contentContainerStyle={{ paddingTop: topInset + 12, paddingBottom: layout.dockClearance }}
     >
       <RiseIn>
         {/* Header */}
@@ -135,7 +140,7 @@ export function FeedScreen() {
                     <AppText style={{ fontSize: 12, fontWeight: '800' }}>
                       {avaList.owner}’s birthday in {avaList.daysAway} days
                     </AppText>{' '}
-                    · {avaList.items.length} shinies still up for dibs
+                    · {shinies(avaRemaining)} still up for dibs
                   </AppText>
                   <Button
                     label="Peek"

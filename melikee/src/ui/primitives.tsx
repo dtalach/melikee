@@ -4,7 +4,7 @@
  * ground with a 2px tinted border and a real shadow, so they read as objects
  * rather than tints.
  */
-import { type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import {
   Image,
   Pressable,
@@ -105,35 +105,50 @@ export function Card({ children, border, variant = 'raised', style }: CardProps)
  * The radial glow ground the app uses to stage its hero moments — the camera
  * screen, and both full-bleed null states.
  */
+let glowId = 0;
+
 export function GlowGround({
   children,
   style,
   /** Vertical position of the glow's centre, as a fraction of the box. */
   center = 0.3,
   spread = { x: 0.6, y: 0.4 },
+  /**
+   * Where the glow lands. The camera's full-bleed ground falls off into the
+   * deep stop; panels sitting inside a page fade into the page ground instead,
+   * so there's no visible seam where the panel ends.
+   */
+  edge = 'page',
+  /** How far out the glow reaches before it's fully faded. */
+  falloff = 0.9,
 }: {
   children?: ReactNode;
   style?: StyleProp<ViewStyle>;
   center?: number;
   spread?: { x: number; y: number };
+  edge?: 'page' | 'deep';
+  falloff?: number;
 }) {
   const theme = useTheme();
+  // Gradient ids are document-global in SVG, so each instance needs its own.
+  const id = useMemo(() => `glow-${++glowId}`, []);
+
   return (
     <View style={[{ overflow: 'hidden' }, style]}>
       <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
         <Defs>
           <RadialGradient
-            id="glow"
+            id={id}
             cx="50%"
             cy={`${center * 100}%`}
             rx={`${spread.x * 100}%`}
             ry={`${spread.y * 100}%`}
           >
             <Stop offset="0" stopColor={theme.radial1} />
-            <Stop offset="0.9" stopColor={theme.radial2} />
+            <Stop offset={String(falloff)} stopColor={edge === 'deep' ? theme.radial2 : theme.bg} />
           </RadialGradient>
         </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#glow)" />
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
       </Svg>
       {children}
     </View>

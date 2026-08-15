@@ -9,7 +9,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/useTopInset';
 
 import { ChevronLeftIcon, ShareIcon } from '@/ui/icons';
 import { RiseIn } from '@/ui/motion';
@@ -22,7 +22,7 @@ import { useAppStore } from '@/store/useAppStore';
 export default function ItemDetailRoute() {
   const theme = useTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const item = useAppStore((s) => s.items.find((i) => i.id === id));
@@ -60,7 +60,7 @@ export default function ItemDetailRoute() {
 
           <Squish
             onPress={goBack}
-            style={{ position: 'absolute', left: 18, top: insets.top + 12 }}
+            style={{ position: 'absolute', left: 18, top: topInset + 12 }}
             hitSlop={10}
           >
             <ChevronLeftIcon size={22} color={theme.text} />

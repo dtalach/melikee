@@ -4,6 +4,7 @@
  * strokes use `currentColor` semantics via an explicit `color` prop — the mode
  * selector relies on icon and label lighting up as one unit.
  */
+import { View } from 'react-native';
 import Svg, { Circle, Path, Rect, type SvgProps } from 'react-native-svg';
 
 export type IconProps = {
@@ -248,17 +249,42 @@ export function PersonPlusIcon({ size = 14, color = '#c8f542', strokeWidth = 1.5
   );
 }
 
-/** The viewfinder's corner brackets, stretched to the frame. */
-export function ViewfinderBrackets({ color = '#a78bfa', ...rest }: Omit<SvgProps, 'color'> & { color?: string }) {
+/**
+ * The viewfinder's corner brackets.
+ *
+ * Drawn as four bordered corners rather than one stretched SVG: the prototype
+ * scaled a 100×100 path to a tall frame, which turns the corner radii into
+ * long straight runs. Real corners keep the stroke uniform at any aspect.
+ */
+export function ViewfinderBrackets({
+  color = '#a78bfa',
+  size = 34,
+  thickness = 1.5,
+  radius = 14,
+  opacity = 0.9,
+}: {
+  color?: string;
+  /** Arm length of each corner. */
+  size?: number;
+  thickness?: number;
+  radius?: number;
+  opacity?: number;
+}) {
+  const corners = [
+    { top: 0, left: 0, borderTopWidth: thickness, borderLeftWidth: thickness, borderTopLeftRadius: radius },
+    { top: 0, right: 0, borderTopWidth: thickness, borderRightWidth: thickness, borderTopRightRadius: radius },
+    { bottom: 0, right: 0, borderBottomWidth: thickness, borderRightWidth: thickness, borderBottomRightRadius: radius },
+    { bottom: 0, left: 0, borderBottomWidth: thickness, borderLeftWidth: thickness, borderBottomLeftRadius: radius },
+  ];
+
   return (
-    <Svg viewBox="0 0 100 100" preserveAspectRatio="none" {...rest}>
-      <Path
-        d="M2 14V4a2 2 0 012-2h10M86 2h10a2 2 0 012 2v10M98 86v10a2 2 0 01-2 2H86M14 98H4a2 2 0 01-2-2V86"
-        stroke={color}
-        strokeWidth={0.7}
-        fill="none"
-        opacity={0.9}
-      />
-    </Svg>
+    <View style={{ flex: 1 }} pointerEvents="none">
+      {corners.map((corner, index) => (
+        <View
+          key={index}
+          style={{ position: 'absolute', width: size, height: size, borderColor: color, opacity, ...corner }}
+        />
+      ))}
+    </View>
   );
 }

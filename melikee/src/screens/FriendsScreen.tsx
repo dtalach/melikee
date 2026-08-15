@@ -8,7 +8,7 @@
  */
 import { useRouter } from 'expo-router';
 import { ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/useTopInset';
 
 import { NullState } from '@/screens/shared/NullState';
 import { ChevronRightIcon, FriendsIcon } from '@/ui/icons';
@@ -41,7 +41,7 @@ const HOW_IT_WORKS = [
 export function FriendsScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const [openFriend, setOpenFriend] = useState<string | null>(null);
 
   const friends = useAppStore((s) => s.friends);
@@ -61,7 +61,7 @@ export function FriendsScreen() {
       style={{ flex: 1, backgroundColor: theme.bg }}
       contentContainerStyle={{
         flexGrow: 1,
-        paddingTop: insets.top + 16,
+        paddingTop: topInset + 16,
         paddingBottom: empty ? 0 : layout.dockClearance,
       }}
     >

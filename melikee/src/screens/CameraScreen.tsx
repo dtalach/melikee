@@ -9,7 +9,7 @@
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/useTopInset';
 
 import { CaptureModeBar } from '@/screens/camera/CaptureModeBar';
 import { FoundCard } from '@/screens/camera/FoundCard';
@@ -37,7 +37,7 @@ export function CameraScreen({
   onOpenMe: () => void;
 }) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -167,7 +167,7 @@ export function CameraScreen({
           onBarcodeScanned={mode === 'scan' || idle ? onBarcodeScanned : undefined}
         />
       ) : (
-        <GlowGround style={StyleSheet.absoluteFill} />
+        <GlowGround style={StyleSheet.absoluteFill} edge="deep" />
       )}
 
       {/* A scrim so the app's own type stays legible over any scene. */}
@@ -182,7 +182,7 @@ export function CameraScreen({
       ) : null}
 
       <View style={{ position: 'absolute', inset: 20 }} pointerEvents="none">
-        <ViewfinderBrackets width="100%" height="100%" color={theme.violet} />
+        <ViewfinderBrackets color={theme.violet} />
       </View>
 
       {/* Top chrome — steps aside during the capture flow. */}
@@ -190,7 +190,7 @@ export function CameraScreen({
         <View
           style={{
             position: 'absolute',
-            top: insets.top + 14,
+            top: topInset + 14,
             left: 16,
             right: 16,
             flexDirection: 'row',
@@ -261,7 +261,7 @@ export function CameraScreen({
       {phase === 'found' || phase === 'alts' ? (
         <Squish
           onPress={cancel}
-          style={{ position: 'absolute', top: insets.top + 14, left: 16, zIndex: 3 }}
+          style={{ position: 'absolute', top: topInset + 14, left: 16, zIndex: 3 }}
         >
           <View
             style={{

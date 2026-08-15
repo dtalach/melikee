@@ -5,8 +5,9 @@
  * a glance is the point; each card taps into a focused item view.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useMemo } from 'react';
 import { ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/useTopInset';
 
 import { Dock } from '@/components/Dock';
 import { useGoToTab } from '@/hooks/useGoToTab';
@@ -15,17 +16,20 @@ import { RiseIn } from '@/ui/motion';
 import { AppText, Button, Photo, Squish } from '@/ui/primitives';
 import { layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
-import { useAppStore, visibilityLabel } from '@/store/useAppStore';
+import { shinies, useAppStore, visibilityLabel } from '@/store/useAppStore';
 
 export default function ListDetailRoute() {
   const theme = useTheme();
   const router = useRouter();
   const goToTab = useGoToTab();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const list = useAppStore((s) => s.lists.find((l) => l.id === id));
-  const items = useAppStore((s) => s.items.filter((i) => i.listId === id));
+  // Selectors must return a stable reference: building a new array on every
+  // read makes useSyncExternalStore see a change each render and loop.
+  const allItems = useAppStore((s) => s.items);
+  const items = useMemo(() => allItems.filter((i) => i.listId === id), [allItems, id]);
   const openSheet = useAppStore((s) => s.openSheet);
 
   if (!list) return null;
@@ -38,7 +42,7 @@ export default function ListDetailRoute() {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 10,
-            paddingTop: insets.top + 14,
+            paddingTop: topInset + 14,
             paddingHorizontal: 18,
             paddingBottom: 10,
           }}
@@ -49,7 +53,7 @@ export default function ListDetailRoute() {
           <View style={{ flex: 1, minWidth: 0 }}>
             <AppText style={{ fontSize: 20, fontWeight: '800' }}>{list.name}</AppText>
             <AppText tone="muted" style={{ fontSize: 11 }}>
-              {items.length} shinies · {visibilityLabel(list.visibility)}
+              {shinies(items.length)} · {visibilityLabel(list.visibility)}
             </AppText>
           </View>
           <Button

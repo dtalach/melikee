@@ -6,7 +6,7 @@
  * dock drive the same state, so they can never disagree. Swipes are suppressed
  * while a sheet or the filing tray is up, and during the capture flow.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { ScrollView, useWindowDimensions, View } from 'react-native';
 
 import { Dock } from '@/components/Dock';
@@ -22,7 +22,10 @@ import { fireShutter } from '@/services/captureBridge';
 
 export default function AppShell() {
   const theme = useTheme();
-  const { width } = useWindowDimensions();
+  // Pages need an explicit height as well as a width: inside a horizontal
+  // ScrollView nothing stretches them, and the camera's chrome is positioned
+  // against the full screen.
+  const { width, height } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   /** The page the strip is actually showing, so state echoes don't re-scroll. */
   const settledIndex = useRef(0);
@@ -62,25 +65,25 @@ export default function AppShell() {
           setActiveTab(TAB_ORDER[next]);
         }}
       >
-        <View style={{ width }}>
+        <Page tab="camera" active={activeTab} width={width} height={height}>
           <CameraScreen
             active={activeTab === 'camera'}
             onOpenFeed={() => goTo('feed')}
             onOpenMe={() => goTo('me')}
           />
-        </View>
-        <View style={{ width }}>
+        </Page>
+        <Page tab="lists" active={activeTab} width={width} height={height}>
           <ListsScreen />
-        </View>
-        <View style={{ width }}>
+        </Page>
+        <Page tab="feed" active={activeTab} width={width} height={height}>
           <FeedScreen />
-        </View>
-        <View style={{ width }}>
+        </Page>
+        <Page tab="friends" active={activeTab} width={width} height={height}>
           <FriendsScreen />
-        </View>
-        <View style={{ width }}>
+        </Page>
+        <Page tab="me" active={activeTab} width={width} height={height}>
           <MeScreen />
-        </View>
+        </Page>
       </ScrollView>
 
       {/* The dock steps aside for the whole capture flow, so the reveal gets
@@ -99,6 +102,42 @@ export default function AppShell() {
           }}
         />
       ) : null}
+    </View>
+  );
+}
+
+/**
+ * One page of the strip.
+ *
+ * Every page stays mounted so the camera keeps its preview and screens keep
+ * their scroll position — but only the active one is interactive and visible
+ * to assistive tech. Without this, a screen reader walks straight through the
+ * pages parked off-screen, and a browser can scroll the strip out from under
+ * the app's own state.
+ */
+function Page({
+  tab,
+  active,
+  width,
+  height,
+  children,
+}: {
+  tab: Tab;
+  active: Tab;
+  width: number;
+  height: number;
+  children: ReactNode;
+}) {
+  const isActive = tab === active;
+  return (
+    <View
+      style={{ width, height }}
+      pointerEvents={isActive ? 'auto' : 'none'}
+      accessibilityElementsHidden={!isActive}
+      importantForAccessibility={isActive ? 'auto' : 'no-hide-descendants'}
+      aria-hidden={!isActive}
+    >
+      {children}
     </View>
   );
 }

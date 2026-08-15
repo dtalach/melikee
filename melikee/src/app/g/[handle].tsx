@@ -10,9 +10,11 @@
  * same to a visitor as it does in preview.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/useTopInset';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { SparkleIcon } from '@/ui/icons';
@@ -23,13 +25,17 @@ import { meProfile, useAppStore } from '@/store/useAppStore';
 export default function GifterPageRoute() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const { list: listParam } = useLocalSearchParams<{ handle: string; list?: string }>();
 
   const listId = listParam ?? 'w';
   const list = useAppStore((s) => s.lists.find((l) => l.id === listId));
-  // Secrets never leave the app, whoever holds the link.
-  const items = useAppStore((s) =>
-    s.items.filter((i) => i.listId === listId && !i.secret && !i.pending),
+  const allItems = useAppStore((s) => s.items);
+  // Secrets never leave the app, whoever holds the link. Derived in a memo
+  // so the selector keeps returning a stable reference.
+  const items = useMemo(
+    () => allItems.filter((i) => i.listId === listId && !i.secret && !i.pending),
+    [allItems, listId],
   );
   const note = useAppStore((s) => s.notes[listId]);
   const dibs = useAppStore((s) => s.gifterDibs);
@@ -49,7 +55,7 @@ export default function GifterPageRoute() {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 8,
-            paddingTop: insets.top + 9,
+            paddingTop: topInset + 9,
             paddingHorizontal: 16,
             paddingBottom: 9,
             backgroundColor: gifter.bar,
@@ -73,7 +79,7 @@ export default function GifterPageRoute() {
       <ScrollView contentContainerStyle={{ paddingBottom: Math.max(30, insets.bottom + 20) }}>
         <View
           style={{
-            paddingTop: inPreview ? 20 : insets.top + 20,
+            paddingTop: inPreview ? 20 : topInset + 20,
             paddingHorizontal: 22,
             paddingBottom: 6,
             alignItems: 'center',

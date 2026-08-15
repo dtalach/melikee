@@ -1,18 +1,18 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/useTopInset';
 
 import { ChevronRightIcon, GlobeIcon, LockIcon, ShareIcon } from '@/ui/icons';
 import { RiseIn } from '@/ui/motion';
 import { AppText, Button, Squish } from '@/ui/primitives';
 import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
-import { useAppStore, visibilityLabel } from '@/store/useAppStore';
+import { shinies, useAppStore, visibilityLabel } from '@/store/useAppStore';
 
 export function ListsScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
 
   const lists = useAppStore((s) => s.lists);
   const items = useAppStore((s) => s.items);
@@ -25,7 +25,7 @@ export function ListsScreen() {
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.bg }}
       contentContainerStyle={{
-        paddingTop: insets.top + 16,
+        paddingTop: topInset + 16,
         paddingHorizontal: 18,
         paddingBottom: layout.dockClearance,
         gap: 10,
@@ -81,7 +81,7 @@ export function ListsScreen() {
                     <VisibilityBadge list={list} />
                   </View>
                   <AppText tone="muted" style={{ fontSize: 11 }}>
-                    {count} shinies · {visibilityLabel(list.visibility)}
+                    {shinies(count)} · {visibilityLabel(list.visibility)}
                   </AppText>
                 </View>
 

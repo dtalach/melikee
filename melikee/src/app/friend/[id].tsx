@@ -7,7 +7,7 @@
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/useTopInset';
 
 import { Dock } from '@/components/Dock';
 import { useGoToTab } from '@/hooks/useGoToTab';
@@ -17,13 +17,13 @@ import { AppText, Avatar, Button, Photo, Squish } from '@/ui/primitives';
 import { layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import { avaList } from '@/data/seed';
-import { useAppStore } from '@/store/useAppStore';
+import { shinies, useAppStore } from '@/store/useAppStore';
 
 export default function FriendListRoute() {
   const theme = useTheme();
   const router = useRouter();
   const goToTab = useGoToTab();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const friend = useAppStore((s) => s.friends.find((f) => f.id === id));
@@ -42,7 +42,7 @@ export default function FriendListRoute() {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 10,
-            paddingTop: insets.top + 14,
+            paddingTop: topInset + 14,
             paddingHorizontal: 18,
             paddingBottom: 10,
           }}
@@ -57,7 +57,7 @@ export default function FriendListRoute() {
             </AppText>
             <AppText tone="muted" style={{ fontSize: 11 }}>
               {list
-                ? `birthday in ${list.daysAway} days · ${remaining} shinies up for dibs`
+                ? `birthday in ${list.daysAway} days · ${shinies(remaining)} up for dibs`
                 : 'nothing shared with you yet'}
             </AppText>
           </View>

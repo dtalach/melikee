@@ -9,7 +9,7 @@
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/useTopInset';
 
 import { GearIcon, GiftIcon } from '@/ui/icons';
 import { RiseIn, Twinkle } from '@/ui/motion';
@@ -31,7 +31,7 @@ import { meProfile, shinyCountOffset, useAppStore } from '@/store/useAppStore';
 export function MeScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
 
   const items = useAppStore((s) => s.items);
   const openSheet = useAppStore((s) => s.openSheet);
@@ -51,19 +51,19 @@ export function MeScreen() {
           center={0}
           spread={{ x: 0.6, y: 0.5 }}
           style={{
-            paddingTop: insets.top + 16,
+            paddingTop: topInset + 16,
             paddingHorizontal: 18,
             paddingBottom: 15,
             alignItems: 'center',
             gap: 8,
           }}
         >
-          <Twinkle size={12} color={brand.lime} duration={2200} style={{ position: 'absolute', top: insets.top + 16, left: 46 }} />
-          <Twinkle size={9} color={brand.pink} duration={2800} delay={600} style={{ position: 'absolute', top: insets.top + 42, right: 52 }} />
+          <Twinkle size={12} color={brand.lime} duration={2200} style={{ position: 'absolute', top: topInset + 16, left: 46 }} />
+          <Twinkle size={9} color={brand.pink} duration={2800} delay={600} style={{ position: 'absolute', top: topInset + 42, right: 52 }} />
 
           <Squish
             onPress={() => openSheet({ kind: 'settings' })}
-            style={{ position: 'absolute', top: insets.top + 12, right: 14 }}
+            style={{ position: 'absolute', top: topInset + 12, right: 14 }}
           >
             <View
               style={{
