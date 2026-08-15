@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="stylesheet" href="_ds/nocturne-de0000bc-4bdb-47c5-b41f-9f3691d4bb72/styles.css">
+<script src="_ds/nocturne-de0000bc-4bdb-47c5-b41f-9f3691d4bb72/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#101120;font-family:var(--font-body);display:grid;place-items:center;min-height:100vh;padding:28px 0}
+a{color:var(--color-accent)}a:hover{color:var(--color-accent-300)}
+@keyframes mlk-pulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.12);opacity:.45}}
+@keyframes mlk-spin{to{transform:rotate(360deg)}}
+@keyframes mlk-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes mlk-toast{0%{opacity:0;transform:translateY(10px)}12%,82%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-6px)}}
+</style>
+</helmet>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="393px,852px">
+<div style="display:flex;flex-direction:column;height:100%;padding-top:59px;background:var(--color-bg);color:var(--color-text);position:relative;overflow:hidden">
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:1.15;position:relative;background:radial-gradient(120% 90% at 50% 0%,var(--color-section) 0%,var(--color-bg) 78%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent-300)">Saw something you like?</div>
+    <div onClick="{{ startCapture }}" style="cursor:pointer;width:124px;height:124px;border-radius:50%;border:1px solid var(--color-accent);background:color-mix(in srgb,var(--color-accent) 10%,transparent);box-shadow:0 0 48px color-mix(in srgb,var(--color-accent) 40%,transparent);display:grid;place-items:center" style-hover="background:color-mix(in srgb,var(--color-accent) 18%,transparent)">
+      <svg width="40" height="40" viewBox="0 0 16 16" fill="none" stroke="var(--color-accent)" stroke-width="1.1"><rect x="1.5" y="4" width="13" height="9.5" rx="2"></rect><circle cx="8" cy="8.7" r="2.6"></circle><path d="M5.5 4l1-2h3l1 2"></path></svg>
+    </div>
+    <div style="display:flex;gap:24px;font-size:11px;color:var(--color-neutral-400)">
+      <div onClick="{{ startScan }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 5V2h3M14 5V2h-3M2 11v3h3M14 11v3h-3M4.5 8h7"></path></svg>Scan</div>
+      <div onClick="{{ startCapture }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--color-accent)"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="4" width="13" height="9.5" rx="2"></rect><circle cx="8" cy="8.7" r="2.6"></circle><path d="M5.5 4l1-2h3l1 2"></path></svg>Snap</div>
+      <div onClick="{{ startSay }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="6" y="1.5" width="4" height="8" rx="2"></rect><path d="M3.5 7.5a4.5 4.5 0 009 0M8 12v2.5"></path></svg>Say it</div>
+    </div>
+  </div>
+  <div style="flex:1;padding:8px 20px 12px;display:flex;flex-direction:column;gap:8px;min-height:0;overflow:hidden">
+    <h6 style="margin:0;color:var(--color-neutral-500)">Recently wished</h6>
+    <div style="display:flex;flex-direction:column">
+      <sc-for list="{{ recentItems }}" as="it" hint-placeholder-count="3">
+        <div onClick="{{ it.open }}" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:8px 0;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom / 100% 1px">
+          <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--color-neutral-900),var(--color-accent-900));flex:none;display:grid;place-items:center;color:var(--color-neutral-600);font-size:8px">photo</div>
+          <div style="flex:1;font-size:13px;line-height:1.25">{{ it.name }}<div style="font-size:11px;color:var(--color-neutral-500)">{{ it.listName }} · {{ it.price }}</div></div>
+          <span class="tag tag-neutral" style="font-size:10px">{{ it.when }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <h6 style="margin:4px 0 0;color:var(--color-neutral-500)">You might like these</h6>
+    <div style="display:flex;gap:10px;overflow:hidden">
+      <sc-for list="{{ recs }}" as="r" hint-placeholder-count="3">
+        <div class="card" style="width:124px;flex:none;padding:9px;gap:5px">
+          <div style="height:64px;border-radius:6px;background:linear-gradient(135deg,var(--color-neutral-900),var(--color-accent-900));display:grid;place-items:center;color:var(--color-neutral-600);font-size:9px">photo</div>
+          <div style="font-size:11.5px;line-height:1.3">{{ r.name }}</div>
+          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--color-accent-300);flex:1">{{ r.price }}</span><span onClick="{{ r.add }}" style="cursor:pointer;color:var(--color-accent);font-size:15px;line-height:1">+</span></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isCapture }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;background:radial-gradient(100% 70% at 50% 45%,#1c1e30 0%,#0d0e18 100%);animation:mlk-up .25s ease-out">
+    <div style="padding:12px 20px;display:flex;align-items:center">
+      <span onClick="{{ goHome }}" style="cursor:pointer;color:var(--color-neutral-400);font-size:13px">Cancel</span>
+      <span style="flex:1"></span>
+      <span style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent-300)">{{ captureHint }}</span>
+    </div>
+    <div style="flex:1;position:relative;margin:8px 26px">
+      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" stroke="var(--color-accent)" stroke-width="0.6" opacity="0.85"><path d="M2 14V4a2 2 0 012-2h10M86 2h10a2 2 0 012 2v10M98 86v10a2 2 0 01-2 2H86M14 98H4a2 2 0 01-2-2V86"></path></svg>
+      <sc-if value="{{ isSay }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+          <div style="display:flex;gap:4px;align-items:flex-end;height:34px">
+            <div style="width:4px;height:12px;border-radius:2px;background:var(--color-accent);animation:mlk-pulse 1s infinite"></div>
+            <div style="width:4px;height:26px;border-radius:2px;background:var(--color-accent);animation:mlk-pulse 1s .15s infinite"></div>
+            <div style="width:4px;height:18px;border-radius:2px;background:var(--color-accent);animation:mlk-pulse 1s .3s infinite"></div>
+            <div style="width:4px;height:30px;border-radius:2px;background:var(--color-accent);animation:mlk-pulse 1s .45s infinite"></div>
+            <div style="width:4px;height:14px;border-radius:2px;background:var(--color-accent);animation:mlk-pulse 1s .6s infinite"></div>
+          </div>
+          <div style="font-size:15px;color:var(--color-neutral-300);text-align:center;max-width:220px">"those Sony noise-cancelling headphones, the new ones"</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ notSay }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;inset:0;display:grid;place-items:center;color:var(--color-neutral-700);font-size:12px">{{ viewfinderLabel }}</div>
+      </sc-if>
+    </div>
+    <div style="padding:10px 20px 6px;display:flex;justify-content:center;gap:8px">
+      <span onClick="{{ startScan }}" class="tag {{ scanTag }}" style="cursor:pointer">Scan</span>
+      <span onClick="{{ startCapture }}" class="tag {{ snapTag }}" style="cursor:pointer">Snap</span>
+      <span onClick="{{ startSay }}" class="tag {{ sayTag }}" style="cursor:pointer">Say it</span>
+    </div>
+    <div style="padding:10px 0 26px;display:grid;place-items:center">
+      <div onClick="{{ doShutter }}" style="cursor:pointer;width:66px;height:66px;border-radius:50%;border:1.5px solid var(--color-accent);display:grid;place-items:center" style-hover="box-shadow:0 0 24px color-mix(in srgb,var(--color-accent) 40%,transparent)">
+        <div style="width:52px;height:52px;border-radius:50%;background:color-mix(in srgb,var(--color-accent) 30%,var(--color-surface))"></div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isAnalyzing }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:radial-gradient(100% 70% at 50% 45%,#1c1e30 0%,#0d0e18 100%)">
+    <div style="position:relative;width:96px;height:96px">
+      <div style="position:absolute;inset:0;border-radius:50%;border:1px solid var(--color-accent-700);animation:mlk-pulse 1.4s infinite"></div>
+      <div style="position:absolute;inset:14px;border-radius:50%;border-top:1.5px solid var(--color-accent);animation:mlk-spin 1s linear infinite"></div>
+      <div style="position:absolute;inset:0;display:grid;place-items:center"><svg width="26" height="26" viewBox="0 0 16 16" fill="none" stroke="var(--color-accent-300)" stroke-width="1.2"><path d="M8 2l1.8 3.9L14 6.5l-3 3 .8 4.3L8 11.7l-3.8 2.1.8-4.3-3-3 4.2-.6z"></path></svg></div>
+    </div>
+    <div style="font-size:14px;color:var(--color-neutral-300)">Working our magic…</div>
+    <div style="font-size:11px;color:var(--color-neutral-600)">matching product · finding UPC · comparing prices</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isFound }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;animation:mlk-up .3s ease-out">
+    <div style="padding:14px 20px 0">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">We found it</div>
+      <h4 style="margin:6px 0 0;font-size:22px">Is this the one?</h4>
+    </div>
+    <div style="margin:12px 20px 0;border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-md);background:var(--color-surface)">
+      <div style="height:150px;background:linear-gradient(160deg,var(--color-neutral-900),var(--color-accent-900));display:grid;place-items:center;color:var(--color-neutral-600);font-size:11px">{{ foundImgLabel }}</div>
+      <div style="padding:13px 16px;display:flex;flex-direction:column;gap:9px">
+        <div><div style="font-size:16px">{{ foundName }}</div><div style="font-size:11px;color:var(--color-neutral-500);margin-top:3px">UPC {{ foundUpc }} · {{ foundMatch }}</div></div>
+        <div style="display:flex;gap:14px;font-size:13px"><span style="color:var(--color-accent-300)">{{ foundBest }}</span><span style="color:var(--color-neutral-500)">{{ foundAlt }}</span></div>
+        <div class="field" style="margin:0"><label>Add to</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <sc-for list="{{ listChips }}" as="c" hint-placeholder-count="3">
+              <span onClick="{{ c.pick }}" class="tag {{ c.cls }}" style="cursor:pointer">{{ c.name }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 20px 8px;display:flex;flex-direction:column;gap:8px">
+      <button onClick="{{ confirmAdd }}" class="btn btn-primary btn-block" style="margin:0">Yes — add to {{ pickedListName }}</button>
+      <button onClick="{{ swapMatch }}" class="btn btn-secondary btn-block" style="margin:0">Not this one, show near matches</button>
+    </div>
+    <div style="padding:0 20px;font-size:11px;color:var(--color-neutral-600)">{{ nearMatchNote }}</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isLists }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;padding:16px 20px 0;display:flex;flex-direction:column;gap:4px;overflow:hidden">
+    <div style="display:flex;align-items:baseline"><h4 style="margin:0;font-size:24px;flex:1">Your lists</h4><button class="btn btn-ghost" style="font-size:13px">+ New list</button></div>
+    <div style="display:flex;flex-direction:column;margin-top:6px">
+      <sc-for list="{{ listRows }}" as="l" hint-placeholder-count="3">
+        <div onClick="{{ l.open }}" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 0;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom / 100% 1px">
+          <div style="width:38px;height:38px;border-radius:9px;background:var(--color-accent-900);display:grid;place-items:center;color:var(--color-accent-300);font-size:14px;font-weight:500">{{ l.initial }}</div>
+          <div style="flex:1"><div style="font-size:14.5px">{{ l.name }}</div><div style="font-size:11px;color:var(--color-neutral-500)">{{ l.meta }}</div></div>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--color-neutral-600)" stroke-width="1.4"><path d="M6 3l5 5-5 5"></path></svg>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;animation:mlk-up .25s ease-out">
+    <div style="padding:14px 20px 10px;display:flex;align-items:center;gap:10px">
+      <svg onClick="{{ goLists }}" style="cursor:pointer" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="var(--color-neutral-400)" stroke-width="1.4"><path d="M10 3L5 8l5 5"></path></svg>
+      <div style="flex:1;min-width:0"><h4 style="margin:0;font-size:20px">{{ activeListName }}</h4><div style="font-size:11px;color:var(--color-neutral-500)">{{ activeListMeta }}</div></div>
+      <div class="seg">
+        <label class="seg-opt" style="padding:5px 10px"><input type="radio" name="view" checked="{{ isShelf }}" onChange="{{ setShelf }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"></rect><rect x="9" y="2" width="5" height="5" rx="1"></rect><rect x="2" y="9" width="5" height="5" rx="1"></rect><rect x="9" y="9" width="5" height="5" rx="1"></rect></svg></label>
+        <label class="seg-opt" style="padding:5px 10px"><input type="radio" name="view" checked="{{ isLedger }}" onChange="{{ setLedger }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 3.5h11M2.5 8h11M2.5 12.5h11"></path></svg></label>
+      </div>
+    </div>
+    <sc-if value="{{ isShelf }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:2px 20px 14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;overflow-y:auto;align-content:start;flex:1">
+        <sc-for list="{{ activeItems }}" as="it" hint-placeholder-count="4">
+          <div onClick="{{ it.open }}" class="card" style="cursor:pointer;padding:0;overflow:hidden" style-hover="box-shadow:var(--shadow-sm)">
+            <div style="height:104px;background:linear-gradient(160deg,var(--color-neutral-900),var(--color-accent-900));display:grid;place-items:center;color:var(--color-neutral-600);font-size:9px">photo</div>
+            <div style="padding:9px 11px 11px"><div style="font-size:12.5px;line-height:1.3">{{ it.name }}</div><div style="font-size:11.5px;color:var(--color-accent-300);margin-top:3px">{{ it.price }} · {{ it.store }}</div></div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isLedger }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:0 20px 14px;display:flex;flex-direction:column;overflow-y:auto;flex:1">
+        <sc-for list="{{ activeItems }}" as="it" hint-placeholder-count="4">
+          <div onClick="{{ it.open }}" style="cursor:pointer;display:flex;gap:12px;padding:11px 0;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom / 100% 1px">
+            <div style="width:46px;height:46px;border-radius:8px;background:linear-gradient(135deg,var(--color-neutral-900),var(--color-accent-900));flex:none;display:grid;place-items:center;color:var(--color-neutral-600);font-size:8px">photo</div>
+            <div style="flex:1;min-width:0"><div style="font-size:13.5px;line-height:1.3">{{ it.name }}</div><div style="font-size:11px;color:var(--color-neutral-500);margin-top:2px">{{ it.store }} · {{ it.added }}</div></div>
+            <div style="font-size:13.5px;color:var(--color-accent-300)">{{ it.price }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div style="padding:0 20px 14px"><button onClick="{{ startCapture }}" class="btn btn-primary btn-block" style="gap:8px;margin:0"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 3v10M3 8h10"></path></svg>Add to this list</button></div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isItem }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;animation:mlk-up .25s ease-out;overflow-y:auto">
+    <div style="height:210px;background:linear-gradient(180deg,var(--color-accent-900),var(--color-bg));display:grid;place-items:center;color:var(--color-neutral-600);font-size:11px;position:relative;flex:none">
+      photo
+      <svg onClick="{{ backFromItem }}" style="cursor:pointer;position:absolute;left:18px;top:12px" width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="var(--color-neutral-300)" stroke-width="1.4"><path d="M10 3L5 8l5 5"></path></svg>
+      <div style="position:absolute;left:20px;bottom:12px;right:20px">
+        <span class="tag tag-accent">{{ activeItemListName }}</span>
+        <h4 style="margin:8px 0 0;font-size:22px">{{ activeItemName }}</h4>
+      </div>
+    </div>
+    <div style="padding:14px 20px;display:flex;flex-direction:column;gap:13px">
+      <div style="display:flex;align-items:baseline;gap:10px">
+        <div style="font-size:25px;color:var(--color-accent-300);font-weight:500">{{ activeItemPrice }}</div>
+        <div style="font-size:12px;color:var(--color-neutral-500)">lowest of 3 stores</div>
+      </div>
+      <div style="display:flex;flex-direction:column">
+        <sc-for list="{{ activeItemStores }}" as="s" hint-placeholder-count="3">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom / 100% 1px"><span>{{ s.store }}</span><span style="color:{{ s.color }}">{{ s.price }}</span></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:14px;font-size:11px;color:var(--color-neutral-500)"><span>UPC {{ activeItemUpc }}</span><span>{{ activeItemAdded }}</span></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1">Open at {{ activeItemStore }}</button>
+        <button class="btn btn-secondary btn-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="3.5" r="2"></circle><circle cx="4" cy="8" r="2"></circle><circle cx="12" cy="12.5" r="2"></circle><path d="M6 7l4-2.5M6 9l4 2.5"></path></svg></button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isFriends }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;padding:16px 20px 0;display:flex;flex-direction:column;gap:4px;overflow-y:auto">
+    <h4 style="margin:0;font-size:24px">Friends' lists</h4>
+    <div style="font-size:12px;color:var(--color-neutral-500);margin-bottom:8px">Grab a gift — they'll never know it's been bought.</div>
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0 12px">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--color-accent-800);display:grid;place-items:center;color:var(--color-accent-200);font-size:14px">S</div>
+      <div style="flex:1"><div style="font-size:14.5px">Sam's housewarming</div><div style="font-size:11px;color:var(--color-neutral-500)">{{ friendListMeta }}</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column">
+      <sc-for list="{{ friendItems }}" as="f" hint-placeholder-count="4">
+        <div style="display:flex;gap:12px;padding:11px 0;align-items:center;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom / 100% 1px;opacity:{{ f.opacity }}">
+          <div style="width:46px;height:46px;border-radius:8px;background:linear-gradient(135deg,var(--color-neutral-900),var(--color-accent-900));flex:none;display:grid;place-items:center;color:var(--color-neutral-600);font-size:8px">photo</div>
+          <div style="flex:1;min-width:0"><div style="font-size:13.5px">{{ f.name }}</div><div style="font-size:11px;color:var(--color-neutral-500);margin-top:2px">{{ f.store }} · {{ f.price }}</div></div>
+          <sc-if value="{{ f.purchased }}" hint-placeholder-val="{{ false }}"><span class="tag tag-accent" style="font-size:10px">Purchased</span></sc-if>
+          <sc-if value="{{ f.notPurchased }}" hint-placeholder-val="{{ true }}"><button onClick="{{ f.buy }}" class="btn btn-ghost" style="font-size:12px">I'll get it</button></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;padding:10px 30px 30px;border-top:1px solid var(--color-divider);flex:none">
+    <div onClick="{{ goHome }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;width:44px;color:{{ tabWishColor }}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2l1.8 3.9L14 6.5l-3 3 .8 4.3L8 11.7l-3.8 2.1.8-4.3-3-3 4.2-.6z"></path></svg>Wish</div>
+    <div onClick="{{ goLists }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;width:44px;color:{{ tabListsColor }}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 3.5h11M2.5 8h11M2.5 12.5h11"></path></svg>Lists</div>
+    <div onClick="{{ startCapture }}" style="cursor:pointer;width:58px;height:58px;margin-top:-32px;border-radius:50%;border:1px solid var(--color-accent);background:color-mix(in srgb,var(--color-accent) 14%,var(--color-bg));display:grid;place-items:center;box-shadow:0 0 26px color-mix(in srgb,var(--color-accent) 40%,transparent)" style-hover="background:color-mix(in srgb,var(--color-accent) 22%,var(--color-bg));box-shadow:0 0 34px color-mix(in srgb,var(--color-accent) 55%,transparent)">
+      <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="var(--color-accent)" stroke-width="1.3"><rect x="1.5" y="4" width="13" height="9.5" rx="2"></rect><circle cx="8" cy="8.7" r="2.6"></circle><path d="M5.5 4l1-2h3l1 2"></path></svg>
+    </div>
+    <div onClick="{{ goFriends }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;width:44px;color:{{ tabFriendsColor }}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5" r="2.5"></circle><path d="M2.5 14c.7-3 2.7-4.5 5.5-4.5s4.8 1.5 5.5 4.5"></path></svg>Friends</div>
+    <div onClick="{{ goMe }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;width:44px;color:{{ tabMeColor }}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"></circle><circle cx="8" cy="6.5" r="1.8"></circle><path d="M4.5 12.5c.6-1.8 1.9-2.7 3.5-2.7s2.9.9 3.5 2.7"></path></svg>Me</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isMe }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;padding:16px 20px 0;display:flex;flex-direction:column;gap:14px;overflow-y:auto">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="width:54px;height:54px;border-radius:50%;background:var(--color-accent-800);display:grid;place-items:center;color:var(--color-accent-200);font-size:20px">M</div>
+      <div><h4 style="margin:0;font-size:20px">Maya Torres</h4><div style="font-size:12px;color:var(--color-neutral-500)">3 lists · 14 wishes · 6 friends</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 0;font-size:14px;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom / 100% 1px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--color-accent)" stroke-width="1.3"><circle cx="12" cy="3.5" r="2"></circle><circle cx="4" cy="8" r="2"></circle><circle cx="12" cy="12.5" r="2"></circle><path d="M6 7l4-2.5M6 9l4 2.5"></path></svg><span style="flex:1">Sharing defaults</span><span style="font-size:12px;color:var(--color-neutral-500)">Invite only</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 0;font-size:14px;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom / 100% 1px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--color-accent)" stroke-width="1.3"><path d="M8 2a4 4 0 014 4c0 3 1.5 4.5 1.5 4.5h-11S4 9 4 6a4 4 0 014-4zM6.5 13a1.5 1.5 0 003 0"></path></svg><span style="flex:1">Notifications</span><span style="font-size:12px;color:var(--color-neutral-500)">Price drops on</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 0;font-size:14px;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom / 100% 1px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--color-accent)" stroke-width="1.3"><path d="M8 2l1.8 3.9L14 6.5l-3 3 .8 4.3L8 11.7l-3.8 2.1.8-4.3-3-3 4.2-.6z"></path></svg><span style="flex:1">Taste profile</span><span style="font-size:12px;color:var(--color-neutral-500)">Tunes your picks</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 0;font-size:14px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--color-accent)" stroke-width="1.3"><circle cx="8" cy="8" r="6"></circle><path d="M8 5.5v3l2 1.5"></path></svg><span style="flex:1">Occasions</span><span style="font-size:12px;color:var(--color-neutral-500)">Birthday · Oct 14</span></div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:24px;right:24px;bottom:84px;display:grid;place-items:center;pointer-events:none">
+    <div style="background:var(--color-surface);box-shadow:var(--shadow-md);border-radius:var(--radius-md);padding:9px 16px;font-size:12.5px;color:var(--color-accent-200);animation:mlk-toast 2.4s ease forwards">{{ toast }}</div>
+  </div>
+</sc-if>
+
+</div>
+</x-import>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 460, &quot;height&quot;: 940}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const g = '';
+    this.state = {
+      screen: 'home', mode: 'snap', view: 'shelf', activeList: 'b', activeItem: null,
+      pickedList: 'b', altMatch: false, toast: null, toastKey: 0,
+      lists: [
+        { id: 'b', name: 'My birthday', meta: 'Oct 14 · shared with 6 people' },
+        { id: 's', name: 'Home studio', meta: 'private' },
+        { id: 'k', name: 'Kitchen upgrade', meta: 'shared with Sam' },
+      ],
+      items: [
+        { id: 1, list: 'b', name: 'Sony WH-1000XM6 headphones', price: '$399', store: 'Best Buy', added: 'by camera · Jul 28', upc: '027242925175', when: '2h ago' },
+        { id: 2, list: 'b', name: 'On Cloudmonster 2, size 9', price: '$180', store: 'REI', added: 'dictated · Jul 26', upc: '194671203984', when: 'Sat' },
+        { id: 3, list: 'b', name: 'Le Creuset dutch oven, 5.5 qt', price: '$420', store: 'Williams Sonoma', added: 'scanned UPC · Jul 20', upc: '024147024071', when: 'Jul 20' },
+        { id: 4, list: 'b', name: 'Kindle Paperwhite Signature', price: '$189', store: 'Amazon', added: 'scanned UPC · Jul 12', upc: '840268919287', when: 'Jul 12' },
+        { id: 5, list: 's', name: 'Teenage Engineering TP-7', price: '$1,499', store: 'teenage.engineering', added: 'by camera · Jun 30', upc: '735029934578', when: 'Jun 30' },
+        { id: 6, list: 's', name: 'Shure SM7B microphone', price: '$399', store: 'Sweetwater', added: 'dictated · Jun 22', upc: '042406088879', when: 'Jun 22' },
+        { id: 7, list: 'k', name: 'Fellow Stagg EKG kettle', price: '$165', store: 'Fellow', added: 'by camera · Jun 12', upc: '857222006291', when: 'Jun 12' },
+        { id: 8, list: 'k', name: 'Hario V60 drip scale', price: '$62', store: 'Hario USA', added: 'scanned UPC · Jun 2', upc: '473429733528', when: 'Jun 2' },
+      ],
+      friendItems: [
+        { id: 'f1', name: 'Ooni Koda 12 pizza oven', price: '$399', store: 'Ooni', purchased: false },
+        { id: 'f2', name: 'Ferm Living plant stand', price: '$129', store: 'Design Within Reach', purchased: true },
+        { id: 'f3', name: 'Areaware gradient puzzle', price: '$25', store: 'Areaware', purchased: true },
+        { id: 'f4', name: 'Zwilling knife block set', price: '$249', store: 'Sur La Table', purchased: false },
+      ],
+      recsData: [
+        { id: 'r1', name: 'Fellow Stagg mini kettle', price: '$149' },
+        { id: 'r2', name: 'Sony LinkBuds Fit', price: '$179' },
+        { id: 'r3', name: 'Moleskine smart set', price: '$54' },
+      ],
+      nextId: 100,
+    };
+    this._timers = [];
+  }
+  componentWillUnmount() { this._timers.forEach(clearTimeout); }
+  later(fn, ms) { this._timers.push(setTimeout(fn, ms)); }
+  showToast(msg) {
+    this.setState(s => ({ toast: msg, toastKey: s.toastKey + 1 }));
+    this.later(() => this.setState({ toast: null }), 2400);
+  }
+  go(screen, extra) { this.setState(Object.assign({ screen: screen }, extra || {})); }
+  renderVals() {
+    const s = this.state;
+    const listName = id => (s.lists.find(l => l.id === id) || {}).name || '';
+    const found = s.altMatch
+      ? { name: 'Sony WH-1000XM5 headphones', upc: '027242923478', match: 'near match', best: '$329 at Best Buy', alt: '$348 Amazon', img: 'near match: last year\u2019s model' }
+      : { name: 'Sony WH-1000XM6 wireless headphones', upc: '027242925175', match: s.mode === 'say' ? 'matched from your words, 94%' : s.mode === 'scan' ? 'exact UPC match' : 'matched from your photo, 96%', best: '$399 at Best Buy', alt: '$412 Amazon', img: s.mode === 'scan' ? 'catalog photo, from UPC' : s.mode === 'say' ? 'best match from your description' : 'your photo, matched' };
+    const openItem = it => () => this.go('item', { activeItem: it.id });
+    const active = s.items.find(i => i.id === s.activeItem) || s.items[0];
+    const activeItems = s.items.filter(i => i.list === s.activeList).map(it => Object.assign({ open: openItem(it) }, it));
+    const priceNum = parseFloat((active.price || '$0').replace(/[$,]/g, ''));
+    const fmt = n => '$' + Math.round(n).toLocaleString();
+    return {
+      isHome: s.screen === 'home', isCapture: s.screen === 'capture', isAnalyzing: s.screen === 'analyzing',
+      isFound: s.screen === 'found', isLists: s.screen === 'lists', isList: s.screen === 'list',
+      isItem: s.screen === 'item', isFriends: s.screen === 'friends', isMe: s.screen === 'me',
+      showTabs: ['home', 'lists', 'friends', 'me'].indexOf(s.screen) >= 0,
+      goMe: () => this.go('me'),
+      tabMeColor: s.screen === 'me' ? 'var(--color-accent)' : 'var(--color-neutral-600)',
+      tabWishColor: s.screen === 'home' ? 'var(--color-accent)' : 'var(--color-neutral-600)',
+      tabListsColor: s.screen === 'lists' ? 'var(--color-accent)' : 'var(--color-neutral-600)',
+      tabFriendsColor: s.screen === 'friends' ? 'var(--color-accent)' : 'var(--color-neutral-600)',
+      isSay: s.mode === 'say' && s.screen === 'capture', notSay: s.mode !== 'say' && s.screen === 'capture',
+      captureHint: s.mode === 'snap' ? 'Point at the product' : s.mode === 'scan' ? 'Find the barcode' : 'Just describe it',
+      viewfinderLabel: s.mode === 'scan' ? 'barcode viewfinder' : 'camera viewfinder',
+      scanTag: s.mode === 'scan' ? 'tag-accent' : 'tag-neutral',
+      snapTag: s.mode === 'snap' ? 'tag-accent' : 'tag-neutral',
+      sayTag: s.mode === 'say' ? 'tag-accent' : 'tag-neutral',
+      goHome: () => this.go('home'), goLists: () => this.go('lists'), goFriends: () => this.go('friends'),
+      startCapture: () => this.go('capture', { mode: 'snap' }),
+      startScan: () => this.go('capture', { mode: 'scan' }),
+      startSay: () => this.go('capture', { mode: 'say' }),
+      doShutter: () => { this.go('analyzing'); this.later(() => this.go('found', { altMatch: false, pickedList: s.activeList && s.screen === 'list' ? s.activeList : 'b' }), 1700); },
+      swapMatch: () => this.setState({ altMatch: !s.altMatch }),
+      confirmAdd: () => {
+        const nm = found.name; const pl = s.pickedList;
+        this.setState(st => ({
+          items: [{ id: st.nextId, list: pl, name: nm, price: s.altMatch ? '$329' : '$399', store: 'Best Buy', added: 'just now', upc: found.upc, when: 'now' }].concat(st.items),
+          nextId: st.nextId + 1, screen: 'home',
+        }));
+        this.showToast('Added to ' + listName(pl) + ' \u2728');
+      },
+      foundName: found.name, foundUpc: found.upc, foundMatch: found.match, foundBest: found.best, foundAlt: found.alt, foundImgLabel: found.img,
+      nearMatchNote: s.altMatch ? 'Showing the nearest match. Tap again for the original.' : 'Near matches: XM5 ($329) \u00b7 XM6 in silver ($399)',
+      pickedListName: listName(s.pickedList),
+      listChips: s.lists.map(l => ({ name: l.name, cls: l.id === s.pickedList ? 'tag-accent' : 'tag-neutral', pick: () => this.setState({ pickedList: l.id }) })).concat([{ name: '+ new', cls: 'tag-neutral', pick: () => this.showToast('New list — coming right up') }]),
+      listRows: s.lists.map(l => {
+        const n = s.items.filter(i => i.list === l.id).length;
+        return { name: l.name, initial: l.name[0], meta: n + ' items \u00b7 ' + l.meta, open: () => this.go('list', { activeList: l.id }) };
+      }),
+      activeListName: listName(s.activeList),
+      activeListMeta: activeItems.length + ' items \u00b7 ' + ((s.lists.find(l => l.id === s.activeList) || {}).meta || ''),
+      isShelf: s.view === 'shelf', isLedger: s.view === 'ledger',
+      setShelf: () => this.setState({ view: 'shelf' }), setLedger: () => this.setState({ view: 'ledger' }),
+      activeItems: activeItems,
+      recentItems: s.items.slice(0, 3).map(it => Object.assign({ listName: listName(it.list), open: openItem(it) }, it)),
+      recs: s.recsData.map(r => Object.assign({ add: () => { this.setState(st => ({ items: [{ id: st.nextId, list: 'b', name: r.name, price: r.price, store: 'Best Buy', added: 'from picks \u00b7 just now', upc: '\u2014', when: 'now' }].concat(st.items), nextId: st.nextId + 1 })); this.showToast('Added to My birthday \u2728'); } }, r)),
+      activeItemName: active.name, activeItemPrice: active.price, activeItemStore: active.store,
+      activeItemUpc: active.upc, activeItemAdded: 'added ' + active.added, activeItemListName: listName(active.list),
+      activeItemStores: [{ store: active.store, price: active.price, color: 'var(--color-accent-300)' }].concat(
+        ['Amazon', 'Walmart', 'Target'].filter(n => n !== active.store).slice(0, 2)
+          .map((n, i) => ({ store: n, price: fmt(priceNum * (1.04 + i * 0.04)), color: 'var(--color-neutral-400)' }))),
+      backFromItem: () => this.go(s.activeList ? 'list' : 'home'),
+      friendItems: s.friendItems.map(f => Object.assign({
+        notPurchased: !f.purchased, opacity: f.purchased ? 0.55 : 1,
+        buy: () => { this.setState(st => ({ friendItems: st.friendItems.map(x => x.id === f.id ? Object.assign({}, x, { purchased: true }) : x) })); this.showToast('Marked as purchased \u2014 Sam won\u2019t see it'); },
+      }, f)),
+      friendListMeta: s.friendItems.length + ' items \u00b7 ' + s.friendItems.filter(f => f.purchased).length + ' already purchased',
+      hasToast: !!s.toast, toast: s.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>

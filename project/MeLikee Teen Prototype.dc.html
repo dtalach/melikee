@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="stylesheet" href="_ds/nocturne-de0000bc-4bdb-47c5-b41f-9f3691d4bb72/styles.css">
+<script src="_ds/nocturne-de0000bc-4bdb-47c5-b41f-9f3691d4bb72/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#0d0a16;font-family:Inter,system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;padding:28px 0}
+a{color:var(--mvio)}a:hover{color:var(--mlimeText)}
+.mlk-dark{--mbg:#14101f;--minset:#14101f;--mcard:#221a38;--mcardt:#221a38ee;--mchip:#2b2145;--mdeep:#3a2b5e;--mph1:#312653;--mph2:#443370;--mrad1:#241b3a;--mrad2:#0e0b18;--mtext:#f6f2ff;--mmuted:#a79ecf;--msoft:#c9bdf0;--mavt:#d9d1f5;--mvio:#a78bfa;--mvio22:#a78bfa22;--mvio33:#a78bfa33;--mvio44:#a78bfa44;--mvio55:#a78bfa55;--mvio66:#a78bfa66;--mvio99:#a78bfa99;--mlime55:#c8f54255;--mlime66:#c8f54266;--mlimeText:#c8f542;--mdock:rgba(43,33,69,.9);--mviofill:rgba(167,139,250,.1);--mring:rgba(246,242,255,.92)}
+.mlk-light{--mbg:#faf8ff;--minset:#f1ecfa;--mcard:#ffffff;--mcardt:#ffffffee;--mchip:#ebe5f8;--mdeep:#ddd3f4;--mph1:#e5def6;--mph2:#cabcec;--mrad1:#ece4fb;--mrad2:#f7f3fe;--mtext:#221a38;--mmuted:#6f639c;--msoft:#57497f;--mavt:#453a70;--mvio:#7a5fd0;--mvio22:#7a5fd022;--mvio33:#7a5fd033;--mvio44:#7a5fd044;--mvio55:#7a5fd055;--mvio66:#7a5fd066;--mvio99:#7a5fd099;--mlime55:#86a82755;--mlime66:#86a82766;--mlimeText:#6c8b12;--mdock:rgba(255,255,255,.92);--mviofill:rgba(122,95,208,.12);--mring:rgba(34,26,56,.2)}
+@keyframes mlk-twinkle{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes mlk-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes mlk-flash{0%{opacity:.95}100%{opacity:0}}
+@keyframes mlk-spin{to{transform:rotate(360deg)}}
+@keyframes mlk-pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.06);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes mlk-fly{0%{transform:translate(0,0) scale(1);opacity:1}70%{opacity:.95}100%{transform:translate(0,225px) scale(.16);opacity:0}}
+@keyframes mlk-burst{0%{transform:translate(0,0) scale(.3);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1);opacity:0}}
+@keyframes mlk-bump{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+@keyframes mlk-orbit{from{transform:rotate(0deg) translateX(40px)}to{transform:rotate(360deg) translateX(40px)}}
+@keyframes mlk-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes mlk-toast{0%{opacity:0;transform:translateY(10px)}10%,85%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes mlk-slap{0%{opacity:0;transform:rotate(-9deg) scale(1.6)}60%{opacity:1;transform:rotate(-1deg) scale(.96)}100%{opacity:1;transform:rotate(-2deg) scale(1)}}
+</style>
+</helmet>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ frameDark }}" hint-size="393px,852px">
+<div class="{{ themeClass }}" onPointerDown="{{ swipeStart }}" onPointerUp="{{ swipeEnd }}" style="display:flex;flex-direction:column;height:100%;padding-top:59px;background:var(--mbg);color:var(--mtext);font-family:Inter,system-ui,sans-serif;position:relative;overflow:hidden;touch-action:pan-y">
+
+<sc-if value="{{ isCamera }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:1;position:relative;background:radial-gradient(120% 80% at 50% 30%,var(--mrad1) 0%,var(--mrad2) 90%);overflow:hidden">
+    <svg style="position:absolute;inset:20px 20px;width:calc(100% - 40px);height:calc(100% - 40px)" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" stroke="var(--mvio)" stroke-width="0.7" opacity="0.9"><path d="M2 14V4a2 2 0 012-2h10M86 2h10a2 2 0 012 2v10M98 86v10a2 2 0 01-2 2H86M14 98H4a2 2 0 01-2-2V86"></path></svg>
+    <sc-if value="{{ notBusy }}" hint-placeholder-val="{{ true }}">
+    <div onClick="{{ goMe }}" style="cursor:pointer;position:absolute;top:14px;left:16px;display:flex;align-items:center;gap:6px;background:var(--mcardt);border:1.5px solid #ff5da266;border-radius:999px;padding:6px 12px">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#ff5da2" stroke-width="1.3"><rect x="2" y="6.5" width="12" height="7.5" rx="1"></rect><path d="M2 9.5h12M8 6.5v7.5M8 6.5C8 4 5.5 3 4.5 4S6 6.5 8 6.5zm0 0c0-2.5 2.5-3.5 3.5-2.5S10 6.5 8 6.5z"></path></svg>
+      <span style="font-size:12px;font-weight:700">71 days till your birthday</span>
+    </div>
+    <div onClick="{{ goFeed }}" style="cursor:pointer;position:absolute;top:14px;right:16px;width:34px;height:34px;border-radius:50%;background:var(--mcard);border:1.5px solid var(--mvio66);display:grid;place-items:center">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--mtext)" stroke-width="1.3"><path d="M8 2a4 4 0 014 4c0 3 1.5 4.5 1.5 4.5h-11S4 9 4 6a4 4 0 014-4zM6.5 13a1.5 1.5 0 003 0"></path></svg>
+      <div style="position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:#ff5da2;color:#fff;font-size:9.5px;font-weight:700;display:grid;place-items:center;padding:0 4px">3</div>
+    </div>
+    </sc-if>
+    <sc-if value="{{ phIdle }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;left:0;right:0;top:26%;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center">
+        <div style="font-size:32px;font-weight:800;letter-spacing:-.03em;text-shadow:0 4px 24px rgba(167,139,250,.5)">Ooh. Shiny.</div>
+        <div style="font-size:13px;font-weight:600;color:var(--msoft)">{{ captureHint }}</div>
+        <sc-if value="{{ firstRun }}" hint-placeholder-val="{{ true }}"><span style="margin-top:4px;display:inline-block;background:#c8f542;color:#141a04;font-size:10.5px;font-weight:800;letter-spacing:.06em;padding:4px 10px;border-radius:6px;transform:rotate(-2deg);animation:mlk-slap .5s .4s cubic-bezier(.34,1.3,.64,1) both">YOUR WISHLIST WRITES ITSELF</span></sc-if>
+      </div>
+      <sc-if value="{{ isSay }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:0;right:0;top:52%;display:flex;flex-direction:column;align-items:center;gap:8px">
+          <div style="display:flex;gap:4px;align-items:flex-end;height:26px">
+            <div style="width:4px;height:10px;border-radius:2px;background:#c8f542;animation:mlk-twinkle 1s infinite"></div>
+            <div style="width:4px;height:22px;border-radius:2px;background:#c8f542;animation:mlk-twinkle 1s .15s infinite"></div>
+            <div style="width:4px;height:15px;border-radius:2px;background:#c8f542;animation:mlk-twinkle 1s .3s infinite"></div>
+            <div style="width:4px;height:24px;border-radius:2px;background:#c8f542;animation:mlk-twinkle 1s .45s infinite"></div>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--msoft);max-width:230px;text-align:center">"those Sony noise-cancelling headphones"</div>
+        </div>
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{ phSnap }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;background:#fdfcff;animation:mlk-flash .4s ease-out forwards"></div>
+    </sc-if>
+    <sc-if value="{{ phScan }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+        <div style="position:relative;width:96px;height:96px;display:grid;place-items:center">
+          <div style="position:absolute;inset:0;border-radius:50%;border-top:2px solid #c8f542;animation:mlk-spin 1s linear infinite"></div>
+          <div style="position:absolute;left:50%;top:50%;width:0;height:0;animation:mlk-orbit 1.6s linear infinite"><svg style="margin:-6px" width="12" height="12" viewBox="0 0 16 16" fill="#ff5da2"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg></div>
+          <svg width="30" height="30" viewBox="0 0 16 16" fill="var(--mvio)" style="animation:mlk-twinkle 1.2s infinite"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+        </div>
+        <div style="font-size:14px;font-weight:700">Working our magic…</div>
+        <div style="font-size:11px;font-weight:600;color:var(--mmuted)">{{ scanNote }}</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ phCard }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:grid;place-items:center">
+        <div style="width:236px;background:var(--mcard);border:2px solid var(--mvio66);border-radius:18px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.5),0 0 30px rgba(167,139,250,.25);animation:{{ cardAnim }};position:relative">
+          <svg style="position:absolute;top:8px;right:10px;z-index:1;animation:mlk-twinkle 1.6s infinite" width="14" height="14" viewBox="0 0 16 16" fill="#c8f542"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+          <div style="height:110px;background:linear-gradient(135deg,var(--mph1),var(--mph2));display:grid;place-items:center;color:var(--mmuted);font-size:10px">{{ foundImgLabel }}</div>
+          <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:14px;font-weight:800;line-height:1.25">{{ foundName }}</div>
+            <div style="font-size:12px;font-weight:700;color:var(--mlimeText)">{{ foundPrice }}</div>
+            <div style="font-size:10px;font-weight:600;color:var(--mmuted)">price checked 2h ago</div>
+            <div onClick="{{ wantIt }}" style="cursor:pointer;background:linear-gradient(180deg,#e6ff85,#c8f542);color:#141a04;font-size:13px;font-weight:800;text-align:center;padding:9px;border-radius:999px">Want it!</div>
+            <div onClick="{{ showAlts }}" style="cursor:pointer;text-align:center;font-size:11px;font-weight:700;color:var(--mmuted)">not it — see near matches</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ phBusy }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ backToIdle }}" style="cursor:pointer;position:absolute;top:14px;left:16px;z-index:3;width:34px;height:34px;border-radius:50%;background:var(--mcardt);border:1.5px solid var(--mvio66);display:grid;place-items:center">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--mmuted)" stroke-width="1.6"><path d="M3 3l10 10M13 3L3 13"></path></svg>
+      </div>
+    </sc-if>
+    <sc-if value="{{ phAlts }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:9px;padding:0 34px">
+        <div style="font-size:15px;font-weight:800;text-align:center;margin-bottom:4px">Which one is it?</div>
+        <sc-for list="{{ altMatches }}" as="a" hint-placeholder-count="3">
+          <div onClick="{{ a.pick }}" style="cursor:pointer;display:flex;align-items:center;gap:10px;background:var(--mcard);border:2px solid {{ a.border }};border-radius:14px;padding:10px 12px">
+            <div style="width:42px;height:42px;border-radius:9px;background:linear-gradient(135deg,var(--mph1),var(--mph2));flex:none;display:grid;place-items:center;color:var(--mmuted);font-size:8px">photo</div>
+            <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:800;line-height:1.25">{{ a.name }}</div><div style="font-size:11px;font-weight:600;color:var(--mmuted)">{{ a.tag }}</div></div>
+            <div style="font-size:12.5px;font-weight:800;color:var(--mlimeText)">{{ a.price }}</div>
+          </div>
+        </sc-for>
+        <div onClick="{{ savePhoto }}" style="cursor:pointer;text-align:center;font-size:12px;font-weight:700;color:var(--mvio);padding:8px">None of these — save my photo, keep matching</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ phFly }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:50%;bottom:36px;pointer-events:none;z-index:2">
+        <svg style="position:absolute;--dx:-34px;--dy:-26px;animation:mlk-burst .7s .55s ease-out both" width="13" height="13" viewBox="0 0 16 16" fill="#c8f542"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+        <svg style="position:absolute;--dx:32px;--dy:-30px;animation:mlk-burst .7s .58s ease-out both" width="11" height="11" viewBox="0 0 16 16" fill="#ff5da2"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+        <svg style="position:absolute;--dx:-20px;--dy:24px;animation:mlk-burst .7s .6s ease-out both" width="10" height="10" viewBox="0 0 16 16" fill="var(--mvio)"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+        <svg style="position:absolute;--dx:40px;--dy:14px;animation:mlk-burst .7s .62s ease-out both" width="9" height="9" viewBox="0 0 16 16" fill="#c8f542"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+        <svg style="position:absolute;--dx:-42px;--dy:6px;animation:mlk-burst .7s .56s ease-out both" width="9" height="9" viewBox="0 0 16 16" fill="#ff5da2"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+      </div>
+    </sc-if>
+    <sc-if value="{{ phIdle }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;left:0;right:0;bottom:112px;display:flex;flex-direction:column;align-items:center;gap:11px">
+        <div style="display:flex;gap:30px;align-items:center;margin-bottom:10px">
+          <span onClick="{{ modeScan }}" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:{{ scanChipFg }};font-size:13px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;text-shadow:0 1px 8px rgba(13,10,22,.8)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 5V2h3M14 5V2h-3M2 11v3h3M14 11v3h-3M4.5 8h7"></path></svg>Scan</span>
+          <span onClick="{{ modeSnap }}" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:{{ snapChipFg }};font-size:13px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;text-shadow:0 1px 8px rgba(13,10,22,.8)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="4" width="13" height="9.5" rx="2"></rect><circle cx="8" cy="8.7" r="2.6"></circle><path d="M5.5 4l1-2h3l1 2"></path></svg>Snap</span>
+          <span onClick="{{ modeSay }}" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:{{ sayChipFg }};font-size:13px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;text-shadow:0 1px 8px rgba(13,10,22,.8)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="1.5" width="4" height="8" rx="2"></rect><path d="M3.5 7.5a4.5 4.5 0 009 0M8 12v2.5"></path></svg>Say it</span>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isFiling }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--mcard);border:2px solid var(--mvio66);border-bottom:none;border-radius:22px 22px 0 0;padding:14px 18px 34px;box-shadow:0 -10px 34px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:12px;animation:mlk-up .28s cubic-bezier(.34,1.2,.64,1) both">
+    <div style="display:flex;align-items:center;gap:9px">
+      <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--mph1),var(--mph2));border:1.5px solid var(--mvio44);flex:none;display:grid;place-items:center;color:var(--mmuted);font-size:8px">photo</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:800">Added to {{ filedListName }}</div><div style="font-size:11px;font-weight:600;color:var(--mmuted)">{{ filedVisibility }} · $399</div></div>
+      <span onClick="{{ undoAdd }}" style="cursor:pointer;color:var(--mvio);font-size:12px;font-weight:800">Undo</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--mmuted)">MOVE IT INSTEAD?</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <sc-for list="{{ moveChips }}" as="c" hint-placeholder-count="2">
+          <span onClick="{{ c.pick }}" style="cursor:pointer;background:{{ c.bg }};border:1.5px solid var(--mvio55);border-radius:999px;padding:6px 12px;font-size:11.5px;font-weight:700;color:{{ c.fg }};display:inline-flex;align-items:center;gap:5px">{{ c.name }}{{ c.badge }}</span>
+        </sc-for>
+      </div>
+    </div>
+    <div onClick="{{ toggleSecret }}" style="cursor:pointer;display:flex;align-items:center;gap:10px;background:var(--minset);border-radius:14px;padding:10px 14px">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--mvio)" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path d="M5 7V5a3 3 0 016 0v2"></path></svg>
+      <div style="flex:1;font-size:12px;font-weight:700">Make this one secret<div style="font-size:10.5px;font-weight:600;color:var(--mmuted)">only you'll see it, even on this list</div></div>
+      <div style="width:38px;height:22px;border-radius:11px;background:{{ secretTrackBg }};position:relative;transition:background .2s"><div style="position:absolute;left:{{ secretKnobLeft }};top:3px;width:16px;height:16px;border-radius:50%;background:{{ secretKnobBg }};transition:left .2s"></div></div>
+    </div>
+    <div style="text-align:center;font-size:10.5px;font-weight:600;color:var(--mmuted)">{{ filingNote }}</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isFeed }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;padding-bottom:110px;animation:mlk-up .25s ease-out">
+    <div style="padding:12px 18px 10px;display:flex;align-items:baseline;gap:8px">
+      <div style="font-size:26px;font-weight:800;letter-spacing:-.03em;flex:none;white-space:nowrap">The Feed</div>
+      <div style="font-size:12px;font-weight:600;color:var(--mmuted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">what your people want</div>
+      <sc-if value="{{ feedHasPeople }}" hint-placeholder-val="{{ true }}">
+      <div onClick="{{ openInvite }}" style="cursor:pointer;flex:none;white-space:nowrap;display:flex;align-items:center;gap:6px;background:var(--mcard);border:1.5px solid var(--mvio66);border-radius:999px;padding:6px 12px;align-self:center">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--mlimeText)" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 13.5c.5-2.6 2.2-4 4.5-4s4 1.4 4.5 4M12 4v5M9.5 6.5h5"></path></svg>
+        <span style="font-size:11.5px;font-weight:800;color:var(--mlimeText)">Find your people</span>
+      </div>
+      </sc-if>
+    </div>
+    <sc-if value="{{ feedEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="margin:0 0 14px;background:radial-gradient(120% 100% at 50% 0%,var(--mrad1) 0%,var(--mbg) 82%);position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:34px 34px 30px;overflow:hidden">
+        <svg style="position:absolute;top:22px;left:44px;animation:mlk-twinkle 2.2s infinite" width="13" height="13" viewBox="0 0 16 16" fill="#c8f542"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+        <svg style="position:absolute;top:52px;right:50px;animation:mlk-twinkle 2.8s .6s infinite" width="10" height="10" viewBox="0 0 16 16" fill="#ff5da2"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+        <svg style="position:absolute;bottom:30px;left:64px;animation:mlk-twinkle 3.1s 1.2s infinite" width="9" height="9" viewBox="0 0 16 16" fill="var(--mvio)"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+        <div style="width:64px;height:64px;border-radius:50%;border:1px solid var(--mvio);background:var(--mviofill);box-shadow:0 0 32px rgba(167,139,250,.4);display:grid;place-items:center;animation:mlk-breathe 3.2s ease-in-out infinite">
+          <svg width="26" height="26" viewBox="0 0 16 16" fill="none" stroke="var(--mvio)" stroke-width="1.3"><path d="M2 8c2-3.5 10-3.5 12 0M2 8c2 3.5 10 3.5 12 0"></path><circle cx="8" cy="8" r="1.8"></circle></svg>
+        </div>
+        <div style="font-size:20px;font-weight:800;letter-spacing:-.02em;text-shadow:0 4px 24px rgba(167,139,250,.5)">Your Feed is quiet…<br>too quiet.</div>
+        <div style="font-size:12px;font-weight:600;color:var(--mmuted);max-width:250px;line-height:1.5">This is where your friends' wants show up — and where you'll call dibs on their birthday gifts.</div>
+        <span onClick="{{ openInvite }}" style="cursor:pointer;background:linear-gradient(180deg,#e6ff85,#c8f542);color:#141a04;font-size:13px;font-weight:800;padding:11px 22px;border-radius:999px;box-shadow:0 6px 18px rgba(200,245,66,.35)">Find your people</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ feedHasPeople }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;gap:12px;padding:0 18px 12px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ff5da2,var(--mvio));padding:2.5px"><div style="width:100%;height:100%;border-radius:50%;background:var(--mchip);display:grid;place-items:center;font-size:16px;font-weight:800;color:var(--mavt)">A</div></div><span style="font-size:10px;font-weight:600;color:var(--mavt)">Ava</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ff5da2,var(--mvio));padding:2.5px"><div style="width:100%;height:100%;border-radius:50%;background:var(--mchip);display:grid;place-items:center;font-size:16px;font-weight:800;color:var(--mavt)">J</div></div><span style="font-size:10px;font-weight:600;color:var(--mavt)">Jordan</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:52px;height:52px;border-radius:50%;border:2.5px solid var(--mdeep)"><div style="width:100%;height:100%;border-radius:50%;background:var(--mchip);display:grid;place-items:center;font-size:16px;font-weight:800;color:var(--mmuted)">S</div></div><span style="font-size:10px;font-weight:600;color:var(--mmuted)">Sam</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:52px;height:52px;border-radius:50%;border:2.5px solid var(--mdeep)"><div style="width:100%;height:100%;border-radius:50%;background:var(--mchip);display:grid;place-items:center;font-size:16px;font-weight:800;color:var(--mmuted)">M</div></div><span style="font-size:10px;font-weight:600;color:var(--mmuted)">Mia</span></div>
+    </div>
+    <div style="padding:0 16px 12px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--mmuted)">WHILE YOU WERE OUT</div>
+      <div style="background:var(--mcard);border:1.5px solid #ff5da266;border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#ff5da2" stroke-width="1.3"><rect x="2" y="6.5" width="12" height="7.5" rx="1"></rect><path d="M2 9.5h12M8 6.5v7.5M8 6.5C8 4 5.5 3 4.5 4S6 6.5 8 6.5zm0 0c0-2.5 2.5-3.5 3.5-2.5S10 6.5 8 6.5z"></path></svg>
+        <div style="font-size:12px;font-weight:600;flex:1"><span style="font-weight:800">Ava's birthday in 12 days</span> · 6 shinies still up for dibs</div>
+        <span onClick="{{ openAvaList }}" style="cursor:pointer;background:#ff5da2;color:#fff;font-size:11px;font-weight:800;padding:5px 11px;border-radius:999px">Peek</span>
+      </div>
+      <div style="background:var(--minset);border:1.5px solid var(--mvio22);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+        <span style="background:#c8f542;color:#141a04;font-size:10px;font-weight:800;padding:3px 8px;border-radius:6px;transform:rotate(-2deg)">−$50</span>
+        <div style="font-size:12px;font-weight:600;flex:1">Sony XM6 dropped to <span style="color:var(--mlimeText);font-weight:800">$349</span> at Best Buy</div>
+      </div>
+      <div style="background:var(--minset);border:1.5px solid var(--mvio22);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:15px">🔥</span>
+        <div style="font-size:12px;font-weight:600;flex:1"><span style="font-weight:800">Ava</span> reacted to your Cloudmonsters</div>
+      </div>
+      <div style="background:var(--mcard);border:1.5px solid var(--mvio55);border-radius:14px;padding:10px 14px;display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--mdeep);display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--mavt)">R</div>
+          <div style="flex:1;font-size:12px;font-weight:700">Riley wants to follow your lists<div style="font-size:10.5px;font-weight:600;color:var(--mmuted)">4 mutual friends</div></div>
+          <sc-if value="{{ rileyPending }}" hint-placeholder-val="{{ true }}">
+            <span onClick="{{ acceptRiley }}" style="cursor:pointer;background:#c8f542;color:#141a04;font-size:11px;font-weight:800;padding:6px 12px;border-radius:999px">Accept</span>
+            <span onClick="{{ declineRiley }}" style="cursor:pointer;color:var(--mmuted);font-size:11px;font-weight:800;padding:6px 2px">Decline</span>
+          </sc-if>
+          <sc-if value="{{ rileyDeclined }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:var(--mmuted)">Declined</span></sc-if>
+        </div>
+        <sc-if value="{{ rileyAccepted }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:7px;animation:mlk-up .25s ease-out">
+            <div style="font-size:10.5px;font-weight:800;letter-spacing:.06em;color:var(--mmuted)">WHICH LISTS CAN RILEY SEE?</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ rileyLists }}" as="rl" hint-placeholder-count="2">
+                <span onClick="{{ rl.toggle }}" style="cursor:pointer;background:{{ rl.bg }};color:{{ rl.fg }};border:1.5px solid var(--mvio55);font-size:11px;font-weight:800;padding:5px 12px;border-radius:999px">{{ rl.name }}</span>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;padding:0 16px">
+      <sc-for list="{{ feedCards }}" as="f" hint-placeholder-count="2">
+        <div style="background:var(--mcard);border:2px solid var(--mvio66);border-radius:18px;overflow:hidden;box-shadow:0 10px 28px rgba(0,0,0,.5)">
+          <div style="padding:10px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--mdeep);display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--mavt)">{{ f.initial }}</div>
+            <div style="font-size:12.5px"><span style="font-weight:800">{{ f.who }}</span> <span style="color:var(--mmuted);font-weight:600">added to</span> <span style="font-weight:800;color:var(--mlimeText)">{{ f.list }}</span></div>
+            <span style="margin-left:auto;font-size:10.5px;color:var(--mmuted);font-weight:600">{{ f.when }}</span>
+          </div>
+          <div style="height:124px;background:linear-gradient(135deg,var(--mph1),var(--mph2));display:grid;place-items:center;color:var(--mmuted);font-size:10px;position:relative">photo
+            <span style="position:absolute;bottom:10px;left:12px;background:#c8f542;color:#141a04;border-radius:8px;padding:4px 10px;font-size:11.5px;font-weight:800;transform:rotate(-1.5deg)">{{ f.product }}</span>
+          </div>
+          <div style="padding:10px 14px;display:flex;align-items:center;gap:10px">
+            <span onClick="{{ f.fire }}" style="cursor:pointer;background:{{ f.fireBg }};border:1px solid var(--mvio44);border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700">🔥 {{ f.fires }}</span>
+            <span onClick="{{ f.heart }}" style="cursor:pointer;background:{{ f.heartBg }};border:1px solid var(--mvio44);border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700">😍 {{ f.hearts }}</span>
+            <span onClick="{{ f.want }}" style="cursor:pointer;margin-left:auto;background:linear-gradient(180deg,#e6ff85,#c8f542);color:#141a04;font-size:12px;font-weight:800;padding:7px 14px;border-radius:999px;box-shadow:0 4px 12px rgba(200,245,66,.35)">{{ f.wantLabel }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+    <div style="padding:14px 18px 6px;display:flex;align-items:baseline;gap:8px"><span style="font-size:14px;font-weight:800">Trending this week</span><span style="font-size:11px;font-weight:600;color:var(--mmuted)">among 12–16s near you</span></div>
+    <div style="display:flex;gap:10px;padding:0 16px;overflow-x:auto">
+      <sc-for list="{{ trending }}" as="t" hint-placeholder-count="3">
+        <div onClick="{{ t.want }}" style="cursor:pointer;width:122px;flex:none;background:var(--mcard);border:2px solid {{ t.border }};border-radius:16px;overflow:hidden;position:relative">
+          <span style="position:absolute;top:6px;left:6px;background:{{ t.tagBg }};color:{{ t.tagFg }};font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;transform:rotate(-3deg);z-index:1">{{ t.rank }}</span>
+          <div style="height:74px;background:linear-gradient(135deg,var(--mph1),var(--mph2));display:grid;place-items:center;color:var(--mmuted);font-size:9px">photo</div>
+          <div style="padding:8px 10px"><div style="font-size:11.5px;font-weight:700;line-height:1.25">{{ t.name }}</div><div style="font-size:12px;font-weight:800;color:var(--mlimeText);margin-top:2px">{{ t.price }}</div></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isLists }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;padding:16px 18px 110px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;animation:mlk-up .25s ease-out">
+    <div style="display:flex;align-items:center"><div style="font-size:26px;font-weight:800;letter-spacing:-.03em;flex:1">Your lists</div><span style="cursor:pointer;background:#c8f542;color:#141a04;font-size:12.5px;font-weight:800;padding:8px 16px;border-radius:999px;box-shadow:0 4px 12px rgba(200,245,66,.3)">+ New list</span></div>
+    <sc-for list="{{ listRows }}" as="l" hint-placeholder-count="3">
+      <div onClick="{{ l.open }}" style="cursor:pointer;background:var(--mcard);border:2px solid {{ l.border }};border-radius:16px;padding:13px 14px;display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--mdeep);display:grid;place-items:center;font-size:15px;font-weight:800;color:var(--mavt)">{{ l.initial }}</div>
+        <div style="flex:1"><div style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800">{{ l.name }}{{ l.badge }}</div><div style="font-size:11px;font-weight:600;color:var(--mmuted)">{{ l.meta }}</div></div>
+        <span onClick="{{ l.share }}" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;background:var(--mchip);border:1.5px solid var(--mvio55);border-radius:999px;padding:6px 12px;font-size:11px;font-weight:800;color:var(--mlimeText)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="3.5" r="2"></circle><circle cx="4" cy="8" r="2"></circle><circle cx="12" cy="12.5" r="2"></circle><path d="M6 7l4-2.5M6 9l4 2.5"></path></svg>Share</span>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--mmuted)" stroke-width="1.6"><path d="M6 3l5 5-5 5"></path></svg>
+      </div>
+    </sc-for>
+    <sc-if value="{{ listsEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size:12px;font-weight:600;color:var(--mmuted);text-align:center;padding:6px 20px;line-height:1.5">You start with these three. Snap your first shiny and it lands in My wants — make more lists for birthdays, holidays, whatever.</div>
+    </sc-if>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;animation:mlk-up .25s ease-out">
+    <div style="padding:14px 18px 10px;display:flex;align-items:center;gap:10px">
+      <svg onClick="{{ goLists }}" style="cursor:pointer" width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="var(--mmuted)" stroke-width="1.6"><path d="M10 3L5 8l5 5"></path></svg>
+      <div style="flex:1;min-width:0"><div style="font-size:20px;font-weight:800">{{ activeListName }}</div><div style="font-size:11px;font-weight:600;color:var(--mmuted)">{{ activeListMeta }}</div></div>
+      <span onClick="{{ shareActive }}" style="cursor:pointer;background:var(--mvio);color:var(--mbg);font-size:11px;font-weight:800;padding:5px 12px;border-radius:999px">Share</span>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:2px 16px 110px;display:grid;grid-template-columns:1fr 1fr;gap:11px;align-content:start">
+      <sc-for list="{{ activeItems }}" as="it" hint-placeholder-count="4">
+        <div onClick="{{ it.open }}" style="cursor:pointer;background:var(--mcard);border:2px solid {{ it.border }};border-radius:16px;overflow:hidden;position:relative">
+          {{ it.secretBadge }}
+          <div style="height:96px;background:linear-gradient(135deg,var(--mph1),var(--mph2));display:grid;place-items:center;color:var(--mmuted);font-size:9px">photo</div>
+          <div style="padding:9px 11px"><div style="font-size:12px;font-weight:700;line-height:1.3">{{ it.name }}</div><div style="font-size:12px;font-weight:800;color:var(--mlimeText);margin-top:3px">{{ it.price }}</div></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isItem }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;animation:mlk-up .25s ease-out">
+    <div style="height:200px;background:linear-gradient(180deg,var(--mph2),var(--mbg));display:grid;place-items:center;color:var(--mmuted);font-size:11px;position:relative;flex:none">
+      photo
+      <svg onClick="{{ backFromItem }}" style="cursor:pointer;position:absolute;left:18px;top:12px" width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="var(--mtext)" stroke-width="1.5"><path d="M10 3L5 8l5 5"></path></svg>
+      <div style="position:absolute;left:20px;bottom:12px;right:20px;display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+        <span style="background:#c8f542;color:#141a04;font-size:10px;font-weight:800;padding:3px 9px;border-radius:6px;transform:rotate(-2deg)">{{ activeItemList }}</span>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">{{ activeItemName }}</div>
+      </div>
+    </div>
+    <div style="padding:14px 18px 40px;display:flex;flex-direction:column;gap:13px">
+      <div style="display:flex;align-items:baseline;gap:10px">
+        <div style="font-size:26px;font-weight:800;color:var(--mlimeText)">{{ activeItemPrice }}</div>
+        <div style="font-size:12px;font-weight:600;color:var(--mmuted)">lowest of 3 stores · checked 2h ago</div>
+        {{ activeItemSecretTag }}
+      </div>
+      <div style="background:var(--mcard);border:2px solid var(--mvio66);border-radius:16px;padding:4px 14px">
+        <sc-for list="{{ activeItemStores }}" as="s" hint-placeholder-count="3">
+          <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:13px;font-weight:600;border-bottom:1px solid var(--mvio22)"><span>{{ s.store }}</span><span style="font-weight:800;color:{{ s.color }}">{{ s.price }}</span></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:14px;font-size:11px;font-weight:600;color:var(--mmuted)"><span>UPC {{ activeItemUpc }}</span><span>{{ activeItemAdded }}</span></div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;background:linear-gradient(180deg,#e6ff85,#c8f542);color:#141a04;font-size:13px;font-weight:800;text-align:center;padding:11px;border-radius:999px">Open at {{ activeItemStore }}</div>
+        <div style="width:44px;border:2px solid var(--mvio66);border-radius:999px;display:grid;place-items:center"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--mvio)" stroke-width="1.5"><circle cx="12" cy="3.5" r="2"></circle><circle cx="4" cy="8" r="2"></circle><circle cx="12" cy="12.5" r="2"></circle><path d="M6 7l4-2.5M6 9l4 2.5"></path></svg></div>
+      </div>
+      <div style="display:flex;gap:22px;justify-content:center;padding-top:4px"><span onClick="{{ gotIt }}" style="cursor:pointer;font-size:12px;font-weight:800;color:var(--mmuted)">Got it already ✓</span><span onClick="{{ removeItem }}" style="cursor:pointer;font-size:12px;font-weight:800;color:#ff5da2">Remove</span></div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isMe }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;padding-bottom:110px;animation:mlk-up .25s ease-out">
+    <div style="position:relative;background:radial-gradient(120% 100% at 50% 0%,var(--mrad1) 0%,var(--mbg) 85%);padding:16px 18px 15px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;overflow:hidden">
+      <svg style="position:absolute;top:16px;left:46px;animation:mlk-twinkle 2.2s infinite" width="12" height="12" viewBox="0 0 16 16" fill="#c8f542"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+      <svg style="position:absolute;top:42px;right:52px;animation:mlk-twinkle 2.8s .6s infinite" width="9" height="9" viewBox="0 0 16 16" fill="#ff5da2"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+      <div onClick="{{ openSettings }}" style="cursor:pointer;position:absolute;top:12px;right:14px;width:32px;height:32px;border-radius:50%;background:var(--mcard);border:1.5px solid var(--mvio44);display:grid;place-items:center"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--mmuted)" stroke-width="1.3"><circle cx="8" cy="8" r="2"></circle><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4"></path></svg></div>
+      <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#ff5da2,var(--mvio));padding:3px;box-shadow:0 0 30px rgba(167,139,250,.4)"><div style="width:100%;height:100%;border-radius:50%;background:var(--mchip);display:grid;place-items:center;font-size:25px;font-weight:800;color:var(--mavt)">M</div></div>
+      <div style="font-size:21px;font-weight:800;letter-spacing:-.02em">Maya <span style="font-weight:600;color:var(--mvio);font-size:14px">@mayalikes</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">
+        <span style="background:#c8f542;color:#141a04;font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:6px;transform:rotate(-2deg)">SNEAKERHEAD</span>
+        <span style="background:#ff5da2;color:#fff;font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:6px;transform:rotate(1.5deg)">AUDIO NERD</span>
+        <span style="background:var(--mvio);color:var(--mbg);font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:6px;transform:rotate(-1deg)">COZY CORE</span>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--mmuted)">your taste, read from your shinies — helps friends gift you right</div>
+    </div>
+    <div style="padding:12px 18px 0;display:flex;flex-direction:column;gap:11px">
+      <div onClick="{{ openGifter }}" style="cursor:pointer;background:var(--mcard);border:2px solid var(--mlime66);border-radius:16px;padding:13px 14px;display:flex;align-items:center;gap:12px">
+        <div style="width:54px;height:54px;border-radius:8px;background:repeating-conic-gradient(var(--mtext) 0% 25%,var(--mbg) 0% 50%) 0 0/10px 10px;border:3px solid var(--mtext);flex:none"></div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:800">melikee.app/maya</div><div style="font-size:11px;font-weight:600;color:var(--mmuted);margin-top:2px">how friends find you — tap to preview what grandma sees, no app needed</div></div>
+        <span onClick="{{ copyLink }}" style="cursor:pointer;background:linear-gradient(180deg,#e6ff85,#c8f542);color:#141a04;font-size:11.5px;font-weight:800;padding:7px 13px;border-radius:999px">Share</span>
+      </div>
+      <div style="background:var(--mcard);border:2px solid #ff5da266;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#ff5da2" stroke-width="1.3"><rect x="2" y="6.5" width="12" height="7.5" rx="1"></rect><path d="M2 9.5h12M8 6.5v7.5M8 6.5C8 4 5.5 3 4.5 4S6 6.5 8 6.5zm0 0c0-2.5 2.5-3.5 3.5-2.5S10 6.5 8 6.5z"></path></svg>
+        <div style="flex:1;font-size:13px;font-weight:700">Birthday · Oct 14 <span style="background:#ff5da2;color:#fff;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:5px;margin-left:4px">71 days</span><div style="font-size:11px;font-weight:600;color:var(--mmuted);margin-top:2px">friends with your Sweet 16 list can see this</div></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1;background:var(--mcard);border:2px solid var(--mvio66);border-radius:16px;padding:11px 12px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--mlimeText)">{{ meShinyCount }}</div><div style="font-size:10.5px;font-weight:700;color:var(--mmuted)">shinies</div></div>
+        <div style="flex:1;background:var(--mcard);border:2px solid var(--mvio66);border-radius:16px;padding:11px 12px;text-align:center"><div style="font-size:20px;font-weight:800;color:#ff5da2">23</div><div style="font-size:10.5px;font-weight:700;color:var(--mmuted)">reactions</div></div>
+        <div style="flex:1;background:var(--mcard);border:2px solid var(--mvio66);border-radius:16px;padding:11px 12px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--mvio)">3</div><div style="font-size:10.5px;font-weight:700;color:var(--mmuted)">dibs called</div></div>
+      </div>
+      <div style="font-size:10.5px;font-weight:600;color:var(--mmuted);text-align:center">dibs stay secret — you'll never see which shinies are claimed</div>
+      <div style="background:var(--mcard);border:2px solid var(--mvio44);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px">
+        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--mph1),var(--mph2));display:grid;place-items:center;color:var(--mmuted);font-size:8px;flex:none">photo</div>
+        <div style="flex:1"><div style="font-size:10.5px;font-weight:800;letter-spacing:.06em;color:var(--mmuted)">MOST-LOVED SHINY</div><div style="font-size:12.5px;font-weight:700;margin-top:2px">On Cloudmonster 2 · 🔥 9</div></div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isAvaList }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;animation:mlk-up .25s ease-out">
+    <div style="padding:14px 18px 10px;display:flex;align-items:center;gap:10px">
+      <svg onClick="{{ goFeed }}" style="cursor:pointer" width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="var(--mmuted)" stroke-width="1.6"><path d="M10 3L5 8l5 5"></path></svg>
+      <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ff5da2,var(--mvio));padding:2px;flex:none"><div style="width:100%;height:100%;border-radius:50%;background:var(--mchip);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--mavt)">A</div></div>
+      <div style="flex:1;min-width:0"><div style="font-size:20px;font-weight:800">Ava's Sweet 16</div><div style="font-size:11px;font-weight:600;color:var(--mmuted)">birthday in 12 days · {{ avaLeft }} shinies up for dibs</div></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:2px 16px 110px;display:flex;flex-direction:column;gap:9px">
+      <sc-for list="{{ avaItems }}" as="a" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:11px;background:var(--mcard);border:2px solid {{ a.border }};border-radius:16px;padding:10px 12px">
+          <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--mph1),var(--mph2));flex:none;display:grid;place-items:center;color:var(--mmuted);font-size:8px">photo</div>
+          <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;line-height:1.25">{{ a.name }}</div><div style="font-size:11.5px;font-weight:700;color:var(--mlimeText);margin-top:2px">{{ a.price }}</div></div>
+          <span onClick="{{ a.dibs }}" style="cursor:pointer;flex:none;white-space:nowrap;background:{{ a.btnBg }};color:{{ a.btnFg }};border:1.5px solid var(--mvio55);font-size:11.5px;font-weight:800;padding:7px 13px;border-radius:999px">{{ a.btnLabel }}</span>
+        </div>
+      </sc-for>
+      <div style="background:var(--minset);border-radius:14px;padding:11px 14px;font-size:11px;font-weight:600;color:var(--mmuted);text-align:center">Dibs are secret — Ava will never know it was you.</div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isGifter }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:10;padding-top:59px;background:#faf7f2;color:#2d2447;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:9px 16px;display:flex;align-items:center;gap:8px;background:#f0eae0;border-bottom:1px solid #e2dacc;flex:none">
+      <span onClick="{{ closeGifter }}" style="cursor:pointer;font-size:11px;font-weight:800;color:#7a5fd0">✕ Exit preview</span>
+      <span style="flex:1;text-align:right;font-size:10px;font-weight:700;color:#8a8074">what gifters see — a link, no app</span>
+    </div>
+    <div style="flex:1;overflow-y:auto">
+      <div style="padding:20px 22px 6px;display:flex;flex-direction:column;gap:9px;align-items:center;text-align:center">
+        <div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:#7a5fd0;letter-spacing:.02em"><svg width="13" height="13" viewBox="0 0 16 16" fill="#7a5fd0"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>MeLikee</div>
+        <div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#ff5da2,#7a5fd0);padding:2.5px"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:21px;font-weight:800;color:#7a5fd0">M</div></div>
+        <div style="font-size:21px;font-weight:800;letter-spacing:-.02em">Maya's {{ gifterListName }}</div>
+        <sc-if value="{{ hasGifterNote }}" hint-placeholder-val="{{ false }}"><div style="background:#fff;border:1px solid #e2dacc;border-radius:14px;padding:10px 14px;font-size:12.5px;font-weight:600;line-height:1.5;color:#5c5347;max-width:280px">"{{ gifterNote }}"</div></sc-if>
+        <div style="font-size:10.5px;font-weight:600;color:#8a8074">birthday Oct 14 · prices checked today</div>
+      </div>
+      <div style="padding:12px 18px 30px;display:flex;flex-direction:column;gap:9px">
+        <sc-for list="{{ gifterItems }}" as="g" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid {{ g.border }};border-radius:16px;padding:10px 12px;box-shadow:0 2px 8px rgba(45,36,71,.06)">
+            <div style="width:46px;height:46px;border-radius:10px;background:#efe9dd;flex:none;display:grid;place-items:center;color:#8a8074;font-size:8px">photo</div>
+            <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;line-height:1.25">{{ g.name }}</div><div style="font-size:11px;font-weight:600;color:#8a8074;margin-top:2px">{{ g.meta }}</div></div>
+            <span onClick="{{ g.dibs }}" style="cursor:pointer;flex:none;white-space:nowrap;background:{{ g.btnBg }};color:{{ g.btnFg }};border:{{ g.btnBorder }};font-size:11.5px;font-weight:800;padding:7px 13px;border-radius:999px">{{ g.btnLabel }}</span>
+          </div>
+        </sc-for>
+        <div style="background:#f0eae0;border-radius:14px;padding:11px 14px;font-size:11px;font-weight:600;color:#8a8074;text-align:center;line-height:1.5">Dibs are a secret between gifters — Maya never sees what's claimed. Buy it anywhere you like.</div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showDock }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:16px;right:16px;bottom:26px;z-index:5;display:flex;justify-content:space-around;align-items:center;padding:9px 10px;background:var(--mdock);backdrop-filter:blur(8px);border:1.5px solid var(--mvio66);border-radius:24px;box-shadow:0 14px 34px rgba(0,0,0,.55)">
+    <div onClick="{{ goLists }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:700;color:{{ tabLists }};position:relative;width:56px">{{ tabListsBar }}<svg width="19" height="19" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 3.5h11M2.5 8h11M2.5 12.5h11"></path></svg>Lists</div>
+    <div onClick="{{ goFeed }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:700;color:{{ tabFeed }};position:relative;width:56px">{{ tabFeedBar }}<svg width="19" height="19" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 8c2-3.5 10-3.5 12 0M2 8c2 3.5 10 3.5 12 0"></path><circle cx="8" cy="8" r="1.8"></circle></svg>Feed</div>
+    <div onClick="{{ dockShutter }}" style="cursor:pointer;width:70px;height:70px;margin-top:-34px;border-radius:50%;border:3px solid var(--mring);box-shadow:{{ shutterGlow }};background:var(--minset);display:grid;place-items:center;animation:mlk-breathe 3.4s ease-in-out infinite">
+      <div style="width:54px;height:54px;border-radius:50%;background:radial-gradient(120% 120% at 30% 25%,#e6ff85 0%,#c8f542 55%,#9fc22e 100%);display:grid;place-items:center;position:relative">
+        <sc-if value="{{ icoPlus }}" hint-placeholder-val="{{ true }}"><svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="#1a2004" stroke-width="1.8" stroke-linecap="round"><path d="M8 2.5v11M2.5 8h11"></path></svg></sc-if>
+        <sc-if value="{{ icoStar }}" hint-placeholder-val="{{ false }}"><svg width="26" height="26" viewBox="0 0 16 16" fill="#1a2004"><path d="M8 1l1.5 5.5L15 8l-5.5 1.5L8 15l-1.5-5.5L1 8l5.5-1.5z"></path></svg></sc-if>
+        <sc-if value="{{ icoGem }}" hint-placeholder-val="{{ false }}"><svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="#1a2004" stroke-width="1.2"><path d="M4 2.5h8l2.5 3.5L8 13.5 1.5 6z"></path><path d="M1.5 6h13M4 2.5L8 6l4-3.5M8 6v7.5" opacity="0.65"></path></svg></sc-if>
+        <sc-if value="{{ icoBolt }}" hint-placeholder-val="{{ false }}"><svg width="24" height="24" viewBox="0 0 16 16" fill="#1a2004"><path d="M9.5 1L3 9h4l-1.5 6L12 7H8z"></path></svg></sc-if>
+        <sc-if value="{{ icoHeart }}" hint-placeholder-val="{{ false }}"><svg width="24" height="24" viewBox="0 0 16 16" fill="#1a2004"><path d="M8 14S1.5 10 1.5 5.6C1.5 3.4 3.2 2 5 2c1.3 0 2.4.7 3 1.8C8.6 2.7 9.7 2 11 2c1.8 0 3.5 1.4 3.5 3.6C14.5 10 8 14 8 14z"></path></svg></sc-if>
+        <sc-if value="{{ icoHeartPlus }}" hint-placeholder-val="{{ false }}"><svg width="25" height="25" viewBox="0 0 16 16" fill="none" stroke="#1a2004" stroke-width="1.4"><path d="M8 13.5S2 9.8 2 5.8C2 3.8 3.5 2.5 5.1 2.5c1.2 0 2.2.6 2.9 1.6.7-1 1.7-1.6 2.9-1.6C12.5 2.5 14 3.8 14 5.8c0 4-6 7.7-6 7.7z"></path><path d="M8 6v4M6 8h4" stroke-width="1.5" stroke-linecap="round"></path></svg></sc-if>
+        <sc-if value="{{ icoHeartOutline }}" hint-placeholder-val="{{ false }}"><svg width="25" height="25" viewBox="0 0 16 16" fill="none" stroke="#1a2004" stroke-width="1.5"><path d="M8 13.5S2 9.8 2 5.8C2 3.8 3.5 2.5 5.1 2.5c1.2 0 2.2.6 2.9 1.6.7-1 1.7-1.6 2.9-1.6C12.5 2.5 14 3.8 14 5.8c0 4-6 7.7-6 7.7z"></path></svg></sc-if>
+        <sc-if value="{{ icoHeartSpark }}" hint-placeholder-val="{{ false }}"><svg width="26" height="26" viewBox="0 0 16 16" fill="#1a2004"><path d="M7.2 13.6S1.5 10 1.5 6.2C1.5 4.3 3 3 4.6 3c1.1 0 2 .5 2.6 1.4C7.8 3.5 8.7 3 9.8 3c1.6 0 3.1 1.3 3.1 3.2 0 3.8-5.7 7.4-5.7 7.4z"></path><path d="M12.8 1.2l.5 1.9 1.9.5-1.9.5-.5 1.9-.5-1.9-1.9-.5 1.9-.5z"></path></svg></sc-if>
+        <sc-if value="{{ icoHeartEyes }}" hint-placeholder-val="{{ false }}"><svg width="25" height="25" viewBox="0 0 16 16" fill="none" stroke="#1a2004" stroke-width="1.2"><circle cx="8" cy="8" r="6.4"></circle><path d="M10.8 10.8c-.7.9-1.7 1.4-2.8 1.4s-2.1-.5-2.8-1.4" stroke-linecap="round"></path><path d="M4.2 6.4c.3-.7 1-.9 1.5-.6.4.2.6.6.5 1-.1.6-2 1.5-2 1.5s-.6-1.2-.3-1.9c.1-.2.2-.3.3 0zM11.8 6.4c-.3-.7-1-.9-1.5-.6-.4.2-.6.6-.5 1 .1.6 2 1.5 2 1.5s.6-1.2.3-1.9c-.1-.2-.2-.3-.3 0z" fill="#1a2004" stroke="none"></path></svg></sc-if>
+        <sc-if value="{{ icoDoubleHeart }}" hint-placeholder-val="{{ false }}"><svg width="26" height="26" viewBox="0 0 16 16" fill="none"><path d="M10.2 10.8S5.8 8 5.8 5.1c0-1.5 1.1-2.5 2.3-2.5.9 0 1.6.4 2.1 1.1.5-.7 1.2-1.1 2.1-1.1 1.2 0 2.3 1 2.3 2.5 0 2.9-4.4 5.7-4.4 5.7z" fill="#1a2004"></path><path d="M6 14S2 11.4 2 8.8c0-1.3 1-2.3 2.1-2.3.8 0 1.4.4 1.9 1 .5-.6 1.1-1 1.9-1 .3 0 .6.1.9.2" stroke="#1a2004" stroke-width="1.3"></path></svg></sc-if>
+        <sc-if value="{{ icoHands }}" hint-placeholder-val="{{ false }}"><svg width="25" height="25" viewBox="0 0 16 16" fill="none" stroke="#1a2004" stroke-width="1.3" stroke-linecap="round"><path d="M5.5 8V3.2a1 1 0 012 0V7m0-1.5V2.2a1 1 0 012 0V7m0-1V3.2a1 1 0 012 0V9c0 2.8-1.6 4.5-4 4.5-1.8 0-2.8-.8-3.8-2.3L2.6 9.4a.95.95 0 011.5-1.1l1.4 1.5"></path></svg></sc-if>
+        <svg style="position:absolute;top:5px;right:6px" width="9" height="9" viewBox="0 0 16 16" fill="#fff" opacity="0.85"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+      </div>
+    </div>
+    <div onClick="{{ openPeople }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:700;color:{{ tabPeople }};position:relative;width:56px">{{ tabPeopleBar }}<svg width="19" height="19" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5.5" cy="5.5" r="2.2"></circle><circle cx="11" cy="6.5" r="1.8"></circle><path d="M1.5 13.5c.5-2.4 2-3.6 4-3.6s3.5 1.2 4 3.6M9.5 10.5c1.8.2 3 1.2 3.5 3"></path></svg>Friends</div>
+    <div onClick="{{ goMe }}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:700;color:{{ tabMe }};position:relative;width:56px">{{ tabMeBar }}<svg width="19" height="19" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"></circle><circle cx="8" cy="6.5" r="1.8"></circle><path d="M4.5 12.5c.6-1.8 1.9-2.7 3.5-2.7s2.9.9 3.5 2.7"></path></svg>Me</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isPeople }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:16px 18px 110px;gap:12px;animation:mlk-up .25s ease-out">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="flex:1"><div style="font-size:20px;font-weight:800">Friends</div><div style="font-size:11px;font-weight:600;color:var(--mmuted)">{{ peopleMeta }}</div></div>
+      <sc-if value="{{ friendsHasPeople }}" hint-placeholder-val="{{ true }}"><span onClick="{{ openInvite }}" style="cursor:pointer;background:#c8f542;color:#141a04;font-size:11.5px;font-weight:800;padding:6px 13px;border-radius:999px">+ Invite</span></sc-if>
+    </div>
+    <sc-if value="{{ friendsEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;margin:6px -18px -110px;background:radial-gradient(120% 80% at 50% 12%,var(--mrad1) 0%,var(--mbg) 75%);position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;padding:0 34px 100px;text-align:center;overflow:hidden">
+        <svg style="position:absolute;top:36px;left:48px;animation:mlk-twinkle 2.2s infinite" width="14" height="14" viewBox="0 0 16 16" fill="#c8f542"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+        <svg style="position:absolute;top:82px;right:56px;animation:mlk-twinkle 2.8s .6s infinite" width="10" height="10" viewBox="0 0 16 16" fill="#ff5da2"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+        <svg style="position:absolute;bottom:150px;left:70px;animation:mlk-twinkle 3.1s 1.2s infinite" width="9" height="9" viewBox="0 0 16 16" fill="var(--mvio)"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>
+        <div style="width:78px;height:78px;border-radius:50%;border:1px solid var(--mvio);background:var(--mviofill);box-shadow:0 0 38px rgba(167,139,250,.4);display:grid;place-items:center;animation:mlk-breathe 3.2s ease-in-out infinite">
+          <svg width="30" height="30" viewBox="0 0 16 16" fill="none" stroke="var(--mvio)" stroke-width="1.3"><circle cx="5.5" cy="5.5" r="2.2"></circle><circle cx="11" cy="6.5" r="1.8"></circle><path d="M1.5 13.5c.5-2.4 2-3.6 4-3.6s3.5 1.2 4 3.6M9.5 10.5c1.8.2 3 1.2 3.5 3"></path></svg>
+        </div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-.02em;text-shadow:0 4px 24px rgba(167,139,250,.5)">Wishing is better<br>with your people</div>
+        <div style="display:flex;flex-direction:column;gap:10px;text-align:left;max-width:270px">
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:#c8f542;color:#141a04;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center">1</span><div style="font-size:12px;font-weight:600;color:var(--mmuted);line-height:1.45"><span style="color:var(--mtext);font-weight:800">They see your shinies</span> — friends follow the lists you choose. You approve everyone.</div></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:#ff5da2;color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center">2</span><div style="font-size:12px;font-weight:600;color:var(--mmuted);line-height:1.45"><span style="color:var(--mtext);font-weight:800">You see theirs</span> — their wants fill your Feed, so birthday gifts stop being guesswork.</div></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--mvio);color:var(--mbg);font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center">3</span><div style="font-size:12px;font-weight:600;color:var(--mmuted);line-height:1.45"><span style="color:var(--mtext);font-weight:800">Gifts stay surprises</span> — dibs are invisible to the wisher. Always.</div></div>
+        </div>
+        <span onClick="{{ openInvite }}" style="cursor:pointer;background:linear-gradient(180deg,#e6ff85,#c8f542);color:#141a04;font-size:13px;font-weight:800;padding:12px 24px;border-radius:999px;box-shadow:0 6px 18px rgba(200,245,66,.35)">Find your people</span>
+        <div style="font-size:11px;font-weight:600;color:var(--mmuted)">Secret stash and secret shinies never show. To anyone.</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ friendsHasPeople }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ hasSentInvites }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--mmuted)">INVITED — WAITING</div>
+      <sc-for list="{{ sentInvites }}" as="p" hint-placeholder-count="1">
+        <div style="background:var(--mcard);border:2px solid var(--mvio44);border-radius:16px;padding:11px 14px;display:flex;align-items:center;gap:10px;opacity:.75">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--mdeep);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--mavt)">{{ p.initial }}</div>
+          <div style="flex:1;font-size:13px;font-weight:700">{{ p.name }}<div style="font-size:10.5px;font-weight:600;color:var(--mmuted)">invite sent · {{ p.when }}</div></div>
+          <span onClick="{{ p.cancel }}" style="cursor:pointer;color:var(--mmuted);font-size:11.5px;font-weight:800">Cancel</span>
+        </div>
+      </sc-for>
+    </sc-if>
+    <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--mmuted)">YOUR FLOCK</div>
+    <sc-for list="{{ friends }}" as="p" hint-placeholder-count="3">
+      <div style="background:var(--mcard);border:2px solid var(--mvio66);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#ff5da2,var(--mvio));padding:2px"><div style="width:100%;height:100%;border-radius:50%;background:var(--mchip);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--mavt)">{{ p.initial }}</div></div>
+          <div style="flex:1;font-size:13.5px;font-weight:800">{{ p.name }}<div style="font-size:10.5px;font-weight:600;color:var(--mmuted)">{{ p.meta }}</div></div>
+          <span onClick="{{ p.expand }}" style="cursor:pointer;color:var(--mvio);font-size:11.5px;font-weight:800">{{ p.expandLabel }}</span>
+        </div>
+        <sc-if value="{{ p.isOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:8px;animation:mlk-up .2s ease-out">
+            <div style="font-size:10.5px;font-weight:800;letter-spacing:.06em;color:var(--mmuted)">CAN SEE</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ p.access }}" as="al" hint-placeholder-count="2">
+                <span onClick="{{ al.toggle }}" style="cursor:pointer;background:{{ al.bg }};color:{{ al.fg }};border:1.5px solid var(--mvio55);font-size:11px;font-weight:800;padding:5px 12px;border-radius:999px">{{ al.name }}</span>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:14px;padding-top:2px">
+              <span onClick="{{ p.remove }}" style="cursor:pointer;font-size:11.5px;font-weight:800;color:#ff5da2">Remove friend</span>
+              <span onClick="{{ p.block }}" style="cursor:pointer;font-size:11.5px;font-weight:800;color:var(--mmuted)">Block</span>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+    <div style="background:var(--minset);border-radius:14px;padding:11px 14px;font-size:11px;font-weight:600;color:var(--mmuted)">Secret stash and secret shinies never show to anyone, no matter what's checked here.</div>
+    </sc-if>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isShareSheet }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;z-index:8;background:rgba(13,10,22,.6)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;z-index:9;background:var(--mcard);border:2px solid var(--mvio66);border-bottom:none;border-radius:22px 22px 0 0;padding:14px 18px 34px;box-shadow:0 -10px 34px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:12px;animation:mlk-up .28s cubic-bezier(.34,1.2,.64,1) both">
+    <div style="width:36px;height:4px;border-radius:2px;background:var(--mvio55);margin:0 auto"></div>
+    <div style="font-size:17px;font-weight:800">Share "{{ shareListName }}"</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--mmuted)">ADD A NOTE — IT SHOWS AT THE TOP OF YOUR PAGE</div>
+      <textarea value="{{ shareNote }}" onChange="{{ setShareNote }}" rows="3" style="background:var(--minset);border:1.5px solid var(--mvio44);border-radius:14px;padding:11px 13px;font-size:13px;font-weight:600;color:var(--mtext);font-family:Inter,system-ui,sans-serif;resize:none;outline:none;line-height:1.45"></textarea>
+      <div onClick="{{ suggestNote }}" style="cursor:pointer;font-size:11px;font-weight:700;color:var(--mvio)">✨ Write one for me</div>
+    </div>
+    <div onClick="{{ copyShareLink }}" style="cursor:pointer;background:var(--minset);border:1.5px dashed var(--mlime66);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1"><div style="font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--mmuted)">ANYONE WITH THE LINK</div>
+      <div style="font-size:13px;font-weight:800;color:var(--mlimeText);margin-top:2px">{{ shareLink }}</div></div>
+      <span style="background:#c8f542;color:#141a04;font-size:11px;font-weight:800;padding:6px 13px;border-radius:999px">{{ shareCopyLabel }}</span>
+    </div>
+    <div style="background:var(--minset);border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--mlimeText)" stroke-width="1.3" style="flex:none;margin-top:2px"><rect x="2" y="6.5" width="12" height="7.5" rx="1"></rect><path d="M2 9.5h12M8 6.5v7.5M8 6.5C8 4 5.5 3 4.5 4S6 6.5 8 6.5zm0 0c0-2.5 2.5-3.5 3.5-2.5S10 6.5 8 6.5z"></path></svg>
+      <div style="font-size:12px;font-weight:600;color:var(--mmuted);line-height:1.5"><span style="color:var(--mtext);font-weight:800">No app needed.</span> Grandma, aunts, anyone — they open a simple page, see your shinies, and call dibs. You'll never see what's been dibsed. <span onClick="{{ previewGifter }}" style="cursor:pointer;color:var(--mvio);font-weight:800">Preview their view →</span></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <span style="flex:1;text-align:center;background:var(--mchip);border:1.5px solid var(--mvio55);border-radius:999px;padding:10px;font-size:12px;font-weight:800">Text it</span>
+      <span style="flex:1;text-align:center;background:var(--mchip);border:1.5px solid var(--mvio55);border-radius:999px;padding:10px;font-size:12px;font-weight:800">WhatsApp</span>
+      <span style="flex:1;text-align:center;background:var(--mchip);border:1.5px solid var(--mvio55);border-radius:999px;padding:10px;font-size:12px;font-weight:800">Email</span>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--mmuted);text-align:center">{{ shareVisNote }}</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isInviteSheet }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;z-index:8;background:rgba(13,10,22,.6)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;z-index:9;background:var(--mcard);border:2px solid var(--mvio66);border-bottom:none;border-radius:22px 22px 0 0;padding:14px 18px 34px;box-shadow:0 -10px 34px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:13px;animation:mlk-up .28s cubic-bezier(.34,1.2,.64,1) both">
+    <div style="width:36px;height:4px;border-radius:2px;background:var(--mvio55);margin:0 auto"></div>
+    <div style="font-size:17px;font-weight:800">Find your people</div>
+    <div style="display:flex;align-items:center;gap:9px;background:var(--minset);border:1.5px solid var(--mvio44);border-radius:999px;padding:10px 15px">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--mmuted)" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14"></path></svg>
+      <input value="{{ searchQ }}" onChange="{{ setSearchQ }}" placeholder="Search name or @handle" style="flex:1;background:none;border:none;outline:none;font-size:13px;font-weight:600;color:var(--mtext);font-family:Inter,system-ui,sans-serif"></input>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <sc-if value="{{ hasNoResults }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:600;color:var(--mmuted);text-align:center;padding:4px">Nobody by that name yet — send them your link below.</div></sc-if>
+      <sc-if value="{{ showSuggestHeader }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--mmuted)">PEOPLE YOU MAY KNOW</div></sc-if>
+      <sc-for list="{{ directory }}" as="c" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;border-radius:50%;background:{{ c.ring }};padding:2px;flex:none"><div style="width:100%;height:100%;border-radius:50%;background:var(--mchip);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--mavt)">{{ c.initial }}</div></div>
+          <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700"><span>{{ c.name }} <span style="font-weight:600;color:var(--mvio)">{{ c.handle }}</span></span>{{ c.followsBadge }}</div><div style="font-size:10.5px;font-weight:600;color:var(--mmuted)">{{ c.meta }}</div></div>
+          <span onClick="{{ c.invite }}" style="cursor:pointer;background:{{ c.btnBg }};color:{{ c.btnFg }};border:1.5px solid var(--mvio55);font-size:11.5px;font-weight:800;padding:6px 14px;border-radius:999px">{{ c.btnLabel }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:1px;background:var(--mvio33)"></div><span style="font-size:10.5px;font-weight:800;letter-spacing:.06em;color:var(--mmuted)">NOT ON MELIKEE YET?</span><div style="flex:1;height:1px;background:var(--mvio33)"></div></div>
+    <div style="display:flex;gap:10px;align-items:stretch">
+      <div onClick="{{ copyLink }}" style="cursor:pointer;flex:1;background:var(--minset);border:1.5px dashed var(--mlime66);border-radius:14px;padding:11px 12px">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--mmuted)">SEND YOUR LINK</div>
+        <div style="font-size:12px;font-weight:800;color:var(--mlimeText);margin-top:2px">melikee.app/maya</div>
+        <div style="font-size:10px;font-weight:600;color:var(--mmuted);margin-top:2px">{{ linkNote }}</div>
+      </div>
+      <div style="background:var(--minset);border:1.5px solid var(--mvio44);border-radius:14px;padding:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+        <div style="width:52px;height:52px;border-radius:8px;background:repeating-conic-gradient(var(--mtext) 0% 25%,var(--mbg) 0% 50%) 0 0/10px 10px;border:3px solid var(--mtext)"></div>
+        <div style="font-size:9.5px;font-weight:700;color:var(--mmuted)">or scan me</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--mmuted);text-align:center">New friends see only lists you share. You approve everyone.</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:24px;right:24px;bottom:96px;display:grid;place-items:center;pointer-events:none;z-index:7">
+    <div style="background:var(--mcard);border:1.5px solid var(--mvio66);box-shadow:0 8px 24px rgba(0,0,0,.5);border-radius:999px;padding:9px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:8px;animation:mlk-toast 2.4s ease forwards">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="#c8f542"><path d="M8 0l1.6 6.4L16 8l-6.4 1.6L8 16 6.4 9.6 0 8l6.4-1.6z"></path></svg>{{ toast }}
+    </div>
+  </div>
+</sc-if>
+
+</div>
+</x-import>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 460, &quot;height&quot;: 940}, &quot;lightMode&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Theme&quot;}, &quot;shutterIcon&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;plus&quot;, &quot;star&quot;, &quot;gem&quot;, &quot;bolt&quot;, &quot;heart&quot;, &quot;heart outline&quot;, &quot;heart sparkle&quot;, &quot;heart eyes&quot;, &quot;double heart&quot;, &quot;heart+&quot;, &quot;grabby hands&quot;], &quot;default&quot;: &quot;plus&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Shutter&quot;}, &quot;reduceMotion&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Motion&quot;}, &quot;filingSeconds&quot;: {&quot;editor&quot;: &quot;range&quot;, &quot;min&quot;: 3, &quot;max&quot;: 15, &quot;step&quot;: 1, &quot;default&quot;: 6, &quot;unit&quot;: &quot;s&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Behavior&quot;}, &quot;emptyFeed&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Null states&quot;}, &quot;emptyFriends&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Null states&quot;}, &quot;emptyLists&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Null states&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      screen: 'camera', phase: 'idle', mode: 'snap', firstRun: true, chosen: 0, lastList: 'w',
+      sheet: null, riley: 'pending', rileyAccess: { w: true, s16: false }, linkCopied: false,
+      openFriend: null,
+      itemFrom: 'lists', gifterList: 'w', gifterFrom: null, gifterDibs: {}, avaDibs: {}, notes: {},
+      avaItems: [
+        { id: 'a1', name: 'Mini crossbody bag', price: '$58' },
+        { id: 'a2', name: 'Kindle Paperwhite', price: '$149' },
+        { id: 'a3', name: 'Glossier You set', price: '$45' },
+        { id: 'a4', name: 'Fujifilm film 3-pack', price: '$27' },
+        { id: 'a5', name: 'Claw clips (big)', price: '$12' },
+        { id: 'a6', name: 'Concert fund chip-in', price: 'any $' },
+      ],
+      friends: [
+        { id: 'p1', name: 'Ava', initial: 'A', meta: '\ud83c\udf82 Aug 17 — in 12 days', access: { w: true, s16: true } },
+        { id: 'p2', name: 'Jordan', initial: 'J', meta: '\ud83c\udf82 Nov 3', access: { w: true, s16: false } },
+        { id: 'p3', name: 'Sam', initial: 'S', meta: '\ud83c\udf82 Jan 22', access: { w: true, s16: true } },
+        { id: 'p4', name: 'Mia', initial: 'M', meta: '\ud83c\udf82 Mar 9', access: { w: true, s16: false } },
+      ],
+      sent: [{ id: 'i1', name: 'Zoe P.', initial: 'Z', when: '2 days ago' }],
+      searchQ: '',
+      contacts: [
+        { id: 'c1', name: 'Zoe P.', handle: '@zoepp', initial: 'Z', school: 'Westfield High', mutual: 8, follows: true, invited: false },
+        { id: 'c2', name: 'Marcus T.', handle: '@marct', initial: 'M', school: 'Westfield High', mutual: 3, follows: false, invited: false },
+        { id: 'c3', name: 'Lena K.', handle: '@lenak', initial: 'L', school: 'from your contacts', mutual: 0, follows: false, invited: false },
+        { id: 'c4', name: 'Priya S.', handle: '@priyahearts', initial: 'P', school: 'Northside Prep', mutual: 2, follows: true, invited: false, searchOnly: true },
+        { id: 'c5', name: 'Dee Alvarez', handle: '@deedee', initial: 'D', school: 'Westfield High', mutual: 0, follows: true, invited: false, searchOnly: true },
+      ],
+      activeList: 'w', activeItem: null, lastAdded: null, filedList: 'w',
+      toast: null, filingLeft: 6,
+      lists: [
+        { id: 'w', name: 'My wants', vis: 'friends', accent: '#c8f542' },
+        { id: 's16', name: 'Sweet 16', vis: 'invite', accent: '#ff5da2', days: '71d' },
+        { id: 'sec', name: 'Secret stash', vis: 'me', accent: '#a78bfa' },
+      ],
+      items: [
+        { id: 1, list: 'w', name: 'On Cloudmonster 2', price: '$180', store: 'REI', upc: '194671203984', added: 'by camera · Sat', secret: false },
+        { id: 2, list: 'w', name: 'LED strip lights', price: '$24', store: 'Amazon', upc: '840268919287', added: 'from trending · Jul 26', secret: false },
+        { id: 3, list: 'w', name: 'Instax Mini 12', price: '$79', store: 'Target', upc: '074101204209', added: 'scanned · Jul 20', secret: false },
+        { id: 4, list: 's16', name: 'Mini crossbody bag', price: '$58', store: 'Urban Outfitters', upc: '191267439204', added: 'from Feed · Jul 18', secret: false },
+        { id: 5, list: 's16', name: 'Airpods 4', price: '$129', store: 'Apple', upc: '195949052026', added: 'dictated · Jul 12', secret: false },
+        { id: 6, list: 'sec', name: 'Journal + gel pens', price: '$22', store: 'Muji', upc: '458934720117', added: 'by camera · Jul 8', secret: true },
+      ],
+      feed: [
+        { id: 'f1', who: 'Ava', initial: 'A', list: 'Sweet 16', product: 'Mini crossbody bag · $58', when: '2h', fires: 12, hearts: 4, myFire: false, myHeart: false, wanted: false },
+        { id: 'f2', who: 'Jordan', initial: 'J', list: 'Skate stuff', product: 'Santa Cruz deck · $75', when: '5h', fires: 8, hearts: 2, myFire: false, myHeart: false, wanted: false },
+      ],
+      nextId: 100,
+    };
+    this._t = [];
+  }
+  componentWillUnmount() { this._t.forEach(clearTimeout); }
+  later(fn, ms) { this._t.push(setTimeout(fn, ms)); }
+  rm() { return this.props.reduceMotion ?? false; }
+  swipeTo(dir) {
+    const order = ['camera', 'lists', 'feed', 'me'];
+    const cur = this.state.screen === 'list' ? 'lists' : this.state.screen;
+    const i = order.indexOf(cur);
+    if (i < 0 || this.state.phase === 'file' || this.state.sheet) return;
+    const next = order[i + dir];
+    if (next) this.setState({ screen: next, phase: 'idle' });
+  }
+  showToast(msg) { this.setState({ toast: msg }); this.later(() => this.setState({ toast: null }), 2400); }
+  startFilingTimer() {
+    const secs = Math.round(this.props.filingSeconds ?? 6);
+    this.setState({ filingLeft: secs });
+    const tick = () => {
+      if (this.state.phase !== 'file') return;
+      const left = this.state.filingLeft - 1;
+      if (left <= 0) { this.setState({ phase: 'idle', lastAdded: null }); }
+      else { this.setState({ filingLeft: left }); this.later(tick, 1000); }
+    };
+    this.later(tick, 1000);
+  }
+  renderVals() {
+    const s = this.state;
+    const bdayList = { id: 'bday', name: 'Birthday', vis: 'invite', accent: '#ff5da2' };
+    const listById = id => s.lists.concat([bdayList]).find(l => l.id === id) || s.lists[0];
+    const visLabel = l => l.vis === 'friends' ? 'friends can see it' : l.vis === 'invite' ? 'invite-only' : 'just you';
+    const lockSvg = React.createElement('svg', { width: 11, height: 11, viewBox: '0 0 16 16', fill: 'none', stroke: 'var(--mvio)', strokeWidth: 1.5, key: 'l' },
+      React.createElement('rect', { x: 3, y: 7, width: 10, height: 7, rx: 1.5 }), React.createElement('path', { d: 'M5 7V5a3 3 0 016 0v2' }));
+    const globeSvg = React.createElement('svg', { width: 11, height: 11, viewBox: '0 0 16 16', fill: 'none', stroke: '#c8f542', strokeWidth: 1.4, key: 'g' },
+      React.createElement('circle', { cx: 8, cy: 8, r: 6 }), React.createElement('path', { d: 'M2 8h12M8 2c-2 2-2 10 0 12 2-2 2-10 0-12z' }));
+    const openItem = it => () => this.setState({ screen: 'item', activeItem: it.id, itemFrom: s.screen });
+    const active = s.items.find(i => i.id === s.activeItem) || s.items[0];
+    const added = s.items.find(i => i.id === s.lastAdded);
+    const filedL = listById(added ? added.list : s.filedList);
+    const priceNum = parseFloat((active.price || '$0').replace(/[$,]/g, ''));
+    const fmt = n => '$' + Math.round(n).toLocaleString();
+    const shutter = () => {
+      if (s.phase !== 'idle') return;
+      if (this.rm()) { this.setState({ phase: 'found' }); return; }
+      this.setState({ phase: 'snap' });
+      this.later(() => this.setState({ phase: 'scan' }), 420);
+      this.later(() => this.setState({ phase: 'found' }), 2020);
+    };
+    const matches = [
+      { name: 'Sony XM6 headphones', price: '$399', stores: 'Best Buy + 2 stores', tag: 'best match, 96%' },
+      { name: 'Sony XM5 headphones', price: '$329', stores: 'Best Buy + 2 stores', tag: 'last year\u2019s model' },
+      { name: 'Sony XM6 — silver', price: '$399', stores: 'Amazon + 1 store', tag: 'different color' },
+    ];
+    const m = s.foundOverride || matches[s.chosen] || matches[0];
+    const wantIt = () => {
+      const it = { id: s.nextId, list: s.lastList, name: m.name, price: m.price, store: m.storeName || 'Best Buy', upc: '027242925175', added: 'just now', secret: false };
+      const fin = () => { this.setState({ phase: 'file' }); this.startFilingTimer(); };
+      this.setState(st => ({ items: [it].concat(st.items), nextId: st.nextId + 1, lastAdded: it.id, firstRun: false, foundOverride: null, phase: this.rm() ? 'file' : 'fly' }));
+      if (this.rm()) this.startFilingTimer(); else this.later(fin, 1250);
+    };
+    const chipStyle = on => on ? ['none', 'var(--mlimeText)'] : ['none', '#8d82b5'];
+    const [scanBg, scanFg] = chipStyle(s.mode === 'scan'), [snapBg, snapFg] = chipStyle(s.mode === 'snap'), [sayBg, sayFg] = chipStyle(s.mode === 'say');
+    const bar = React.createElement('div', { style: { position: 'absolute', top: -10, width: 26, height: 3, borderRadius: 2, background: 'var(--mlimeText)' } });
+    const tab = name => s.screen === name ? 'var(--mlimeText)' : 'var(--mmuted)';
+    const tabBar = name => s.screen === name ? bar : null;
+    return {
+      isCamera: s.screen === 'camera', isFeed: s.screen === 'feed',
+      isLists: s.screen === 'lists', isList: s.screen === 'list', isItem: s.screen === 'item', isMe: s.screen === 'me',
+      showDock: ['camera', 'feed', 'lists', 'list', 'me', 'people', 'avaList'].indexOf(s.screen) >= 0 && (s.screen !== 'camera' || s.phase === 'idle'),
+      isFiling: s.phase === 'file' && (s.screen === 'camera' || s.screen === 'feed'),
+      phIdle: s.phase === 'idle' && s.screen === 'camera', phSnap: s.phase === 'snap', phScan: s.phase === 'scan',
+      phCard: s.phase === 'found' || s.phase === 'fly', phFly: s.phase === 'fly',
+      cardAnim: this.rm() ? 'none' : s.phase === 'fly' ? 'mlk-fly .9s cubic-bezier(.5,-0.1,.7,1) forwards' : 'mlk-pop .32s cubic-bezier(.34,1.4,.64,1) both',
+      phAlts: s.phase === 'alts', firstRun: s.firstRun,
+      phBusy: s.screen === 'camera' && (s.phase === 'found' || s.phase === 'alts'),
+      notBusy: !(s.screen === 'camera' && ['found', 'alts', 'scan', 'snap', 'fly'].indexOf(s.phase) >= 0),
+      foundName: m.name, foundPrice: m.price + ' · ' + m.stores,
+      showAlts: () => this.setState({ phase: 'alts' }),
+      altMatches: matches.map((x, i) => ({ name: x.name, price: x.price, tag: x.tag, border: i === s.chosen ? '#c8f542' : 'var(--mvio44)', pick: () => this.setState({ chosen: i, phase: 'found' }) })),
+      savePhoto: () => { this.setState(st => ({ items: [{ id: st.nextId, list: st.lastList, name: 'Your photo — matching\u2026', price: '—', store: 'saved for later', upc: '—', added: 'photo saved', secret: false }].concat(st.items), nextId: st.nextId + 1, phase: 'idle', firstRun: false })); this.showToast('Saved — we\u2019ll keep matching it'); },
+      feedEmpty: (this.props.emptyFeed ?? false), feedHasPeople: !(this.props.emptyFeed ?? false),
+      isSay: s.mode === 'say', captureHint: s.mode === 'snap' ? 'Me likee? Me wantee? Snap it.' : s.mode === 'scan' ? 'Find the barcode, line it up.' : 'Just say what you want.',
+      scanNote: s.mode === 'scan' ? 'exact match from the barcode' : s.mode === 'say' ? 'matching your words to products' : 'matching product · finding stores',
+      foundImgLabel: s.mode === 'scan' ? 'catalog photo, from UPC' : s.mode === 'say' ? 'best match from your words' : 'your photo, matched',
+      scanChipBg: scanBg, scanChipFg: scanFg, snapChipBg: snapBg, snapChipFg: snapFg, sayChipBg: sayBg, sayChipFg: sayFg,
+      modeScan: () => this.setState({ mode: 'scan' }), modeSnap: () => this.setState({ mode: 'snap' }), modeSay: () => this.setState({ mode: 'say' }),
+      shutter: shutter, wantIt: wantIt, backToIdle: () => this.setState({ phase: 'idle', foundOverride: null }),
+      goCamera: () => this.setState({ screen: 'camera', phase: 'idle' }),
+      goFeed: () => this.setState({ screen: 'feed' }), goLists: () => this.setState({ screen: 'lists', phase: 'idle' }), goMe: () => this.setState({ screen: 'me' }),
+      tabLists: s.screen === 'lists' || s.screen === 'list' ? 'var(--mlimeText)' : 'var(--mmuted)', tabFeed: tab('feed'), tabMe: tab('me'), tabPeople: tab('people'),
+      tabListsBar: s.screen === 'lists' || s.screen === 'list' ? bar : null, tabFeedBar: tabBar('feed'), tabMeBar: tabBar('me'), tabPeopleBar: tabBar('people'),
+      icoPlus: (this.props.shutterIcon ?? 'plus') === 'plus',
+      icoStar: this.props.shutterIcon === 'star',
+      icoGem: this.props.shutterIcon === 'gem',
+      icoBolt: this.props.shutterIcon === 'bolt',
+      icoHeart: this.props.shutterIcon === 'heart',
+      icoHeartPlus: this.props.shutterIcon === 'heart+',
+      icoHands: this.props.shutterIcon === 'grabby hands',
+      icoHeartOutline: this.props.shutterIcon === 'heart outline',
+      icoHeartSpark: this.props.shutterIcon === 'heart sparkle',
+      icoHeartEyes: this.props.shutterIcon === 'heart eyes',
+      icoDoubleHeart: this.props.shutterIcon === 'double heart',
+      dockShutter: () => { if (s.screen === 'camera' && s.phase === 'idle') shutter(); else this.setState({ screen: 'camera', phase: 'idle' }); },
+      shutterGlow: s.screen === 'camera' ? '0 0 30px rgba(200,245,66,.65)' : '0 0 16px rgba(200,245,66,.3)',
+      filedListName: filedL.name, filedVisibility: added && added.secret ? 'secret — only you' : visLabel(filedL),
+      filingNote: 'slides away in ' + s.filingLeft + 's — the add already happened',
+      undoAdd: () => { this.setState(st => ({ items: st.items.filter(i => i.id !== st.lastAdded), phase: 'idle', lastAdded: null })); this.showToast('Undone. Never happened.'); },
+      moveChips: s.lists.filter(l => !added || l.id !== added.list).map(l => ({
+        name: l.name, bg: 'var(--mchip)', fg: 'var(--msoft)',
+        badge: l.days ? React.createElement('span', { style: { background: '#ff5da2', color: '#fff', fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 4 } }, l.days) : (l.vis === 'me' ? lockSvg : null),
+        pick: () => { this.setState(st => ({ lastList: l.id, items: st.items.map(i => i.id === st.lastAdded ? Object.assign({}, i, { list: l.id }) : i) })); this.showToast('Moved to ' + l.name); },
+      })),
+      toggleSecret: () => this.setState(st => ({ items: st.items.map(i => i.id === st.lastAdded ? Object.assign({}, i, { secret: !i.secret }) : i) })),
+      secretTrackBg: added && added.secret ? 'var(--mvio)' : 'var(--mchip)',
+      secretKnobLeft: added && added.secret ? '19px' : '3px',
+      secretKnobBg: added && added.secret ? 'var(--mbg)' : '#7d6fae',
+      feedCards: s.feed.map(f => ({
+        who: f.who, initial: f.initial, list: f.list, product: f.product, when: f.when,
+        fires: f.fires + (f.myFire ? 1 : 0), hearts: f.hearts + (f.myHeart ? 1 : 0),
+        fireBg: f.myFire ? 'var(--mdeep)' : 'var(--mchip)', heartBg: f.myHeart ? 'var(--mdeep)' : 'var(--mchip)',
+        fire: () => this.setState(st => ({ feed: st.feed.map(x => x.id === f.id ? Object.assign({}, x, { myFire: !x.myFire }) : x) })),
+        heart: () => this.setState(st => ({ feed: st.feed.map(x => x.id === f.id ? Object.assign({}, x, { myHeart: !x.myHeart }) : x) })),
+        wantLabel: f.wanted ? 'In the bag ✓' : 'Want it too',
+        want: () => {
+          if (f.wanted) return;
+          const nm = f.product.split(' · ')[0]; const pr = f.product.split(' · ')[1];
+          this.setState(st => ({
+            feed: st.feed.map(x => x.id === f.id ? Object.assign({}, x, { wanted: true }) : x),
+            items: [{ id: st.nextId, list: 'w', name: nm, price: pr, store: 'from the Feed', upc: '—', added: 'from ' + f.who + "'s wants", secret: false }].concat(st.items),
+            nextId: st.nextId + 1, lastAdded: st.nextId, phase: 'file',
+          }));
+          this.startFilingTimer();
+        },
+      })),
+      trending: [
+        { rank: '#1', name: 'Sol de Janeiro mist', price: '$38', border: '#ff5da266', tagBg: '#ff5da2', tagFg: '#fff' },
+        { rank: '#2', name: 'LED strip lights', price: '$24', border: 'var(--mvio66)', tagBg: 'var(--mvio)', tagFg: 'var(--mbg)' },
+        { rank: '#3', name: 'Nike Field General', price: '$85', border: 'var(--mlime66)', tagBg: '#c8f542', tagFg: '#141a04' },
+      ].map(t => Object.assign(t, { want: () => this.setState({ screen: 'camera', mode: 'snap', foundOverride: { name: t.name, price: t.price, stores: 'from trending', storeName: 'Amazon' }, phase: 'found' }) })),
+      listsEmpty: (this.props.emptyLists ?? false),
+      listRows: (this.props.emptyLists ? [s.lists.find(l => l.id === 'w'), bdayList, s.lists.find(l => l.id === 'sec')] : s.lists).map(l => {
+        const n = this.props.emptyLists ? 0 : s.items.filter(i => i.list === l.id).length;
+        return {
+          name: l.name, initial: l.name[0], border: l.accent + '66',
+          badge: l.vis === 'me' ? lockSvg : l.vis === 'friends' ? globeSvg : React.createElement('span', { style: { background: '#ff5da2', color: '#fff', fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 4 } }, l.id === 'bday' ? 'set the date' : '71 days'),
+          meta: n + ' shinies · ' + visLabel(l),
+          open: () => this.setState({ screen: 'list', activeList: l.id }),
+          share: e => { e.stopPropagation(); this.setState(st => ({ sheet: 'share', shareList: l.id, shareCopied: false, shareNote: st.notes[l.id] || '' })); },
+        };
+      }),
+      activeListName: listById(s.activeList).name,
+      activeListMeta: s.items.filter(i => i.list === s.activeList).length + ' shinies · ' + visLabel(listById(s.activeList)),
+      activeItems: s.items.filter(i => i.list === s.activeList).map(it => ({
+        name: it.name, price: it.price, open: openItem(it),
+        border: it.secret ? 'var(--mvio99)' : 'var(--mvio44)',
+        secretBadge: it.secret ? React.createElement('span', { style: { position: 'absolute', top: 6, right: 6, zIndex: 1, background: 'var(--mvio)', color: 'var(--mbg)', fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 5, display: 'inline-flex', alignItems: 'center', gap: 3 } }, 'secret') : null,
+      })),
+      activeItemName: active.name, activeItemPrice: active.price, activeItemStore: active.store,
+      activeItemUpc: active.upc, activeItemAdded: 'added ' + active.added, activeItemList: listById(active.list).name,
+      activeItemSecretTag: active.secret ? React.createElement('span', { style: { background: 'var(--mvio)', color: 'var(--mbg)', fontSize: 10, fontWeight: 800, padding: '3px 9px', borderRadius: 6 } }, 'secret — only you') : null,
+      activeItemStores: [{ store: active.store, price: active.price, color: 'var(--mlimeText)' }].concat(
+        ['Amazon', 'Walmart', 'Target'].filter(n => n !== active.store).slice(0, 2)
+          .map((n, i) => ({ store: n, price: fmt(priceNum * (1.04 + i * 0.04)), color: 'var(--mmuted)' }))),
+      backFromItem: () => this.setState({ screen: s.itemFrom || 'list' }),
+      meShinyCount: s.items.length + 8,
+      openSettings: () => this.showToast('Settings — defaults, notifications, account'),
+      swipeStart: e => { this._sx = e.clientX; this._sy = e.clientY; },
+      swipeEnd: e => {
+        if (this._sx == null) return;
+        const dx = e.clientX - this._sx, dy = e.clientY - this._sy;
+        this._sx = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 40) this.swipeTo(dx < 0 ? 1 : -1);
+      },
+      isPeople: s.screen === 'people',
+      friendsEmpty: (this.props.emptyFriends ?? false),
+      friendsHasPeople: !(this.props.emptyFriends ?? false),
+      openPeople: () => this.setState({ screen: 'people' }),
+      peopleMeta: (this.props.emptyFriends ?? false) ? 'You approve everyone — start with one' : s.friends.length + ' friends · ' + s.sent.length + ' invited',
+      hasSentInvites: s.sent.length > 0,
+      sentInvites: s.sent.map(p => ({
+        name: p.name, initial: p.initial, when: p.when,
+        cancel: () => { this.setState(st => ({ sent: st.sent.filter(x => x.id !== p.id) })); this.showToast('Invite cancelled'); },
+      })),
+      friends: s.friends.map(p => ({
+        name: p.name, initial: p.initial, meta: p.meta,
+        isOpen: s.openFriend === p.id,
+        expandLabel: s.openFriend === p.id ? 'Done' : 'Manage',
+        expand: () => this.setState({ openFriend: s.openFriend === p.id ? null : p.id }),
+        access: s.lists.filter(l => l.vis !== 'me').map(l => ({
+          name: l.name, bg: p.access[l.id] ? '#c8f542' : 'var(--mchip)', fg: p.access[l.id] ? '#141a04' : 'var(--msoft)',
+          toggle: () => this.setState(st => ({ friends: st.friends.map(x => x.id === p.id ? Object.assign({}, x, { access: Object.assign({}, x.access, { [l.id]: !x.access[l.id] }) }) : x) })),
+        })),
+        remove: () => { this.setState(st => ({ friends: st.friends.filter(x => x.id !== p.id), openFriend: null })); this.showToast(p.name + ' removed — they won\u2019t be told'); },
+        block: () => { this.setState(st => ({ friends: st.friends.filter(x => x.id !== p.id), openFriend: null })); this.showToast(p.name + ' blocked'); },
+      })),
+      isShareSheet: s.sheet === 'share',
+      shareNote: s.shareNote ?? '',
+      setShareNote: e => { const v = e.target.value; this.setState(st => { const n = Object.assign({}, st.notes); n[st.shareList || 'w'] = v; return { shareNote: v, notes: n }; }); },
+      suggestNote: () => this.setState(st => { const v = "Hello all, I'm turning 16! Your company is all I ask — but if you need ideas, here they are \u2728"; const n = Object.assign({}, st.notes); n[st.shareList || 'w'] = v; return { shareNote: v, notes: n }; }),
+      shareListName: listById(s.shareList || 'w').name,
+      shareLink: 'melikee.app/maya/' + listById(s.shareList || 'w').name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      shareCopyLabel: s.shareCopied ? 'Copied ✓' : 'Copy',
+      copyShareLink: () => { this.setState({ shareCopied: true }); this.showToast('Link copied — send it to anyone'); },
+      shareActive: () => this.setState(st => ({ sheet: 'share', shareList: st.activeList, shareCopied: false, shareNote: st.notes[st.activeList] || '' })),
+      shareVisNote: (l => l.vis === 'me' ? 'Heads up: this list is set to "just me" — sharing the link makes it visible to whoever has it.' : 'Friends in the app see it in their Feed too.')(listById(s.shareList || 'w')),
+      isInviteSheet: s.sheet === 'invite',
+      openInvite: () => this.setState({ sheet: 'invite' }),
+      closeSheet: () => this.setState({ sheet: null }),
+      copyLink: e => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ linkCopied: true }); this.showToast('Link copied — send it anywhere'); },
+      linkNote: s.linkCopied ? 'copied ✓' : 'tap to copy',
+      searchQ: s.searchQ,
+      setSearchQ: e => this.setState({ searchQ: e.target.value }),
+      showSuggestHeader: !s.searchQ,
+      hasNoResults: !!s.searchQ && s.contacts.filter(c => (c.name + ' ' + c.handle).toLowerCase().includes(s.searchQ.toLowerCase())).length === 0,
+      directory: s.contacts
+        .filter(c => s.searchQ ? (c.name + ' ' + c.handle).toLowerCase().includes(s.searchQ.toLowerCase()) : !c.searchOnly)
+        .map(c => ({
+          name: c.name, handle: c.handle, initial: c.initial,
+          meta: c.school + (c.mutual ? ' · ' + c.mutual + ' mutual' : ''),
+          ring: c.mutual ? 'linear-gradient(135deg,#ff5da2,var(--mvio))' : 'var(--mdeep)',
+          followsBadge: c.follows ? React.createElement('span', { style: { background: 'var(--mdeep)', color: 'var(--msoft)', fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 5, flex: 'none', whiteSpace: 'nowrap' } }, 'follows you') : null,
+          btnLabel: c.invited ? 'Requested ✓' : 'Add',
+          btnBg: c.invited ? 'var(--mchip)' : '#c8f542', btnFg: c.invited ? 'var(--mmuted)' : '#141a04',
+          invite: () => { if (!c.invited) { this.setState(st => ({ contacts: st.contacts.map(x => x.id === c.id ? Object.assign({}, x, { invited: true }) : x) })); this.showToast('Request sent — ' + c.name.split(' ')[0] + ' has to accept'); } },
+        })),
+      rileyPending: s.riley === 'pending', rileyAccepted: s.riley === 'accepted', rileyDeclined: s.riley === 'declined',
+      acceptRiley: () => { this.setState({ riley: 'accepted' }); this.showToast('Riley\u2019s in your flock'); },
+      declineRiley: () => this.setState({ riley: 'declined' }),
+      rileyLists: s.lists.filter(l => l.vis !== 'me').map(l => ({
+        name: l.name, bg: s.rileyAccess[l.id] ? '#c8f542' : 'var(--mchip)', fg: s.rileyAccess[l.id] ? '#141a04' : 'var(--msoft)',
+        toggle: () => this.setState(st => { const a = Object.assign({}, st.rileyAccess); a[l.id] = !a[l.id]; return { rileyAccess: a }; }),
+      })),
+      themeClass: (this.props.lightMode ?? false) ? 'mlk-light' : 'mlk-dark',
+      frameDark: !(this.props.lightMode ?? false) && s.screen !== 'gifter',
+      isGifter: s.screen === 'gifter',
+      openGifter: () => this.setState({ screen: 'gifter', gifterList: 'w', gifterFrom: 'me' }),
+      previewGifter: () => this.setState({ screen: 'gifter', gifterList: s.shareList || 'w', gifterFrom: s.screen, sheet: null }),
+      closeGifter: () => this.setState({ screen: s.gifterFrom || 'me' }),
+      gifterListName: s.gifterList === 'w' ? 'wishlist' : listById(s.gifterList).name,
+      gifterNote: s.notes[s.gifterList] || '',
+      hasGifterNote: !!s.notes[s.gifterList],
+      gifterItems: s.items.filter(i => i.list === s.gifterList && !i.secret).map(i => {
+        const d = !!s.gifterDibs[i.id];
+        return { name: i.name, meta: i.price + ' · ' + i.store, border: d ? '#7a5fd066' : '#eee7da',
+          btnLabel: d ? 'Dibs yours ✓' : 'Call dibs', btnBg: d ? '#f1ecfa' : 'linear-gradient(180deg,#e6ff85,#c8f542)',
+          btnFg: d ? '#7a5fd0' : '#141a04', btnBorder: d ? '1.5px solid #7a5fd066' : '1.5px solid transparent',
+          dibs: () => this.setState(st => { const g = Object.assign({}, st.gifterDibs); g[i.id] = !g[i.id]; return { gifterDibs: g }; }) };
+      }),
+      isAvaList: s.screen === 'avaList',
+      openAvaList: () => this.setState({ screen: 'avaList' }),
+      avaLeft: s.avaItems.filter(a => !s.avaDibs[a.id]).length,
+      avaItems: s.avaItems.map(a => {
+        const d = !!s.avaDibs[a.id];
+        return { name: a.name, price: a.price, border: d ? 'var(--mlime66)' : 'var(--mvio44)',
+          btnLabel: d ? 'Yours 🤫' : 'Call dibs', btnBg: d ? '#c8f542' : 'var(--mchip)', btnFg: d ? '#141a04' : 'var(--msoft)',
+          dibs: () => { const was = d; this.setState(st => { const g = Object.assign({}, st.avaDibs); g[a.id] = !g[a.id]; return { avaDibs: g }; }); if (!was) this.showToast('Dibs called — Ava will never know'); } };
+      }),
+      gotIt: () => { this.setState(st => ({ items: st.items.filter(i => i.id !== active.id), screen: st.itemFrom || 'list' })); this.showToast('Nice — marked as got'); },
+      removeItem: () => { this.setState(st => ({ items: st.items.filter(i => i.id !== active.id), screen: st.itemFrom || 'list' })); this.showToast('Removed from ' + listById(active.list).name); },
+      hasToast: !!s.toast, toast: s.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>
