@@ -9,8 +9,7 @@
 import { type ReactNode } from 'react';
 import { View } from 'react-native';
 
-import { Twinkle } from '@/ui/motion';
-import { Breathe } from '@/ui/motion';
+import { Breathe, Twinkle } from '@/ui/motion';
 import { AppText, Button, GlowGround } from '@/ui/primitives';
 import { brand } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';

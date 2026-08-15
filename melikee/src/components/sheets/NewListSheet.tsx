@@ -10,7 +10,7 @@ import { TextInput, View } from 'react-native';
 
 import { BottomSheet } from '@/components/sheets/BottomSheet';
 import { GlobeIcon, LockIcon } from '@/ui/icons';
-import { AppText, Button, Eyebrow, Squish } from '@/ui/primitives';
+import { AppText, Button, Eyebrow, Squish, webInputReset } from '@/ui/primitives';
 import { layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useAppStore } from '@/store/useAppStore';
@@ -59,6 +59,7 @@ export function NewListSheet() {
           fontSize: 14,
           fontWeight: '700',
           color: theme.text,
+          ...webInputReset,
         }}
       />
 

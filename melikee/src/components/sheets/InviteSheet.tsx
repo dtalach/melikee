@@ -9,7 +9,7 @@ import { TextInput, View } from 'react-native';
 
 import { BottomSheet } from '@/components/sheets/BottomSheet';
 import { SearchIcon } from '@/ui/icons';
-import { AppText, Avatar, Button, Eyebrow, QrPlaceholder, Squish } from '@/ui/primitives';
+import { AppText, Avatar, Button, Eyebrow, QrPlaceholder, Squish, webInputReset } from '@/ui/primitives';
 import { layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import { meProfile, useAppStore } from '@/store/useAppStore';
@@ -60,7 +60,14 @@ export function InviteSheet() {
           placeholderTextColor={theme.muted}
           autoCapitalize="none"
           autoCorrect={false}
-          style={{ flex: 1, fontSize: 13, fontWeight: '600', color: theme.text, padding: 0 }}
+          style={{
+            flex: 1,
+            fontSize: 13,
+            fontWeight: '600',
+            color: theme.text,
+            padding: 0,
+            ...webInputReset,
+          }}
         />
       </View>
 

@@ -6,7 +6,7 @@
  * deliberately designed crossfade rather than a skipped animation.
  */
 import { useEffect, type ReactNode } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,

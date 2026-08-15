@@ -8,7 +8,6 @@
 import { View } from 'react-native';
 
 import { foundImageLabel, PRICE_FRESHNESS } from '@/services/productMatch';
-import { SparkleIcon } from '@/ui/icons';
 import { FlyToShutter, PopIn, Twinkle } from '@/ui/motion';
 import { AppText, Button, Photo, Squish } from '@/ui/primitives';
 import { brand, layout } from '@/theme/tokens';

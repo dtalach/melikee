@@ -81,7 +81,7 @@ export const seedItems: Shiny[] = [
     price: '$79',
     store: 'Target',
     upc: '074101204209',
-    provenance: 'scanned · Jul 20',
+    provenance: 'by scan · Jul 20',
     secret: false,
   },
   {
@@ -91,7 +91,7 @@ export const seedItems: Shiny[] = [
     price: '$58',
     store: 'Urban Outfitters',
     upc: '191267439204',
-    provenance: 'from Feed · Jul 18',
+    provenance: 'from the Feed · Jul 18',
     secret: false,
   },
   {
@@ -101,7 +101,7 @@ export const seedItems: Shiny[] = [
     price: '$129',
     store: 'Apple',
     upc: '195949052026',
-    provenance: 'dictated · Jul 12',
+    provenance: 'by voice · Jul 12',
     secret: false,
   },
   {

@@ -19,6 +19,9 @@ export function Toast() {
   const theme = useTheme();
   const toast = useAppStore((s) => s.toast);
   const clearToast = useAppStore((s) => s.clearToast);
+  // The camera screen keeps its mode selector above the dock, so the toast
+  // clears that too rather than landing on top of SCAN · SNAP · SAY IT.
+  const onCamera = useAppStore((s) => s.activeTab === 'camera');
 
   useEffect(() => {
     if (!toast) return;
@@ -35,7 +38,7 @@ export function Toast() {
         position: 'absolute',
         left: 24,
         right: 24,
-        bottom: 96,
+        bottom: onCamera ? 152 : 96,
         alignItems: 'center',
         zIndex: 7,
       }}

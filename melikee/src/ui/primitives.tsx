@@ -7,6 +7,7 @@
 import { useMemo, type ReactNode } from 'react';
 import {
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -23,6 +24,15 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
+
+/**
+ * On web a TextInput is a DOM input, which draws the browser's own focus ring
+ * over our border. The fields already show focus through their own styling.
+ */
+export const webInputReset = Platform.select({
+  web: { outlineStyle: 'none' } as unknown as TextStyle,
+  default: undefined,
+});
 
 // ── Text ───────────────────────────────────────────────────────────────────
 

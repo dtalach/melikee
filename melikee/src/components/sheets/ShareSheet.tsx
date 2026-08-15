@@ -10,7 +10,7 @@ import { TextInput, View } from 'react-native';
 
 import { BottomSheet } from '@/components/sheets/BottomSheet';
 import { GiftIcon } from '@/ui/icons';
-import { AppText, Button, Eyebrow, Squish } from '@/ui/primitives';
+import { AppText, Button, Eyebrow, Squish, webInputReset } from '@/ui/primitives';
 import { layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import { meProfile, useAppStore, visibilityLabel } from '@/store/useAppStore';
@@ -83,6 +83,7 @@ export function ShareSheet({ listId }: { listId: string }) {
             color: theme.text,
             minHeight: 74,
             textAlignVertical: 'top',
+            ...webInputReset,
           }}
         />
         <Squish onPress={() => setNote(listId, suggestedShareNote)}>

@@ -197,7 +197,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           price: '—',
           store: 'saved for later',
           upc: '—',
-          provenance: 'photo saved',
+          provenance: 'as a photo, still matching',
           secret: false,
           photoUri,
           pending: true,

@@ -7,8 +7,8 @@
  * dock steps aside for the whole flow so the reveal gets the full screen.
  */
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTopInset } from '@/hooks/useTopInset';
 
 import { CaptureModeBar } from '@/screens/camera/CaptureModeBar';
@@ -136,7 +136,7 @@ export function CameraScreen({
     addShiny(match, {
       photoUri: useCaptureStore.getState().photoUri,
       provenance:
-        mode === 'scan' ? 'scanned · just now' : mode === 'say' ? 'dictated · just now' : 'by camera · just now',
+        mode === 'scan' ? 'by scan · just now' : mode === 'say' ? 'by voice · just now' : 'by camera · just now',
     });
     claim();
   };
