@@ -7,6 +7,7 @@ import { View } from 'react-native';
 import { FilingTray } from '@/components/FilingTray';
 import { Sheets } from '@/components/sheets/Sheets';
 import { Toast } from '@/components/Toast';
+import { useHydrated } from '@/store/persistence';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
 export default function RootLayout() {
@@ -28,6 +29,12 @@ export default function RootLayout() {
  */
 function Shell() {
   const theme = useTheme();
+  const hydrated = useHydrated();
+
+  // Saved state arrives a tick after the first render. Showing that tick would
+  // flash the seed lists at someone who has their own, so the shell holds on
+  // the page ground instead — it resolves in a frame or two.
+  if (!hydrated) return <View style={{ flex: 1, backgroundColor: theme.bg }} />;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>

@@ -88,6 +88,26 @@ await flow('capture', async ({ shot, tap, shutter }) => {
   await shot('15-filed-moved', 800);
 });
 
+// ── Persistence: a shiny survives a reload ────────────────────────────────
+await flow('persist', async ({ shot, tap, shutter, page }) => {
+  await shutter();
+  await page.waitForTimeout(2600);
+  await tap('Want it!');
+  await page.waitForTimeout(1200);
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(2200);
+  await page.getByText('Lists', { exact: true }).last().click({ timeout: 4000 });
+  await page.waitForTimeout(900);
+  await shot('39-after-reload', 600);
+
+  // The capture above files into My wants, so the restored list has to be
+  // showing four shinies rather than the three it ships with.
+  const restored = await page.getByText('4 shinies', { exact: false }).count();
+  if (restored === 0) errors.push('[persist] the captured shiny did not survive a reload');
+  else console.log('  persisted across reload');
+});
+
 // ── Save-my-photo fallback ────────────────────────────────────────────────
 await flow('fallback', async ({ shot, tap, shutter }) => {
   await shutter();

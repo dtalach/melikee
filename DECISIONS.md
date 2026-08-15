@@ -235,6 +235,37 @@ counts up from it — and says "price may have moved" when it has no idea.
 
 ---
 
+## Persistence
+
+**38. AsyncStorage, not a database.** This is a few kilobytes of JSON with no
+queries over it, and AsyncStorage behaves the same on iOS, Android and web.
+Swapping it for SQLite later is a change to one file.
+
+**39. Only what the user made is saved.** The tab they were on, the toast that
+was showing, the open sheet and the text in a search box are facts about a
+moment, not about them — restoring a sheet somebody closed by quitting the app
+would be a small haunting.
+
+**40. Inline photos are dropped on the way to storage.** On a device a photo URI
+points at a cache file, which is cheap to keep. On web it is the whole image as
+base64, and a handful of those exhaust localStorage's five-megabyte quota and
+take every other saved thing down with them. So a web capture keeps its shiny
+across a reload and loses its picture, which is the better half to lose.
+
+**41. A photo that no longer resolves falls back to the placeholder.** The OS is
+free to sweep the cache directory between launches, and a hole where a picture
+was reads as a bug.
+
+**42. The shell waits for storage before its first render.** Reading is
+asynchronous, so the first frame holds defaults — showing it would flash the
+seed lists at someone who has their own. The gate resolves in a frame or two.
+
+**43. Ids resume above whatever came back.** They are handed out from a counter;
+without reseeding it on rehydrate, the next capture would take an id an
+existing shiny is already using.
+
+---
+
 ## Known gaps
 
 - **No backend beyond the lookup endpoint**: no auth, no real QR encoding (the

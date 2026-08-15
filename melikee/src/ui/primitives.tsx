@@ -4,7 +4,7 @@
  * ground with a 2px tinted border and a real shadow, so they read as objects
  * rather than tints.
  */
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   Image,
   Platform,
@@ -178,7 +178,15 @@ export function Photo({
   radius?: number;
 }) {
   const theme = useTheme();
-  if (uri) {
+
+  // A photo saved on a previous launch points at a cache file the OS is free
+  // to sweep up. When that URI no longer resolves, fall back to the
+  // placeholder rather than leaving a hole where the picture was.
+  // Remembering *which* URI failed rather than a boolean means a new photo is
+  // never born broken, with no effect needed to reset it.
+  const [failedUri, setFailedUri] = useState<string | null>(null);
+
+  if (uri && uri !== failedUri) {
     // Layout styles are shared between the placeholder and the real image;
     // the overlap with ImageStyle is safe for everything callers pass here.
     return (
@@ -186,6 +194,7 @@ export function Photo({
         source={{ uri }}
         style={[{ borderRadius: radius }, style as StyleProp<ImageStyle>]}
         resizeMode="cover"
+        onError={() => setFailedUri(uri)}
       />
     );
   }
