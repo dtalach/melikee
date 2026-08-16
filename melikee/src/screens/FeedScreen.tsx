@@ -18,7 +18,6 @@ import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import { avaList, digest, trending } from '@/data/seed';
 import { shinies, useAppStore } from '@/store/useAppStore';
-import { useCaptureStore } from '@/store/useCaptureStore';
 
 export function FeedScreen() {
   const theme = useTheme();
@@ -385,7 +384,7 @@ function Reaction({
  */
 function TrendingRow() {
   const theme = useTheme();
-  const setActiveTab = useAppStore((s) => s.setActiveTab);
+  const addShiny = useAppStore((s) => s.addShiny);
 
   const tones = {
     pink: { border: 'rgba(255,93,162,0.4)', bg: brand.pink, fg: brand.pinkInk },
@@ -405,23 +404,20 @@ function TrendingRow() {
           <Squish
             key={item.rank}
             onPress={() => {
-              // Reuse the reveal: hand the trending pick to the capture flow.
-              useCaptureStore.setState({
-                phase: 'found',
-                mode: 'snap',
-                chosen: 0,
-                candidates: [
-                  {
-                    name: item.name,
-                    price: item.price,
-                    stores: 'from trending',
-                    storeName: 'Amazon',
-                    upc: '—',
-                    reason: 'trending this week',
-                  },
-                ],
-              });
-              setActiveTab('camera');
+              // A trending pick is already a named product with a price, so
+              // there is nothing to look up — it files on one tap like every
+              // other capture, and the tray offers the undo.
+              addShiny(
+                {
+                  name: item.name,
+                  price: item.price,
+                  stores: 'from trending',
+                  storeName: 'Amazon',
+                  upc: '—',
+                  reason: 'trending this week',
+                },
+                { provenance: 'from trending' },
+              );
             }}
           >
             <View

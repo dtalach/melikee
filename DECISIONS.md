@@ -361,6 +361,48 @@ been answered by reading the Vercel dashboard and pasting log lines into a chat
 Settings → Last lookup gives the reading, both timings, the candidates, and
 whether each came with a photo and a link. Copyable in one tap.
 
+**61. One tap, all three modes.** The shutter press *is* the claim. There is no
+second press to confirm it, no found card, no near-match sheet, no "Want it!".
+A capture ends as soon as we have something that identifies what was wanted,
+the shiny is filed there and then, and the shops are asked afterwards.
+
+What identifies a capture differs by mode, and each one is honest about it:
+
+- **Photo** — the reading, four seconds in. It gets the real product name.
+- **Barcode** — the digits. They are a perfect identifier and a terrible name,
+  so the shiny wears `Barcode 027242925175` until the search renames it.
+- **Voice** — the sentence somebody said, verbatim, for the same reason.
+
+**62. The card is a trophy again.** It went the long way round: trophy →
+accidental verdict → back to trophy. A verdict needed to be big and full of
+evidence; a receipt does not, and small was always right for a reward. It shows
+what was caught, holds a beat to be read, and flies into the shutter. It has no
+buttons at all.
+
+**63. The filing tray became the confirmation, because it already was one.**
+"Add first, file second" was the design review's rule from the beginning — the
+tray offers undo, a move and secrecy, and leaves on its own. Now that a capture
+asks nothing, this is where a wrong catch gets caught, so it leads with the
+product's name instead of "Added to My wants" and says where the price has got
+to.
+
+**64. The tray floats above the dock rather than under it.** It used to be a
+bottom sheet covering the shutter for six seconds. That is survivable when
+capture takes two presses and a decision; it is absurd once capture is one tap,
+because the entire point is being able to grab five things in a shop without
+stopping. Z-index could not fix it — the tray is mounted above the navigator
+and paints over the dock whatever the number says — so it became a floating
+card sitting on top of the floating dock, which is the app's language anyway.
+
+**65. Starting a capture dismisses the previous tray.** The new one supersedes
+whatever the last was still offering to undo.
+
+**66. The confidence gate was dropped before it was built.** The plan had been
+to auto-file only on a confident reading and ask on an unsure one. The call was
+to file always and handle conflicts in a later workflow instead — speed is the
+product, the confidence is preserved on the item, and item detail is a better
+place to ask than a shop floor.
+
 ---
 
 ## Persistence

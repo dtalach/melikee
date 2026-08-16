@@ -164,23 +164,25 @@ await flow(
   { onboard: 'none' },
 );
 
-// ── Identify, claim, and let the price catch up ───────────────────────────
+// ── One tap: the shutter files it, the price catches up ───────────────────
 await flow('lookup', async ({ shot, page, shutter, tap, go }) => {
   await shutter();
-  await page.waitForTimeout(1800);
 
-  // The capture ends at the reading, so the card must name the product from
-  // what the camera read — no price, no waiting on the shops.
+  // No second press anywhere in here. The card that appears is a receipt.
+  await page.waitForTimeout(1400);
   const named = await page.getByText('Sony WH-1000XM6 headphones', { exact: false }).count();
-  if (named === 0) errors.push('[lookup] the reading never reached the identity card');
-  else console.log('  identified from the reading');
-  await shot('46-identified', 400);
+  if (named === 0) errors.push('[lookup] the caught card never named the product');
+  else console.log('  caught and named on one tap');
+  await shot('46-caught', 300);
 
-  await tap('Want it!');
+  // It files itself and flies without being asked.
   await page.waitForTimeout(2600);
   await shot('47-filed-while-pricing', 400);
+  const tray = await page.getByText('finding the price', { exact: false }).count();
+  if (tray === 0) console.log('  (tray had already left)');
 
-  // And the price arrives afterwards, onto an item that already exists.
+  // The tray lingers for a few seconds by design; let it go before navigating.
+  await page.waitForTimeout(6500);
   await go('Lists');
   await tap('My wants');
   await page.waitForTimeout(900);
@@ -194,9 +196,8 @@ await flow('lookup', async ({ shot, page, shutter, tap, go }) => {
 await flow('capture', async ({ shot, tap, shutter }) => {
   await shutter();
   await shot('10-magic', 700);
-  await shot('11-identified', 2000);
-  await tap('Want it!');
-  await shot('14-filing-tray', 1700);
+  await shot('11-caught', 1200);
+  await shot('14-filing-tray', 2400);
   await tap('Sweet 16');
   await shot('15-filed-moved', 800);
 });
@@ -204,9 +205,7 @@ await flow('capture', async ({ shot, tap, shutter }) => {
 // ── Persistence: a shiny survives a reload ────────────────────────────────
 await flow('persist', async ({ shot, tap, shutter, page }) => {
   await shutter();
-  await page.waitForTimeout(2600);
-  await tap('Want it!');
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(4200);
 
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(2200);

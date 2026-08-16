@@ -12,17 +12,14 @@ import { StyleSheet, View } from 'react-native';
 import { useTopInset } from '@/hooks/useTopInset';
 
 import { CaptureModeBar } from '@/screens/camera/CaptureModeBar';
-import { FoundCard } from '@/screens/camera/FoundCard';
-import { IdentityCard } from '@/screens/camera/IdentityCard';
+import { CaughtCard } from '@/screens/camera/CaughtCard';
 import { MissCard } from '@/screens/camera/MissCard';
-import { NearMatches } from '@/screens/camera/NearMatches';
 import { WorkingOurMagic } from '@/screens/camera/WorkingOurMagic';
 import { Waveform } from '@/screens/camera/Waveform';
 import { useDictation } from '@/hooks/useDictation';
 import { setShutterHandler } from '@/services/captureBridge';
 import { captureHint } from '@/services/productMatch';
 import { preparePhoto } from '@/services/photo';
-import { priceInBackground } from '@/services/pricing';
 import { useCameraAccess } from '@/hooks/useCameraAccess';
 import { BellIcon, CloseIcon, GiftIcon, ViewfinderBrackets } from '@/ui/icons';
 import { SlapIn, SnapFlash, SparkleBurst } from '@/ui/motion';
@@ -31,7 +28,7 @@ import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import { attentionCount, useAppStore } from '@/store/useAppStore';
 import { daysUntilBirthday } from '@/store/profile';
-import { isBusy, selectMatch, useCaptureStore } from '@/store/useCaptureStore';
+import { isBusy, useCaptureStore } from '@/store/useCaptureStore';
 
 /**
  * Polls a ref rather than awaiting an event, because the readiness callback
@@ -85,26 +82,19 @@ export function CameraScreen({
   const listening = useCaptureStore((s) => s.listening);
   const transcript = useCaptureStore((s) => s.transcript);
   const error = useCaptureStore((s) => s.error);
-  const match = useCaptureStore(selectMatch);
-  const candidateCount = useCaptureStore((s) => s.candidates.length);
-  const checkedAt = useCaptureStore((s) => s.checkedAt);
-  const demo = useCaptureStore((s) => s.demo);
   const reading = useCaptureStore((s) => s.reading);
+  const caught = useCaptureStore((s) => s.caught);
   const missCode = useCaptureStore((s) => s.missCode);
   const missDetail = useCaptureStore((s) => s.missDetail);
   const begin = useCaptureStore((s) => s.begin);
   const retry = useCaptureStore((s) => s.retry);
   const cancel = useCaptureStore((s) => s.cancel);
-  const claim = useCaptureStore((s) => s.claim);
   const finish = useCaptureStore((s) => s.finish);
-  const showAlternates = useCaptureStore((s) => s.showAlternates);
 
   const firstRun = useAppStore((s) => s.firstRun);
   const profile = useAppStore((s) => s.profile);
   const waiting = useAppStore(attentionCount);
   const daysToBirthday = daysUntilBirthday(profile);
-  const addShiny = useAppStore((s) => s.addShiny);
-  const addFromReading = useAppStore((s) => s.addFromReading);
   const savePendingPhoto = useAppStore((s) => s.savePendingPhoto);
   const showToast = useAppStore((s) => s.showToast);
 
@@ -212,33 +202,10 @@ export function CameraScreen({
   );
 
   // ── Outcomes ─────────────────────────────────────────────────────────────
-
-  /**
-   * The photo path claims on the identity alone. The shiny is filed now and
-   * the price errand is started against it — by the time it answers, this
-   * screen is back at the viewfinder and the item is on a list.
-   */
-  const wantIdentified = () => {
-    const current = useCaptureStore.getState();
-    if (!current.reading) return;
-    const id = addFromReading(current.reading, {
-      photoUri: current.photoUri,
-      provenance: 'by camera · just now',
-    });
-    priceInBackground(id, current.reading, current.photoUri);
-    claim();
-  };
-
-  const wantIt = () => {
-    if (!match) return;
-    addShiny(match, {
-      photoUri: useCaptureStore.getState().photoUri,
-      checkedAt: useCaptureStore.getState().checkedAt,
-      provenance:
-        mode === 'scan' ? 'by scan · just now' : mode === 'say' ? 'by voice · just now' : 'by camera · just now',
-    });
-    claim();
-  };
+  //
+  // There is no "want it" handler any more. The capture store files the shiny
+  // itself the moment it knows what was wanted, because the shutter press was
+  // already the claim. All that is left here is the miss.
 
   const saveForLater = () => {
     savePendingPhoto(useCaptureStore.getState().photoUri);
@@ -363,8 +330,8 @@ export function CameraScreen({
         </View>
       ) : null}
 
-      {/* The escape hatch during a reveal. */}
-      {phase === 'found' || phase === 'alts' ? (
+      {/* The escape hatch, for the one phase that still waits on a person. */}
+      {phase === 'miss' ? (
         <Squish
           onPress={cancel}
           style={{ position: 'absolute', top: topInset + 14, left: 16, zIndex: 3 }}
@@ -465,33 +432,16 @@ export function CameraScreen({
       {phase === 'snap' ? <SnapFlash /> : null}
       {phase === 'magic' ? <WorkingOurMagic mode={mode} /> : null}
 
-      {(phase === 'found' || phase === 'fly') && match ? (
-        <FoundCard
-          match={match}
-          mode={mode}
-          flying={phase === 'fly'}
-          photoUri={useCaptureStore.getState().photoUri}
-          checkedAt={checkedAt}
-          demo={demo}
-          alternates={candidateCount - 1}
-          onWantIt={wantIt}
-          onSeeAlternates={showAlternates}
-          onFlightDone={finish}
-        />
-      ) : null}
-
-      {(phase === 'identified' || (phase === 'fly' && reading && !match)) && reading ? (
-        <IdentityCard
+      {(phase === 'caught' || phase === 'fly') && caught ? (
+        <CaughtCard
+          title={caught.title}
+          note={caught.note}
           reading={reading}
           photoUri={useCaptureStore.getState().photoUri}
           flying={phase === 'fly'}
-          onWantIt={wantIdentified}
-          onNotIt={cancel}
           onFlightDone={finish}
         />
       ) : null}
-
-      {phase === 'alts' ? <NearMatches onSaveForLater={saveForLater} /> : null}
 
       {phase === 'miss' && missCode ? (
         <MissCard

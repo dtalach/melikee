@@ -14,9 +14,9 @@
  * One happy side effect: the search only runs for things people actually
  * claimed. A capture someone rejects costs nothing but the reading.
  */
-import { matchProduct } from '@/services/productMatch';
-import type { ProductReading } from '@/services/recognition/contract';
+import { matchProduct, type MatchRequest } from '@/services/productMatch';
 import { useAppStore } from '@/store/useAppStore';
+import type { CaptureSeed } from '@/store/useAppStore';
 
 /**
  * Errands in flight, so a second capture of the same item can't start a second
@@ -24,14 +24,22 @@ import { useAppStore } from '@/store/useAppStore';
  */
 const running = new Set<string>();
 
-export function priceInBackground(itemId: string, reading: ProductReading, photoUri?: string) {
+/** What each kind of capture asks the shops, once it is time to ask them. */
+export function seedToRequest(seed: CaptureSeed): MatchRequest {
+  if (seed.mode === 'scan') return { mode: 'scan', upc: seed.upc };
+  if (seed.mode === 'say') return { mode: 'say', transcript: seed.transcript };
+  return { mode: 'snap', photoUri: seed.photoUri, reading: seed.reading };
+}
+
+export function resolveInBackground(itemId: string, seed: CaptureSeed) {
   if (running.has(itemId)) return;
   running.add(itemId);
+  seeds.set(itemId, seed);
 
   void (async () => {
     const startedAt = Date.now();
     try {
-      const outcome = await matchProduct({ mode: 'snap', photoUri, reading });
+      const outcome = await matchProduct(seedToRequest(seed));
       const store = useAppStore.getState();
 
       // The item may have been undone from the filing tray while we were out.
@@ -46,6 +54,7 @@ export function priceInBackground(itemId: string, reading: ProductReading, photo
           checkedAt: new Date().toISOString(),
         });
         store.updateLookup({
+          mode: seed.mode,
           searchMs: Date.now() - startedAt,
           candidates: outcome.candidates.map((c) => ({
             name: c.name,
@@ -79,13 +88,31 @@ export function priceInBackground(itemId: string, reading: ProductReading, photo
   })();
 }
 
+/**
+ * What each in-flight capture was, so "Look again" can repeat the same request
+ * without the item having to carry a barcode or a transcript around forever.
+ */
+const seeds = new Map<string, CaptureSeed>();
+
 /** Ask again for a shiny whose first errand came back empty. */
 export function retryPricing(itemId: string) {
   const item = useAppStore.getState().items.find((i) => i.id === itemId);
-  if (!item?.reading) return;
-  useAppStore.getState().attachPricing(itemId, { match: undefined });
+  if (!item) return;
+
+  // Prefer what the capture actually was; fall back to whatever the item still
+  // knows, which is what survives a reload.
+  const seed: CaptureSeed | undefined =
+    seeds.get(itemId) ??
+    (item.reading
+      ? { mode: 'snap', reading: item.reading, photoUri: item.photoUri }
+      : item.upc && item.upc !== '—'
+        ? { mode: 'scan', upc: item.upc }
+        : undefined);
+  if (!seed) return;
+
   useAppStore.setState((s) => ({
     items: s.items.map((i) => (i.id === itemId ? { ...i, pricing: 'working' as const } : i)),
   }));
-  priceInBackground(itemId, item.reading, item.photoUri);
+  running.delete(itemId);
+  resolveInBackground(itemId, seed);
 }

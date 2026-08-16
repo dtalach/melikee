@@ -1,28 +1,34 @@
 import { create } from 'zustand';
 
-import { matchProduct, readPhoto, type MatchRequest } from '@/services/productMatch';
+import { readPhoto } from '@/services/productMatch';
+import { resolveInBackground } from '@/services/pricing';
 import { useAppStore } from '@/store/useAppStore';
+import type { CaptureSeed } from '@/store/useAppStore';
 import type {
   ProductReading,
   RecognizeErrorCode,
   RecognizeImage,
 } from '@/services/recognition/contract';
 import { motion } from '@/theme/tokens';
-import type { CaptureMode, ProductMatch } from '@/store/types';
+import type { CaptureMode } from '@/store/types';
 
 /**
  * The capture state machine.
  *
- * Photo:  idle → snap (flash) → magic → identified → fly → (filing tray)
- * Barcode / voice: idle → magic → found → fly → (filing tray)
- *                                    ↘ alts ↗
+ * idle → snap (flash) → magic → caught → fly → (filing tray)
  *                          ↘ miss
  *
- * A photo capture ends at `identified`, as soon as the eye knows what the
- * thing is — four seconds, not twenty-five. What it costs and who sells it is
- * an errand that runs after the shiny is already filed. A barcode and a spoken
- * want have no cheap identity step of their own, so they still wait for the
- * search and land on `found`.
+ * **One tap.** Pressing the shutter is the claim; there is no second press to
+ * confirm it. The capture ends as soon as we have something that identifies
+ * what was wanted — a photo that has been read, a barcode's digits, or the
+ * words someone said — and the shiny is filed there and then. What it costs
+ * and who sells it is an errand that finishes half a minute later, against an
+ * item already sitting on a list.
+ *
+ * `caught` is a beat, not a question. It shows what we got, holds long enough
+ * to read, then flies into the shutter. Everything it might have asked —
+ * wrong product, wrong variant, a better near match — is answerable later on
+ * the item itself, where there is room and nobody is standing in a shop.
  *
  * It lives in its own store because two components drive it: the camera screen
  * owns the viewfinder and the reveal, while the dock's centre shutter is the
@@ -33,49 +39,29 @@ import type { CaptureMode, ProductMatch } from '@/store/types';
  * that isn't sold anywhere, and the flow has to end somewhere honest instead of
  * showing headphones.
  */
-export type CapturePhase =
-  | 'idle'
-  | 'snap'
-  | 'magic'
-  | 'identified'
-  | 'found'
-  | 'alts'
-  | 'fly'
-  | 'miss';
+export type CapturePhase = 'idle' | 'snap' | 'magic' | 'caught' | 'fly' | 'miss';
 
 /** Phases where the reveal owns the screen and the dock steps aside. */
-export const BUSY_PHASES: CapturePhase[] = [
-  'snap',
-  'magic',
-  'identified',
-  'found',
-  'alts',
-  'fly',
-  'miss',
-];
+export const BUSY_PHASES: CapturePhase[] = ['snap', 'magic', 'caught', 'fly', 'miss'];
+
+/** How long the caught card holds before it flies — long enough to read. */
+const CAUGHT_BEAT = 1500;
 
 type CaptureState = {
   phase: CapturePhase;
   mode: CaptureMode;
-  candidates: ProductMatch[];
-  /** Which candidate the found card is currently showing. */
-  chosen: number;
   /** The photo this capture produced, when there was one. */
   photoUri?: string;
-  /** When the prices on `candidates` were checked. */
-  checkedAt?: string;
-  /** True when the match came from the demo catalogue rather than a real lookup. */
-  demo: boolean;
   /** Why the lookup came back empty, in the `miss` phase. */
   missCode?: RecognizeErrorCode;
   /** What actually broke, when the cause was a fault rather than a miss. */
   missDetail?: string;
-  /**
-   * What the photo turned out to be, as soon as the eye knows — about four
-   * seconds in, against twenty for the shops. It goes on the waiting screen so
-   * the long half of the wait has something true in it.
-   */
+  /** What the eye read, once it has. Shown on the wait and on the caught card. */
   reading?: ProductReading;
+  /** What was caught, in the words the caught card shows. */
+  caught?: { title: string; note?: string };
+  /** The shiny this capture filed, so the tray can be raised once it lands. */
+  caughtItemId?: string;
   /** Live dictation, in Say-it mode. */
   transcript: string;
   listening: boolean;
@@ -87,17 +73,13 @@ type CaptureState = {
   setListening: (listening: boolean) => void;
   setError: (error?: string) => void;
 
-  /** Start a capture. The flash only plays for a real shutter press. */
+  /** Start a capture. One tap: this files the shiny and plays the reward. */
   begin: (input: BeginInput) => Promise<void>;
-  /** Run the same lookup again — the wish is still in front of the user. */
+  /** Run the same capture again after a miss. */
   retry: () => Promise<void>;
 
-  showAlternates: () => void;
-  chooseAlternate: (index: number) => void;
-  /** Back to the viewfinder, discarding the match. */
+  /** Back to the viewfinder, discarding the capture. */
   cancel: () => void;
-  /** The claim: play the flight, then hand off to the filing tray. */
-  claim: () => void;
   finish: () => void;
 };
 
@@ -107,25 +89,15 @@ type BeginInput =
   | { mode: 'say'; transcript: string };
 
 /**
- * The request behind the capture in flight, kept outside the store because
- * nothing renders it — it exists so "try again" can mean the same lookup rather
- * than making the user re-photograph something they are still holding.
+ * The capture in flight, kept outside the store because nothing renders it —
+ * it exists so "try again" after a miss can mean the same capture rather than
+ * making someone re-photograph what they are still holding.
  */
-let lastRequest: MatchRequest | null = null;
-
-const toRequest = (input: BeginInput): MatchRequest =>
-  input.mode === 'scan'
-    ? { mode: 'scan', upc: input.upc }
-    : input.mode === 'say'
-      ? { mode: 'say', transcript: input.transcript }
-      : { mode: 'snap', photoUri: input.photoUri, image: input.image };
+let lastInput: BeginInput | null = null;
 
 export const useCaptureStore = create<CaptureState>((set, get) => ({
   phase: 'idle',
   mode: 'snap',
-  candidates: [],
-  chosen: 0,
-  demo: false,
   transcript: '',
   listening: false,
 
@@ -137,116 +109,137 @@ export const useCaptureStore = create<CaptureState>((set, get) => ({
   begin: async (input) => {
     if (get().phase !== 'idle') return;
 
+    // Whatever the last capture was still offering to undo, this one supersedes.
+    useAppStore.getState().dismissFiling();
+
     // Only a photo capture earns the flash — it's a camera affordance, not a
     // loading state.
     if (input.mode === 'snap') {
-      set({ phase: 'snap', mode: 'snap', photoUri: input.photoUri, chosen: 0, error: undefined });
+      set({ phase: 'snap', mode: 'snap', photoUri: input.photoUri, error: undefined });
       await new Promise((resolve) => setTimeout(resolve, motion.flash));
     } else {
-      set({ phase: 'magic', mode: input.mode, chosen: 0, error: undefined });
+      set({ phase: 'magic', mode: input.mode, photoUri: undefined, error: undefined });
     }
 
-    set({ phase: 'magic', missCode: undefined, missDetail: undefined, reading: undefined });
+    set({
+      phase: 'magic',
+      missCode: undefined,
+      missDetail: undefined,
+      reading: undefined,
+      caught: undefined,
+      caughtItemId: undefined,
+    });
 
-    lastRequest = toRequest(input);
-
-    // Read the photo first and put the answer on screen, then go shopping.
-    // A barcode and a spoken want are already queries and skip straight to it.
-    if (input.mode === 'snap') {
-      const read = await readPhoto(input.image);
-      if (get().phase !== 'magic') return;
-
-      if (read && !read.ok) {
-        useAppStore.getState().recordLookup({
-          at: new Date().toISOString(),
-          mode: 'snap',
-          error: { code: read.code, message: read.message },
-        });
-        set({ candidates: [], missCode: read.code, missDetail: read.message, phase: 'miss' });
-        return;
-      }
-      // Knowing what it is *is* the capture. Stop here and let the user claim
-      // it; the shops get asked afterwards, against an item that already exists.
-      if (read?.ok) {
-        useAppStore.getState().recordLookup({
-          at: new Date().toISOString(),
-          mode: 'snap',
-          reading: read.reading,
-          readMs: read.readMs,
-        });
-        set({ reading: read.reading, phase: 'identified' });
-        return;
-      }
-    }
-
-    await resolve(lastRequest, set, get);
+    lastInput = input;
+    await identify(input, set, get);
   },
 
   retry: async () => {
-    if (!lastRequest) return set({ phase: 'idle' });
-    set({ phase: 'magic', missCode: undefined, missDetail: undefined, chosen: 0 });
-    await resolve(lastRequest, set, get);
+    if (!lastInput) return set({ phase: 'idle' });
+    set({ phase: 'magic', missCode: undefined, missDetail: undefined });
+    await identify(lastInput, set, get);
   },
-
-  showAlternates: () => set({ phase: 'alts' }),
-  chooseAlternate: (chosen) => set({ chosen, phase: 'found' }),
 
   cancel: () => {
-    lastRequest = null;
-    set({
-      phase: 'idle',
-      candidates: [],
-      chosen: 0,
-      photoUri: undefined,
-      transcript: '',
-      missCode: undefined,
-      missDetail: undefined,
-      reading: undefined,
-      demo: false,
-    });
+    lastInput = null;
+    set(RESET);
   },
-
-  claim: () => set({ phase: 'fly' }),
 
   finish: () => {
-    lastRequest = null;
-    set({
-      phase: 'idle',
-      candidates: [],
-      chosen: 0,
-      photoUri: undefined,
-      transcript: '',
-      missCode: undefined,
-      missDetail: undefined,
-      reading: undefined,
-      demo: false,
-    });
+    // The card has landed in the shutter; now the tray can have the screen.
+    const { caughtItemId } = get();
+    if (caughtItemId) useAppStore.getState().openFiling(caughtItemId);
+    lastInput = null;
+    set(RESET);
   },
 }));
+
+const RESET = {
+  phase: 'idle' as const,
+  photoUri: undefined,
+  transcript: '',
+  missCode: undefined,
+  missDetail: undefined,
+  reading: undefined,
+  caught: undefined,
+  caughtItemId: undefined,
+};
 
 type Setter = (partial: Partial<CaptureState>) => void;
 type Getter = () => CaptureState;
 
-async function resolve(request: MatchRequest, set: Setter, get: Getter) {
-  const outcome = await matchProduct(request);
+/**
+ * Work out what was wanted, file it, and play the reward.
+ *
+ * Only a photo needs asking: the eye has to read it before there is a name to
+ * show. A barcode's digits and a spoken sentence identify themselves, so those
+ * are filed on the spot and the shops name them properly later.
+ */
+async function identify(input: BeginInput, set: Setter, get: Getter) {
+  let seed: CaptureSeed;
 
-  // A cancel mid-flight wins — don't yank the user back into a reveal.
+  if (input.mode === 'snap') {
+    const read = await readPhoto(input.image);
+
+    // A cancel mid-flight wins — don't yank the user back into a reveal.
+    if (get().phase !== 'magic') return;
+
+    if (read && !read.ok) {
+      useAppStore.getState().recordLookup({
+        at: new Date().toISOString(),
+        mode: 'snap',
+        error: { code: read.code, message: read.message },
+      });
+      set({ missCode: read.code, missDetail: read.message, phase: 'miss' });
+      return;
+    }
+
+    if (!read?.ok) {
+      // No service to ask and no reading to show: the demo path, which still
+      // has to end somewhere. It ends honestly, on the miss screen.
+      set({ missCode: 'not_configured', missDetail: undefined, phase: 'miss' });
+      return;
+    }
+
+    useAppStore.getState().recordLookup({
+      at: new Date().toISOString(),
+      mode: 'snap',
+      reading: read.reading,
+      readMs: read.readMs,
+    });
+    set({ reading: read.reading });
+    seed = { mode: 'snap', reading: read.reading, photoUri: input.photoUri };
+  } else if (input.mode === 'scan') {
+    seed = { mode: 'scan', upc: input.upc };
+  } else {
+    seed = { mode: 'say', transcript: input.transcript };
+  }
+
   if (get().phase !== 'magic') return;
 
-  if (outcome.ok) {
-    set({
-      candidates: outcome.candidates,
-      demo: outcome.demo,
-      checkedAt: new Date().toISOString(),
-      phase: 'found',
-    });
-  } else {
-    set({ candidates: [], missCode: outcome.code, missDetail: outcome.message, phase: 'miss' });
-  }
+  // One tap. The shutter press was the claim; this is where it becomes a
+  // shiny, without asking anyone to press anything a second time.
+  const id = useAppStore.getState().addCapture(seed);
+  resolveInBackground(id, seed);
+
+  set({ caught: caughtCopy(seed), caughtItemId: id, phase: 'caught' });
+
+  // A beat to read it by, then the flight into the shutter.
+  await new Promise((resolve) => setTimeout(resolve, CAUGHT_BEAT));
+  if (get().phase === 'caught') set({ phase: 'fly' });
 }
 
-/** The match currently on the found card. */
-export const selectMatch = (s: CaptureState): ProductMatch | undefined =>
-  s.candidates[s.chosen] ?? s.candidates[0];
+/** What the caught card says it got, in the language of how it was got. */
+function caughtCopy(seed: CaptureSeed): { title: string; note?: string } {
+  if (seed.mode === 'scan') return { title: 'Got the barcode', note: seed.upc };
+  if (seed.mode === 'say') return { title: 'Got it', note: `“${seed.transcript.trim()}”` };
+
+  const { reading } = seed;
+  const named = [reading.brand, reading.productName].filter(Boolean).join(' ').trim();
+  return {
+    title: named || reading.category || 'Something shiny',
+    note: reading.variant || undefined,
+  };
+}
 
 export const isBusy = (phase: CapturePhase) => BUSY_PHASES.includes(phase);

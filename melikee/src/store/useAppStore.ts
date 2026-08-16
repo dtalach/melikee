@@ -123,11 +123,16 @@ type AppState = {
     opts?: { photoUri?: string; provenance?: string; checkedAt?: string },
   ) => string;
   /**
-   * Files a shiny the moment we know *what* it is, before anyone has asked a
-   * shop what it costs. The identity is the capture; the price is an errand
-   * that finishes afterwards.
+   * Files a shiny the moment we have something to identify it by, before
+   * anyone has asked a shop what it costs. The capture is the claim; the
+   * price is an errand that finishes afterwards.
    */
-  addFromReading: (reading: ProductReading, opts?: { photoUri?: string; provenance?: string }) => string;
+  addCapture: (seed: CaptureSeed) => string;
+  /**
+   * Raises the tray for an item that is already filed. A capture flies into
+   * the shutter first, and two confirmations on screen at once is one too many.
+   */
+  openFiling: (itemId: string) => void;
   /** The errand came back. Fills in price, store, links and runners-up. */
   attachPricing: (
     itemId: string,
@@ -175,6 +180,30 @@ type AppState = {
   openSheet: (sheet: SheetKind) => void;
   closeSheet: () => void;
 };
+
+/** What we know at the instant of capture, before anything has been searched. */
+export type CaptureSeed =
+  | { mode: 'snap'; reading: ProductReading; photoUri?: string }
+  | { mode: 'scan'; upc: string }
+  | { mode: 'say'; transcript: string };
+
+/**
+ * The name a shiny wears until the shops give it a proper one.
+ *
+ * A photo has already been read, so it gets the real thing. A barcode and a
+ * spoken want have not been looked up yet — so they wear what the user
+ * actually did, which is honest and recognisable, rather than a spinner.
+ */
+function captureName(seed: CaptureSeed): string {
+  if (seed.mode === 'scan') return `Barcode ${seed.upc}`;
+  if (seed.mode === 'say') return seed.transcript.trim();
+
+  const { reading } = seed;
+  const named = [reading.brand, reading.productName].filter(Boolean).join(' ').trim();
+  // The variant is part of the identity, not a detail — a 12 fl oz can and a
+  // 12-pack are different things at very different prices.
+  return [named || reading.category || 'Something shiny', reading.variant].filter(Boolean).join(' · ');
+}
 
 let idCounter = 100;
 const nextId = () => String(idCounter++);
@@ -311,31 +340,37 @@ export const useAppStore = create<AppState>()(
         return id;
       },
 
-          addFromReading: (reading, opts) => {
+          addCapture: (seed) => {
         const id = nextId();
-        const name = [reading.brand, reading.productName].filter(Boolean).join(' ').trim();
         const item: Shiny = {
           id,
           listId: get().lastListId,
-          // The variant is part of the identity, not a detail — a 12 fl oz can
-          // and a 12-pack are different things at very different prices.
-          name: [name || reading.category || 'Something shiny', reading.variant].filter(Boolean).join(' · '),
+          name: captureName(seed),
           price: '—',
           store: 'finding the best price',
-          upc: '—',
-          provenance: opts?.provenance ?? 'just now',
+          upc: seed.mode === 'scan' ? seed.upc : '—',
+          provenance:
+            seed.mode === 'scan'
+              ? 'by scan · just now'
+              : seed.mode === 'say'
+                ? 'by voice · just now'
+                : 'by camera · just now',
           secret: false,
-          photoUri: opts?.photoUri,
-          reading,
+          photoUri: seed.mode === 'snap' ? seed.photoUri : undefined,
+          reading: seed.mode === 'snap' ? seed.reading : undefined,
           pricing: 'working',
         };
-        set((s) => ({
-          items: [item, ...s.items],
-          firstRun: false,
-          filing: { itemId: id, secondsLeft: FILING_SECONDS },
-        }));
+        // No tray yet: the reward ritual has to land first.
+        set((s) => ({ items: [item, ...s.items], firstRun: false }));
         return id;
       },
+
+      openFiling: (itemId) =>
+        set((s) =>
+          s.items.some((i) => i.id === itemId)
+            ? { filing: { itemId, secondsLeft: FILING_SECONDS } }
+            : s,
+        ),
 
       attachPricing: (itemId, { match, alternates, checkedAt }) =>
         set((s) => ({
@@ -346,9 +381,10 @@ export const useAppStore = create<AppState>()(
             if (!match) return { ...i, pricing: 'failed' as const, store: 'no price found' };
             return {
               ...i,
-              // The search knows the product's proper retail name; the reading
-              // knew what was printed on the packaging. The shop's name is the
-              // one a gifter will recognise.
+              // The search knows the product's proper retail name, and for a
+              // barcode or a spoken want it is the *first* real name the item
+              // has had — until now it wore its own digits, or the sentence
+              // somebody said out loud.
               name: match.name || i.name,
               price: match.price,
               store: match.storeName,

@@ -1,25 +1,28 @@
 /**
  * The filing tray — pattern 7b, "add-then-file".
  *
- * The add already happened: "Want it!" is one tap and the reward ritual plays
- * uninterrupted. This slides up afterwards for a few seconds offering Undo, a
- * move, or secrecy, then slides away on its own. Choice is optional, never a
- * gate.
+ * The add already happened: the shutter press is the whole of the claim, and
+ * the reward ritual plays uninterrupted. This slides up afterwards for a few
+ * seconds offering Undo, a move, or secrecy, then leaves on its own. Choice is
+ * optional, never a gate.
+ *
+ * It carries more weight than it used to. Now that a capture asks nothing, this
+ * is the only place a wrong catch can be caught early — so it leads with the
+ * product's name rather than "Added to My wants", and says where the price has
+ * got to.
  */
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LockIcon } from '@/ui/icons';
 import { SlideUp } from '@/ui/motion';
 import { AppText, Chip, Eyebrow, Photo, Squish, Toggle } from '@/ui/primitives';
 import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
-import { useAppStore, visibilityLabel } from '@/store/useAppStore';
+import { useAppStore } from '@/store/useAppStore';
 
 export function FilingTray() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
 
   const filing = useAppStore((s) => s.filing);
   const items = useAppStore((s) => s.items);
@@ -47,9 +50,14 @@ export function FilingTray() {
     <SlideUp
       style={{
         position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
+        left: layout.dockInset,
+        right: layout.dockInset,
+        // Floats *above* the dock rather than under it. Z-index cannot help
+        // here — the tray is mounted above the navigator, so it paints over
+        // the dock whatever the number says — and burying the shutter for six
+        // seconds after every capture would take back exactly what one-tap
+        // capture is for: grabbing five things in a shop without stopping.
+        bottom: layout.dockClearance,
         zIndex: 6,
       }}
     >
@@ -57,15 +65,13 @@ export function FilingTray() {
         style={{
           backgroundColor: theme.card,
           borderWidth: 2,
-          borderBottomWidth: 0,
           borderColor: theme.violet66,
-          borderTopLeftRadius: layout.radius.sheet,
-          borderTopRightRadius: layout.radius.sheet,
-          paddingHorizontal: 18,
-          paddingTop: 14,
-          paddingBottom: Math.max(24, insets.bottom + 10),
-          gap: 12,
-          boxShadow: `0 -10px 34px ${theme.isDark ? 'rgba(0,0,0,0.6)' : 'rgba(45,36,71,0.2)'}`,
+          borderRadius: layout.radius.sheet,
+          paddingHorizontal: 16,
+          paddingTop: 13,
+          paddingBottom: 14,
+          gap: 11,
+          boxShadow: `0 10px 34px ${theme.isDark ? 'rgba(0,0,0,0.6)' : 'rgba(45,36,71,0.2)'}`,
         }}
       >
         {/* What just happened, and the escape hatch. */}
@@ -80,14 +86,23 @@ export function FilingTray() {
             }}
             radius={layout.radius.tile}
           />
-          <View style={{ flex: 1 }}>
-            <AppText style={{ fontSize: 13, fontWeight: '800' }}>
-              Added to {list?.name ?? 'My wants'}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AppText numberOfLines={1} style={{ fontSize: 13, fontWeight: '800' }}>
+              {item.name}
             </AppText>
             <AppText tone="muted" style={{ fontSize: 11 }}>
-              {item.secret ? 'secret — only you' : list ? visibilityLabel(list.visibility) : ''} ·{' '}
-              {item.price}
+              in {list?.name ?? 'My wants'} ·{' '}
+              {item.pricing === 'working'
+                ? 'finding the price'
+                : item.pricing === 'failed'
+                  ? 'no price found'
+                  : item.price}
             </AppText>
+            {item.secret ? (
+              <AppText tone="violet" style={{ fontSize: 10.5, fontWeight: '700' }}>
+                secret — only you
+              </AppText>
+            ) : null}
           </View>
           <Squish onPress={undoFiledAdd} hitSlop={10}>
             <AppText tone="violet" style={{ fontSize: 12, fontWeight: '800' }}>
