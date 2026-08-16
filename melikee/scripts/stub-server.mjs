@@ -119,7 +119,8 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    if (body?.mode === 'read') {
+    // All three ways in get the same identity pass and the same answer shape.
+    if (body?.mode === 'read' || body?.mode === 'identify-scan' || body?.mode === 'identify-say') {
       return json(res, 200, { ok: true, reading: READING, timing: { readMs: 40, totalMs: 40 } });
     }
     return json(res, 200, {

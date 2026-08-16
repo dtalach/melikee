@@ -76,6 +76,12 @@ export type RecognizeRequest =
   | { mode: 'say'; transcript: string }
   | { mode: 'snap'; image: RecognizeImage }
   | { mode: 'read'; image: RecognizeImage }
+  // The same cheap identity step the photo gets, for the other two ways in.
+  // A barcode's digits and a mumbled sentence are both worse names than the
+  // product actually has, and both can be turned into the real one long
+  // before anyone needs to know what it costs.
+  | { mode: 'identify-scan'; upc: string }
+  | { mode: 'identify-say'; transcript: string }
   | { mode: 'listings'; reading: ProductReading };
 
 /**

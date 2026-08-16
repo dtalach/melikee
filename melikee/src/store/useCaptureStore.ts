@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { readPhoto } from '@/services/productMatch';
+import { identifyCapture } from '@/services/productMatch';
 import { resolveInBackground } from '@/services/pricing';
 import { useAppStore } from '@/store/useAppStore';
 import type { CaptureSeed } from '@/store/useAppStore';
@@ -171,49 +171,58 @@ type Getter = () => CaptureState;
 /**
  * Work out what was wanted, file it, and play the reward.
  *
- * Only a photo needs asking: the eye has to read it before there is a name to
- * show. A barcode's digits and a spoken sentence identify themselves, so those
- * are filed on the spot and the shops name them properly later.
+ * All three ways in get the same quick identity pass, because a barcode's
+ * digits and a half-heard sentence are both worse names than the product
+ * actually has. A photo is read; a barcode gets one search; spoken words are
+ * turned into a proper product name. None of them waits on a price.
  */
 async function identify(input: BeginInput, set: Setter, get: Getter) {
-  let seed: CaptureSeed;
+  const read = await identifyCapture(
+    input.mode === 'snap'
+      ? { mode: 'snap', image: input.image }
+      : input.mode === 'scan'
+        ? { mode: 'scan', upc: input.upc }
+        : { mode: 'say', transcript: input.transcript },
+  );
 
-  if (input.mode === 'snap') {
-    const read = await readPhoto(input.image);
+  // A cancel mid-flight wins — don't yank the user back into a reveal.
+  if (get().phase !== 'magic') return;
 
-    // A cancel mid-flight wins — don't yank the user back into a reveal.
-    if (get().phase !== 'magic') return;
-
-    if (read && !read.ok) {
-      useAppStore.getState().recordLookup({
-        at: new Date().toISOString(),
-        mode: 'snap',
-        error: { code: read.code, message: read.message },
-      });
-      set({ missCode: read.code, missDetail: read.message, phase: 'miss' });
-      return;
-    }
-
-    if (!read?.ok) {
-      // No service to ask and no reading to show: the demo path, which still
-      // has to end somewhere. It ends honestly, on the miss screen.
-      set({ missCode: 'not_configured', missDetail: undefined, phase: 'miss' });
-      return;
-    }
-
+  if (read && !read.ok) {
     useAppStore.getState().recordLookup({
       at: new Date().toISOString(),
-      mode: 'snap',
+      mode: input.mode,
+      error: { code: read.code, message: read.message },
+    });
+    set({ missCode: read.code, missDetail: read.message, phase: 'miss' });
+    return;
+  }
+
+  // A photo with no reading has nothing to show and nothing to search — it
+  // ends honestly on the miss screen. A barcode or a sentence still has the
+  // user's own input to wear, so those carry on unnamed rather than failing.
+  if (!read?.ok && input.mode === 'snap') {
+    set({ missCode: 'not_configured', missDetail: undefined, phase: 'miss' });
+    return;
+  }
+
+  if (read?.ok) {
+    useAppStore.getState().recordLookup({
+      at: new Date().toISOString(),
+      mode: input.mode,
       reading: read.reading,
       readMs: read.readMs,
     });
     set({ reading: read.reading });
-    seed = { mode: 'snap', reading: read.reading, photoUri: input.photoUri };
-  } else if (input.mode === 'scan') {
-    seed = { mode: 'scan', upc: input.upc };
-  } else {
-    seed = { mode: 'say', transcript: input.transcript };
   }
+
+  const reading = read?.ok ? read.reading : undefined;
+  const seed: CaptureSeed =
+    input.mode === 'snap'
+      ? { mode: 'snap', reading: reading!, photoUri: input.photoUri }
+      : input.mode === 'scan'
+        ? { mode: 'scan', upc: input.upc, reading }
+        : { mode: 'say', transcript: input.transcript, reading };
 
   if (get().phase !== 'magic') return;
 
@@ -229,17 +238,44 @@ async function identify(input: BeginInput, set: Setter, get: Getter) {
   if (get().phase === 'caught') set({ phase: 'fly' });
 }
 
-/** What the caught card says it got, in the language of how it was got. */
+/**
+ * What the caught card says it got.
+ *
+ * The product's own name when we have it, whichever way it was captured — and
+ * the note underneath keeps the user's own input in view, so a scan still
+ * shows its digits and a spoken want still shows the words that were said.
+ */
 function caughtCopy(seed: CaptureSeed): { title: string; note?: string } {
+  const { reading } = seed;
+  const named = reading
+    ? [reading.brand, reading.productName].filter(Boolean).join(' ').trim() || reading.category
+    : '';
+
+  const ownWords =
+    seed.mode === 'scan'
+      ? seed.upc
+      : seed.mode === 'say'
+        ? `“${seed.transcript.trim()}”`
+        : reading?.variant;
+
+  if (named) return { title: named, note: [reading?.variant, ownWords].filter(Boolean)[0] };
+
+  // Naming failed or there was nothing to ask. What the user did is still true.
   if (seed.mode === 'scan') return { title: 'Got the barcode', note: seed.upc };
   if (seed.mode === 'say') return { title: 'Got it', note: `“${seed.transcript.trim()}”` };
-
-  const { reading } = seed;
-  const named = [reading.brand, reading.productName].filter(Boolean).join(' ').trim();
-  return {
-    title: named || reading.category || 'Something shiny',
-    note: reading.variant || undefined,
-  };
+  return { title: 'Something shiny' };
 }
 
 export const isBusy = (phase: CapturePhase) => BUSY_PHASES.includes(phase);
+
+/**
+ * A door for the smoke test, which drives a real browser with a synthetic
+ * camera — and a synthetic camera has no barcode to scan and no microphone to
+ * speak into. Without this, two of the three ways into the app could only ever
+ * be checked by hand on a phone.
+ */
+if (typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).__melikeeCapture = {
+    begin: (input: BeginInput) => void useCaptureStore.getState().begin(input),
+  };
+}

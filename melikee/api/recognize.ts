@@ -9,7 +9,7 @@
  * GET returns a health check, so you can tell "the endpoint isn't deployed"
  * apart from "the endpoint has no key" from a browser address bar.
  */
-import { isConfigured, probe, read, recognize } from '../src/services/recognition/server';
+import { identify, isConfigured, probe, read, recognize } from '../src/services/recognition/server';
 import type {
   ProductReading,
   RecognizeImage,
@@ -75,10 +75,15 @@ export default async function handler(req: Req, res: Res) {
 
   // `read` answers in about four seconds and `listings` in about twenty, so
   // the app asks for them separately and fills the gap with the product name.
+  const request = parsed.request;
   const result =
-    parsed.request.mode === 'read'
-      ? await read(parsed.request.image)
-      : await recognize(parsed.request);
+    request.mode === 'read'
+      ? await read(request.image)
+      : request.mode === 'identify-scan'
+        ? await identify({ kind: 'scan', upc: request.upc })
+        : request.mode === 'identify-say'
+          ? await identify({ kind: 'say', transcript: request.transcript })
+          : await recognize(request);
 
   // A lookup that found nothing is still a successful round trip — the app has
   // copy for every one of these codes, so they travel as 200s with `ok: false`
@@ -99,16 +104,16 @@ function parseRequest(raw: unknown): { request: RecognizeRequest } | { error: st
 
   const b = body as Record<string, unknown>;
 
-  if (b.mode === 'scan') {
+  if (b.mode === 'scan' || b.mode === 'identify-scan') {
     const upc = typeof b.upc === 'string' ? b.upc.trim() : '';
-    if (!upc) return { error: 'scan needs a upc.' };
-    return { request: { mode: 'scan', upc } };
+    if (!upc) return { error: `${b.mode} needs a upc.` };
+    return { request: { mode: b.mode, upc } };
   }
 
-  if (b.mode === 'say') {
+  if (b.mode === 'say' || b.mode === 'identify-say') {
     const transcript = typeof b.transcript === 'string' ? b.transcript.trim() : '';
-    if (!transcript) return { error: 'say needs a transcript.' };
-    return { request: { mode: 'say', transcript } };
+    if (!transcript) return { error: `${b.mode} needs a transcript.` };
+    return { request: { mode: b.mode, transcript } };
   }
 
   if (b.mode === 'listings') {
@@ -135,5 +140,5 @@ function parseRequest(raw: unknown): { request: RecognizeRequest } | { error: st
     };
   }
 
-  return { error: 'mode must be scan, say, snap, read or listings.' };
+  return { error: 'mode must be scan, say, snap, read, identify-scan, identify-say or listings.' };
 }

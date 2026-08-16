@@ -240,6 +240,28 @@ async function readProduct(image: RecognizeImage): Promise<ProductReading> {
 
 // ── Pass 2: find where to buy it ───────────────────────────────────────────
 
+const NAMING_SYSTEM = `You name products. Someone is capturing something they want, and all you have to do is work out what the thing is called — not what it costs, not where to buy it, not which listing is best. Somebody else does that afterwards.
+
+Fill the same fields you would from a photo, and leave blank whatever you genuinely do not know. "" is always better than a plausible invention: a wrong name here becomes a wrong present later.
+
+Set confidence honestly. "high" only when you are naming a specific product. "medium" when you have the category and probably the brand. "low" when you are guessing — and when you are guessing, say what little you are sure of rather than inventing detail around it.
+
+Set frameProblem to "none" always; there is no picture involved here.`;
+
+const SCAN_TASK = (upc: string) => `A barcode was scanned in a shop. The digits are ${upc}.
+
+Search for that barcode number — once — and name the product it belongs to. Barcode databases are patchy: if the number turns up nothing you can trust, return "" for brand, product name and model, put the digits in visibleText, and set confidence to "low". Do not reason a product out of the number itself. The digits are not a description.`;
+
+const SAY_TASK = (transcript: string) => `Someone said out loud what they want, and this is the transcription:
+
+"${transcript}"
+
+It may be misheard, casual, half-remembered or slangy. Work out which product they mean and give it its proper name — "those sony noise cancelling ones" is the WH-1000XM series, "airpod pros" are AirPods Pro.
+
+If the words name a whole category rather than a product — "new headphones", "a hoodie" — that is a real answer: put the category in productName, leave brand empty, and set confidence to "low". Someone asking for a hoodie has not told you which hoodie, and pretending otherwise picks it for them.
+
+Put what they actually said in visibleText, so their own words survive.`;
+
 /**
  * Just the eye. The app calls this first so it can put a product name on
  * screen at four seconds instead of at twenty-three.
@@ -258,6 +280,69 @@ export async function read(image: RecognizeImage): Promise<ReadResponse> {
   } catch (error) {
     const described = describe(error);
     console.error('[recognize] read', described.code, described.message);
+    return { ok: false, ...described, timing: { totalMs: Date.now() - startedAt } };
+  }
+}
+
+/**
+ * The same cheap identity step, for a barcode and for spoken words.
+ *
+ * Neither is a picture, so neither can be *read* — but both can be named, and
+ * a name is all the capture needs. A barcode gets exactly one web search,
+ * because the digits mean nothing without one. Spoken words get none: Claude
+ * knows what "those sony noise cancelling ones" are, and the full search
+ * afterwards is what corrects it if the product is newer than that knowledge.
+ */
+export async function identify(
+  input: { kind: 'scan'; upc: string } | { kind: 'say'; transcript: string },
+): Promise<ReadResponse> {
+  if (!isConfigured()) {
+    return { ok: false, code: 'not_configured', message: 'The recognition service has no API key.' };
+  }
+
+  const startedAt = Date.now();
+  try {
+    const scanning = input.kind === 'scan';
+
+    const message = await client()
+      .messages.stream({
+        model: scanning ? SEARCH_MODEL : VISION_MODEL,
+        max_tokens: scanning ? 3000 : 1024,
+        system: NAMING_SYSTEM,
+        // A barcode needs the web; a sentence does not, and skipping the tool
+        // is the difference between two seconds and ten.
+        ...(scanning ? { tools: [{ ...WEB_SEARCH, max_uses: 1 }] } : { thinking: { type: 'disabled' as const } }),
+        output_config: { effort: 'low' as const, format: zodOutputFormat(ReadingSchema) },
+        messages: [
+          {
+            role: 'user',
+            content: scanning ? SCAN_TASK(input.upc) : SAY_TASK(input.transcript),
+          },
+        ],
+      })
+      .finalMessage();
+
+    console.log(
+      `[recognize] identify-${input.kind} ${Date.now() - startedAt}ms stop=${message.stop_reason} read=${JSON.stringify(
+        message.parsed_output ?? null,
+      )}`,
+    );
+
+    if (message.stop_reason === 'refusal') {
+      throw new RecognizeError('refused', 'The model declined to name this.');
+    }
+    if (!message.parsed_output) {
+      throw new RecognizeError('upstream', `Naming returned nothing parseable (stop_reason ${message.stop_reason}).`);
+    }
+
+    return {
+      ok: true,
+      reading: message.parsed_output,
+      timing: { readMs: Date.now() - startedAt, totalMs: Date.now() - startedAt },
+    };
+  } catch (error) {
+    const described = describe(error);
+    console.error('[recognize] identify', described.code, described.message);
     return { ok: false, ...described, timing: { totalMs: Date.now() - startedAt } };
   }
 }

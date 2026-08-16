@@ -84,25 +84,41 @@ const DEMO_LATENCY = 1600;
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export type MatchRequest =
-  | { mode: 'scan'; upc: string }
+  | { mode: 'scan'; upc: string; reading?: ProductReading }
   | { mode: 'snap'; photoUri?: string; image?: RecognizeImage; reading?: ProductReading }
-  | { mode: 'say'; transcript: string };
+  | { mode: 'say'; transcript: string; reading?: ProductReading };
 
 export type ReadOutcome =
   | { ok: true; reading: ProductReading; readMs?: number }
   | { ok: false; code: RecognizeErrorCode; message: string };
 
 /**
- * The eye, on its own. Roughly four seconds against roughly twenty for the
- * search, which is the entire reason the two are asked for separately: the
- * product's name can be on screen while the shops are still being checked.
+ * What the capture is, before anyone has asked what it costs.
  *
- * Returns null when there is nothing to ask — no service, or no photo — which
- * means the caller should go straight to the demo.
+ * All three ways in get this, and all three get it quickly: a photo is read, a
+ * barcode gets a single web search, and spoken words are turned into a proper
+ * product name from knowledge alone. Roughly two to ten seconds against twenty
+ * for the shops — which is the whole reason they are separate calls.
+ *
+ * Returns null when there is nothing to ask: no service, or no photo to send.
  */
-export async function readPhoto(image?: RecognizeImage): Promise<ReadOutcome | null> {
-  if (!hasRecognitionService || !image) return null;
-  const response = await callRead({ mode: 'read', image });
+export async function identifyCapture(
+  input:
+    | { mode: 'snap'; image?: RecognizeImage }
+    | { mode: 'scan'; upc: string }
+    | { mode: 'say'; transcript: string },
+): Promise<ReadOutcome | null> {
+  if (!hasRecognitionService) return null;
+  if (input.mode === 'snap' && !input.image) return null;
+
+  const response = await callRead(
+    input.mode === 'snap'
+      ? { mode: 'read', image: input.image! }
+      : input.mode === 'scan'
+        ? { mode: 'identify-scan', upc: input.upc }
+        : { mode: 'identify-say', transcript: input.transcript },
+  );
+
   if (response.ok) return { ok: true, reading: response.reading, readMs: response.timing?.readMs };
   if (response.code === 'not_configured') return null;
   return { ok: false, code: response.code, message: response.message };
@@ -137,14 +153,16 @@ export async function matchProduct(request: MatchRequest): Promise<MatchOutcome>
   if (!hasRecognitionService) return demoMatch(request);
 
   const response = await callRecognize(
+    // A barcode always re-searches its own digits: they are the authoritative
+    // identifier, and better evidence than any name derived from them.
     request.mode === 'scan'
       ? { mode: 'scan', upc: request.upc }
-      : request.mode === 'say'
-        ? { mode: 'say', transcript: request.transcript }
-        : // A reading already in hand means the photo was read moments ago;
-          // asking for `listings` skips doing it twice.
-          request.reading
-          ? { mode: 'listings', reading: request.reading }
+      : // Everything else already has a reading from the identity pass, so
+        // asking for `listings` avoids working it out a second time.
+        request.reading
+        ? { mode: 'listings', reading: request.reading }
+        : request.mode === 'say'
+          ? { mode: 'say', transcript: request.transcript }
           : { mode: 'snap', image: request.image! },
   );
 
@@ -178,13 +196,17 @@ async function demoMatch(request: MatchRequest): Promise<MatchOutcome> {
   return { ok: true, demo: true, candidates: SCRIPTED };
 }
 
-/** Mode-aware copy for the "working our magic" phase. */
+/**
+ * Mode-aware copy for the wait. All three now say the same kind of thing,
+ * because all three are doing the same kind of thing: working out what it is.
+ * Nobody is waiting on a price any more.
+ */
 export function magicNote(mode: CaptureMode) {
   return mode === 'scan'
     ? 'looking that barcode up'
     : mode === 'say'
-      ? 'matching your words to products'
-      : 'reading your photo · finding stores';
+      ? 'working out what you mean'
+      : 'reading your photo';
 }
 
 /** What the wait says once it has gone on long enough to need explaining. */

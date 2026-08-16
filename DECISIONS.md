@@ -403,6 +403,40 @@ to file always and handle conflicts in a later workflow instead — speed is the
 product, the confidence is preserved on the item, and item detail is a better
 place to ask than a shop floor.
 
+**67. A barcode and a spoken want get named too, not just photographed ones.**
+A photo came back as "Liquid Death Cherry Obituary" while a scan came back as
+`Barcode 027242925175` and a spoken want as whatever the microphone heard.
+Same moment, same promise, three different levels of service.
+
+All three now get the same quick identity pass, and each costs what it has to:
+
+- **Photo** — read, about four seconds, no search.
+- **Barcode** — exactly one web search, because digits mean nothing without
+  one. The prompt says outright that a number is not a description, and that an
+  unfindable barcode should come back empty at low confidence rather than
+  reasoned into a product.
+- **Voice** — no search at all. Claude knows what "those sony noise cancelling
+  ones" are, and the full lookup afterwards is what corrects it when the
+  product is newer than that knowledge.
+
+None of them waits on a price. The user's own input survives as the note under
+the name — a scan still shows its digits, a spoken want still shows the words —
+and stays the fallback name when naming fails or there is no service to ask.
+
+**68. Only a photo can fail to a miss screen.** A barcode and a sentence carry
+their own meaning, so a failed naming still leaves something worth filing. A
+photo with no reading has nothing to show and nothing to search.
+
+**69. The smoke test can drive a capture directly.** A synthetic camera has no
+barcode to scan and no microphone to speak into, so two of the three ways in
+could only be checked by hand on a phone. A small window hook lets the harness
+start a scan or a spoken capture for real.
+
+**70. The harness starts its own stub server on a free port.** Sharing a
+long-running one cost several runs to a stale process still holding the port
+and several more to a dead one — and from inside the test both look exactly
+like the app being broken.
+
 ---
 
 ## Persistence

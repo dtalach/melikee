@@ -46,9 +46,9 @@ export const hasRecognitionService = recognizeUrl !== null;
 /** A failure that happened before any answer arrived, or instead of one. */
 type Transport = { ok: false; code: 'not_configured' | 'upstream'; message: string };
 
-/** The reading pass. */
+/** The identity pass, whichever way the capture came in. */
 export async function callRead(
-  request: Extract<RecognizeRequest, { mode: 'read' }>,
+  request: Extract<RecognizeRequest, { mode: 'read' | 'identify-scan' | 'identify-say' }>,
 ): Promise<ReadResponse> {
   const result = await post(request);
   if ('failed' in result) return result.failed;

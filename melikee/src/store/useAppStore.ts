@@ -184,25 +184,34 @@ type AppState = {
 /** What we know at the instant of capture, before anything has been searched. */
 export type CaptureSeed =
   | { mode: 'snap'; reading: ProductReading; photoUri?: string }
-  | { mode: 'scan'; upc: string }
-  | { mode: 'say'; transcript: string };
+  | { mode: 'scan'; upc: string; reading?: ProductReading }
+  | { mode: 'say'; transcript: string; reading?: ProductReading };
 
 /**
- * The name a shiny wears until the shops give it a proper one.
+ * The name a shiny wears from the instant it is caught.
  *
- * A photo has already been read, so it gets the real thing. A barcode and a
- * spoken want have not been looked up yet — so they wear what the user
- * actually did, which is honest and recognisable, rather than a spinner.
+ * Every capture gets a quick identity pass, so this is normally the product's
+ * real name. The fallbacks are what the user actually did — a barcode's digits,
+ * the sentence they said — for the cases where naming failed or there was no
+ * service to ask. Honest and recognisable beats a spinner.
  */
 function captureName(seed: CaptureSeed): string {
+  const named = fromReading(seed.reading);
+  if (named) return named;
+
   if (seed.mode === 'scan') return `Barcode ${seed.upc}`;
   if (seed.mode === 'say') return seed.transcript.trim();
+  return 'Something shiny';
+}
 
-  const { reading } = seed;
+function fromReading(reading?: ProductReading): string | null {
+  if (!reading) return null;
   const named = [reading.brand, reading.productName].filter(Boolean).join(' ').trim();
+  const base = named || reading.category;
+  if (!base) return null;
   // The variant is part of the identity, not a detail — a 12 fl oz can and a
   // 12-pack are different things at very different prices.
-  return [named || reading.category || 'Something shiny', reading.variant].filter(Boolean).join(' · ');
+  return [base, reading.variant].filter(Boolean).join(' · ');
 }
 
 let idCounter = 100;
@@ -357,7 +366,7 @@ export const useAppStore = create<AppState>()(
                 : 'by camera · just now',
           secret: false,
           photoUri: seed.mode === 'snap' ? seed.photoUri : undefined,
-          reading: seed.mode === 'snap' ? seed.reading : undefined,
+          reading: seed.reading,
           pricing: 'working',
         };
         // No tray yet: the reward ritual has to land first.

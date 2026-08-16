@@ -26,8 +26,8 @@ const running = new Set<string>();
 
 /** What each kind of capture asks the shops, once it is time to ask them. */
 export function seedToRequest(seed: CaptureSeed): MatchRequest {
-  if (seed.mode === 'scan') return { mode: 'scan', upc: seed.upc };
-  if (seed.mode === 'say') return { mode: 'say', transcript: seed.transcript };
+  if (seed.mode === 'scan') return { mode: 'scan', upc: seed.upc, reading: seed.reading };
+  if (seed.mode === 'say') return { mode: 'say', transcript: seed.transcript, reading: seed.reading };
   return { mode: 'snap', photoUri: seed.photoUri, reading: seed.reading };
 }
 
@@ -103,10 +103,10 @@ export function retryPricing(itemId: string) {
   // knows, which is what survives a reload.
   const seed: CaptureSeed | undefined =
     seeds.get(itemId) ??
-    (item.reading
-      ? { mode: 'snap', reading: item.reading, photoUri: item.photoUri }
-      : item.upc && item.upc !== '—'
-        ? { mode: 'scan', upc: item.upc }
+    (item.upc && item.upc !== '—'
+      ? { mode: 'scan', upc: item.upc, reading: item.reading }
+      : item.reading
+        ? { mode: 'snap', reading: item.reading, photoUri: item.photoUri }
         : undefined);
   if (!seed) return;
 

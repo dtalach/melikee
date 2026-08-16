@@ -26,10 +26,52 @@
  * binary; defaults to Playwright's own), OUT (screenshot directory).
  */
 import { chromium } from 'playwright';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import net from 'node:net';
 import path from 'node:path';
 
-const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:8099';
+/**
+ * The harness owns its own server unless told otherwise. Sharing a
+ * long-running one cost several runs to a stale process still holding the
+ * port, and several more to a dead one — both of which look like app failures
+ * from in here.
+ */
+let stub;
+let BASE_URL = process.env.BASE_URL;
+
+if (!BASE_URL) {
+  const port = await freePort();
+  BASE_URL = `http://127.0.0.1:${port}`;
+  stub = spawn(process.execPath, [path.resolve('scripts/stub-server.mjs'), String(port), 'dist'], {
+    stdio: 'ignore',
+  });
+  await waitForServer(BASE_URL);
+  console.log('stub on', BASE_URL);
+}
+
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.on('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
+}
+
+async function waitForServer(url, tries = 40) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      await fetch(url);
+      return;
+    } catch {
+      await new Promise((r) => setTimeout(r, 150));
+    }
+  }
+  throw new Error(`stub never came up on ${url}`);
+}
 const OUT = process.env.OUT ?? path.resolve('.verify-screens');
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -192,6 +234,22 @@ await flow('lookup', async ({ shot, page, shutter, tap, go }) => {
   else console.log('  price arrived after filing');
 });
 
+// ── A barcode gets a real name too, not its own digits ────────────────────
+await flow('barcode', async ({ shot, page }) => {
+  // No barcode in a synthetic camera, so this drives the same path the scanner
+  // does: a scan capture, identified and filed on one tap.
+  await page.evaluate(() => {
+    window.__melikeeCapture?.begin({ mode: 'scan', upc: '027242925175' });
+  });
+  await page.waitForTimeout(1500);
+  const named = await page.getByText('Sony WH-1000XM6 headphones', { exact: false }).count();
+  const digits = await page.getByText('Barcode 027242925175', { exact: false }).count();
+  if (named === 0) errors.push('[barcode] the scan was never given a real product name');
+  else console.log('  barcode named, not left as digits');
+  if (digits > 0) errors.push('[barcode] the shiny is still wearing its own digits');
+  await shot('49-barcode-named', 400);
+});
+
 // ── The capture ritual, end to end ────────────────────────────────────────
 await flow('capture', async ({ shot, tap, shutter }) => {
   await shutter();
@@ -308,4 +366,5 @@ await flow('newlist', async ({ shot, tap, go }) => {
 
 console.log('\nERRORS:', errors.length ? '\n' + errors.join('\n') : 'none');
 await browser.close();
+stub?.kill();
 process.exit(errors.length ? 1 : 0);
