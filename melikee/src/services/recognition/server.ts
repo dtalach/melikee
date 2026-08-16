@@ -70,6 +70,11 @@ const ReadingSchema = z.object({
     .enum(['high', 'medium', 'low'])
     .describe('high = a specific named product; medium = the category and probably the brand; low = a guess.'),
   searchQuery: z.string().describe('What you would type into a shop search box to find this exact thing.'),
+  frameProblem: z
+    .enum(['none', 'too dark', 'too blurry', 'nothing in frame'])
+    .describe(
+      'Whether the picture itself defeated you. "too dark" for an underexposed or black frame — a camera photographed before it woke up looks like this. "too blurry" for motion or focus. "nothing in frame" when the picture is fine and simply holds no product. "none" when you could see well enough to answer.',
+    ),
 });
 
 const ListingsSchema = z.object({
@@ -120,6 +125,8 @@ Read, don't guess. Work from what is printed on the product and its packaging: t
 If several products are in frame, describe the one that is centred, largest, or most clearly the subject. If a person is holding it, describe the object, not the person.
 
 If there is no product in the frame at all, return confidence "low", empty strings throughout, and an empty searchQuery. Do not invent a product.
+
+Say so in frameProblem when the picture itself defeats you. A black or nearly black frame is "too dark" — phones hand over a frame before the sensor has woken up, and that is a different thing from an empty room. Smeared or out-of-focus is "too blurry". Both are worth telling someone, because both are fixed by taking the picture again.
 
 Never return a brand or a model number you cannot actually see. An honest "" beats a plausible wrong answer — the app can recover from "we're not sure", but a confidently wrong product ends up on a real birthday list.`;
 
@@ -245,9 +252,8 @@ export async function read(image: RecognizeImage): Promise<ReadResponse> {
   const startedAt = Date.now();
   try {
     const reading = await readProduct(image);
-    if (!hasSubject(reading)) {
-      return { ok: false, code: 'no_product', message: 'No product in that photo.' };
-    }
+    const fault = frameFault(reading);
+    if (fault) return { ok: false, ...fault };
     return { ok: true, reading, timing: { readMs: Date.now() - startedAt, totalMs: Date.now() - startedAt } };
   } catch (error) {
     const described = describe(error);
@@ -259,6 +265,20 @@ export async function read(image: RecognizeImage): Promise<ReadResponse> {
 /** Nothing in the frame is a real answer, not a failure — and not a search. */
 function hasSubject(reading: ProductReading): boolean {
   return Boolean(reading.searchQuery || reading.productName || reading.category);
+}
+
+/**
+ * A frame that defeated the eye is not the same as a frame with nothing in it,
+ * and the difference is the whole of the advice: one means take it again, the
+ * other means point it at something.
+ */
+function frameFault(reading: ProductReading): { code: RecognizeErrorCode; message: string } | null {
+  if (hasSubject(reading)) return null;
+  const problem = reading.frameProblem;
+  if (problem === 'too dark' || problem === 'too blurry') {
+    return { code: 'bad_photo', message: `The photo came out ${problem}.` };
+  }
+  return { code: 'no_product', message: 'No product in that photo.' };
 }
 
 function searchBrief(request: RecognizeRequest, reading?: ProductReading): string {
@@ -506,9 +526,8 @@ export async function recognize(request: RecognizeRequest): Promise<RecognizeRes
       readMs = Date.now() - startedAt;
       // Nothing in the frame. This is a real answer, not a failure — the app
       // has copy for it, and it is much better than searching for "".
-      if (!hasSubject(reading)) {
-        return { ok: false, code: 'no_product', message: 'No product in that photo.' };
-      }
+      const fault = frameFault(reading);
+      if (fault) return { ok: false, ...fault };
     }
 
     // The app's own path: the photo was already read a moment ago, and this

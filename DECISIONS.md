@@ -269,6 +269,35 @@ famous item honouring a detail from the reading beats a flagship ignoring it.
 **37e. The reading is logged.** Everything downstream is built on it, and
 without seeing it there is no way to tell a bad *look* from a bad *search*.
 
+**37f. "Try again" means whichever thing can actually work.** After a miss it
+re-ran the identical lookup on the identical photo — which for "nothing shiny
+in there" can only ever reach the same answer, while the copy underneath was
+asking the user to get the thing in frame. The viewfinder never came back, and
+it read as a broken camera.
+
+Now the primary action depends on why it failed. When the photo is the problem
+— nothing in frame, too dark, too blurry, a refusal — the button says "Take
+another" and returns to the viewfinder. When the photo was fine and the lookup
+wasn't — a timeout, an API error, a search that found nothing — it still says
+"Try again" and re-runs, because re-photographing something you are still
+holding is a waste of your time.
+
+It is a Button now rather than a Sticker, for the same reason the camera
+permission stopped being one: in this app a Sticker is decoration.
+
+**37g. Failure codes name their own cause.** `no_product` had come to mean two
+unrelated things — Claude looked and saw nothing, and the device never produced
+an image — under one piece of copy that fitted only the first. They are now
+`no_product` and `no_photo`, and a third joins them: `bad_photo`, for a frame
+that arrived and could not be read.
+
+That third one exists because of the football. A phone hands over a frame
+before the sensor has woken up, and a black photograph is not an empty room —
+but the eye had no way to say so, so it reported "no product" and the advice
+was to point the camera somewhere better. The reading now carries a
+`frameProblem`, and "too dark, give it a second to focus" is both true and
+actionable.
+
 ---
 
 ## Persistence

@@ -124,7 +124,7 @@ export async function matchProduct(request: MatchRequest): Promise<MatchOutcome>
   // screen that nobody had photographed. The camera screen stops this before
   // it gets here; this is the second lock on the same door.
   if (request.mode === 'snap' && !request.image && hasRecognitionService) {
-    return { ok: false, code: 'no_product', message: 'That photo did not come through.' };
+    return { ok: false, code: 'no_photo', message: 'The device produced no image to look at.' };
   }
 
   // No service to ask at all — a device build with nothing configured, a
@@ -214,7 +214,17 @@ export function missCopy(code: RecognizeErrorCode, mode: CaptureMode): { title: 
     case 'no_product':
       return {
         title: 'Nothing shiny in there',
-        note: 'Get the thing in frame and try again — closer helps.',
+        note: 'Get the thing in frame and have another go — closer helps.',
+      };
+    case 'no_photo':
+      return {
+        title: 'The camera came up empty',
+        note: 'No picture reached us. Have another go.',
+      };
+    case 'bad_photo':
+      return {
+        title: 'Couldn’t make that out',
+        note: 'Give the camera a second to focus, then snap again.',
       };
     case 'no_match':
       return {
@@ -234,6 +244,23 @@ export function missCopy(code: RecognizeErrorCode, mode: CaptureMode): { title: 
     default:
       return { title: 'Couldn’t reach the shops', note: 'Check your signal and try again.' };
   }
+}
+
+/**
+ * Whether the photo itself is the problem.
+ *
+ * When it is, re-running the same lookup is guaranteed to fail the same way,
+ * and the only useful button goes back to the viewfinder. When it isn't — a
+ * timeout, an API error, a search that found nothing — the photo is fine and
+ * running it again is exactly the right move.
+ */
+export function needsAnotherPhoto(code: RecognizeErrorCode): boolean {
+  return code === 'no_product' || code === 'no_photo' || code === 'bad_photo' || code === 'refused';
+}
+
+/** Faults worth showing the raw reason for, rather than only friendly copy. */
+export function showsDetail(code: RecognizeErrorCode): boolean {
+  return code === 'upstream' || code === 'no_photo' || code === 'bad_photo';
 }
 
 /**

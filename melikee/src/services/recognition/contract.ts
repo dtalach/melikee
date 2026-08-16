@@ -50,6 +50,8 @@ export type ProductReading = {
   visibleText: string[];
   /** How confident the eye is that it identified a specific product. */
   confidence: 'high' | 'medium' | 'low';
+  /** Whether the frame itself got in the way, and how. */
+  frameProblem: 'none' | 'too dark' | 'too blurry' | 'nothing in frame';
   /** The query the eye would type into a shop's search box. */
   searchQuery: string;
 };
@@ -82,6 +84,8 @@ export type RecognizeRequest =
  *
  * - `not_configured` — the endpoint has no API key. Development, mostly.
  * - `no_product`     — Claude looked and there was no product in the frame.
+ * - `no_photo`       — the device never produced an image to look at.
+ * - `bad_photo`      — an image arrived, but it was too dark or blurred to read.
  * - `no_match`       — a real product, but the search turned up no listings.
  * - `refused`        — the model declined to describe the image.
  * - `upstream`       — the API errored or timed out.
@@ -90,6 +94,8 @@ export type RecognizeRequest =
 export type RecognizeErrorCode =
   | 'not_configured'
   | 'no_product'
+  | 'no_photo'
+  | 'bad_photo'
   | 'no_match'
   | 'refused'
   | 'upstream'

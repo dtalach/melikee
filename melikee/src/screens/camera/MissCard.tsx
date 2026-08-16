@@ -10,9 +10,9 @@
  */
 import { View } from 'react-native';
 
-import { missCopy } from '@/services/productMatch';
+import { missCopy, needsAnotherPhoto, showsDetail } from '@/services/productMatch';
 import { RiseIn } from '@/ui/motion';
-import { AppText, Photo, Squish, Sticker } from '@/ui/primitives';
+import { AppText, Button, Photo, Squish } from '@/ui/primitives';
 import { layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { CaptureMode } from '@/store/types';
@@ -38,6 +38,11 @@ export function MissCard({
 }) {
   const theme = useTheme();
   const copy = missCopy(code, mode);
+
+  // When the photo is the problem, running the same lookup again can only
+  // reach the same answer — so the button goes back to the viewfinder instead,
+  // and says so. Anything else is worth another attempt as-is.
+  const reframe = needsAnotherPhoto(code);
 
   return (
     <View style={{ position: 'absolute', inset: 0, justifyContent: 'center', paddingHorizontal: 34 }}>
@@ -65,7 +70,7 @@ export function MissCard({
             {/* When the app broke rather than merely failed to find something,
                 say what broke. "Check your signal" is a lie if the signal was
                 fine, and the real sentence is the whole of the bug report. */}
-            {code === 'upstream' && detail ? (
+            {showsDetail(code) && detail ? (
               <AppText
                 tone="muted"
                 style={{ fontSize: 9.5, textAlign: 'center', lineHeight: 13, opacity: 0.75 }}
@@ -75,11 +80,11 @@ export function MissCard({
             ) : null}
           </View>
 
-          <Squish onPress={onRetry}>
-            <Sticker tone="lime" rotate={-1}>
-              TRY AGAIN
-            </Sticker>
-          </Squish>
+          <Button
+            label={reframe ? 'Take another' : 'Try again'}
+            size="md"
+            onPress={reframe ? onDismiss : onRetry}
+          />
 
           {/* Never lose the wish — the same promise the near-match sheet makes. */}
           {photoUri ? (
@@ -88,13 +93,13 @@ export function MissCard({
                 Save my photo, keep matching
               </AppText>
             </Squish>
-          ) : (
-            <Squish onPress={onDismiss} style={{ paddingVertical: 2 }}>
-              <AppText tone="violet" style={{ fontSize: 12, fontWeight: '700', textAlign: 'center' }}>
-                Not now
-              </AppText>
-            </Squish>
-          )}
+          ) : null}
+
+          <Squish onPress={onDismiss} style={{ paddingVertical: 2 }}>
+            <AppText tone="muted" style={{ fontSize: 12, fontWeight: '700', textAlign: 'center' }}>
+              {reframe ? 'Not now' : 'Back to the camera'}
+            </AppText>
+          </Squish>
         </View>
       </RiseIn>
     </View>
