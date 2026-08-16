@@ -293,20 +293,33 @@ persists, it would have been wrong for months.
 wants, and asks for a birth year the app has no use for. Twelve month chips and
 a grid of days: nothing to type, and 31 February is unreachable.
 
-**49. Camera permission is asked on arrival, not on a tap.** It was behind a
-lime Sticker reading "TURN ON THE CAMERA" — but a Sticker is decoration
-everywhere else in this app ("YOUR WISHLIST WRITES ITSELF", "SNEAKERHEAD"), so
-the one control on the screen didn't look like one. Now the screen that
-explains why asks for the camera as it appears, and the explanation stands
-*behind* the system dialog instead of in front of it. The app opens shooting; a
-viewfinder waiting on a button is the app not working.
+**49. Camera permission is asked as close to arrival as each platform allows.**
+It began behind a lime Sticker reading "TURN ON THE CAMERA" — but a Sticker is
+decoration everywhere else in this app ("YOUR WISHLIST WRITES ITSELF",
+"SNEAKERHEAD"), so the one control on the screen didn't look like one.
 
-The ask fires exactly once per mount, deliberately. On the web a dismissed
-prompt leaves the status undetermined and `canAskAgain` true, so an effect that
-merely reacted to "not granted yet" would prompt forever. On iOS and Android the
-system dialog only ever appears once, which is why there is separate copy for
-`canAskAgain` being false — at that point Settings is the only route, and saying
-so beats a button that silently does nothing.
+Replacing it with an ask-on-arrival broke the app on iOS Safari, which is the
+correction worth writing down. On the web `requestPermission()` is
+`getUserMedia()` underneath, and Safari only honours that inside a user gesture.
+Called from an effect it is rejected with no prompt ever shown — and
+expo-camera records that rejection as a flat `DENIED`, so the viewfinder then
+refuses to render for a browser that would have said yes.
+
+So it splits by platform. On iOS and Android the dialog can be raised freely,
+and the screen that needs the camera asks as it appears. On the web the ask
+rides on a press the person was going to make anyway: "Start snapping" in
+onboarding, the button on the permission prompt, or the shutter itself.
+
+Where it does auto-ask, it asks once per mount: a dismissed prompt leaves the
+status undetermined, so an effect reacting to "not granted yet" would prompt
+forever. And there is separate copy for `canAskAgain` being false, because at
+that point the system will never show a dialog again and only Settings will do.
+
+**49a. The shutter asks, and a "no" is still not a dead end.** Pressing it
+without permission used to quietly produce a demo match. It is the clearest
+statement of intent in the app — and on the web it is the gesture Safari wants —
+so it asks. If the answer is no the capture carries on to a demo match that says
+so on its face, which is what keeps the app usable on a laptop with no webcam.
 
 **50. The demo account is offered outright on the welcome screen.** Showing
 someone the whole populated app is a real need — the seed content is what makes

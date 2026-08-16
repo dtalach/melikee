@@ -46,6 +46,12 @@ export function CameraScreen({
   // Arriving here *is* the request — the app opens shooting, so a viewfinder
   // waiting behind a button is the app not working.
   const { requestPermission, granted, canAsk, pending } = useCameraAccess();
+  // The shutter's handler is held by the dock, so it has to read a live value
+  // rather than one closed over at registration time.
+  const grantedRef = useRef(granted);
+  useEffect(() => {
+    grantedRef.current = granted;
+  }, [granted]);
 
   const phase = useCaptureStore((s) => s.phase);
   const mode = useCaptureStore((s) => s.mode);
@@ -91,6 +97,22 @@ export function CameraScreen({
     if (useCaptureStore.getState().phase !== 'idle') return;
     const currentMode = useCaptureStore.getState().mode;
 
+    // The shutter is the clearest statement of intent in the app, and on the
+    // web it is also the user gesture Safari requires before it will show a
+    // camera prompt at all. So pressing it asks.
+    //
+    // A "no" is not a dead end: the capture carries on and lands on a demo
+    // match that says so on its face, which is what keeps the app usable on a
+    // laptop with no webcam.
+    if (!grantedRef.current && currentMode !== 'say') {
+      const response = await requestPermission().catch(() => null);
+      if (response?.granted) {
+        // The viewfinder has only just been handed a stream; give it a moment
+        // to start before asking it for a frame.
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+    }
+
     if (currentMode === 'say') {
       if (useCaptureStore.getState().listening) dictation.stop();
       else await dictation.start();
@@ -120,7 +142,7 @@ export function CameraScreen({
       prepared = {};
     }
     await begin({ mode: 'snap', photoUri: prepared.uri, image: prepared.image });
-  }, [begin, dictation, showToast]);
+  }, [begin, dictation, showToast, requestPermission]);
 
   // While this screen is on top, the dock's shutter fires a capture.
   useEffect(() => {
@@ -372,7 +394,11 @@ export function CameraScreen({
               : 'Camera access is off — turn it on in Settings to snap and scan.'}
           </AppText>
           {canAsk ? (
-            <Button label="Turn on the camera" size="md" onPress={() => void requestPermission()} />
+            <Button
+              label="Turn on the camera"
+              size="md"
+              onPress={() => void requestPermission().catch(() => undefined)}
+            />
           ) : null}
         </View>
       ) : null}

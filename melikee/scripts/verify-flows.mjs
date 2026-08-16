@@ -21,24 +21,59 @@ const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:8099';
 const OUT = process.env.OUT ?? path.resolve('docs/screens');
 fs.mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch(
-  process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {},
-);
+// A synthetic camera, auto-granted. The shutter asks for permission now — on
+// the web that ask is the user gesture Safari demands — and a headless browser
+// with no camera device never answers the prompt at all, so the press would
+// hang rather than fail. These flags give it something to say yes to, which
+// also means the test drives a real capture instead of the no-camera path.
+const browser = await chromium.launch({
+  ...(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}),
+  args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+});
 
 const errors = [];
+
+/**
+ * expo-camera fetches the barcode scanner's WebAssembly from jsdelivr at
+ * runtime, and this sandbox's egress proxy blocks it — so a working camera
+ * stream produces a burst of fetch failures that say nothing about the app.
+ * Filtered narrowly, by the exact symptoms, so a genuine console error still
+ * fails the run.
+ *
+ * Worth remembering that this is a real dependency: on a locked-down network,
+ * or behind a strict CSP, scan mode loses its decoder the same way.
+ */
+const ENV_NOISE = [
+  /ERR_CERT_AUTHORITY_INVALID/,
+  /wasm streaming compile failed/,
+  /falling back to ArrayBuffer instantiation/,
+  /fetching of the wasm failed/,
+  /Aborted\(both async and sync fetching/,
+  // The harness serves `dist` statically, so there is no /api/recognize to
+  // POST to and the static server answers 405. That the app now *reaches* this
+  // point is the point: a real capture ran, and it degraded to demo mode
+  // exactly as it should when no recognition service answers.
+  /status of 405/,
+];
+const isNoise = (text) => ENV_NOISE.some((pattern) => pattern.test(text));
 const SHUTTER = { x: 196, y: 790 };
 
 /** Each flow gets a fresh page, so one failure can't cascade into the rest. */
 async function flow(name, fn, { onboard = 'demo' } = {}) {
   const ctx = await browser.newContext({
+    permissions: ['camera'],
     viewport: { width: 393, height: 852 },
     deviceScaleFactor: 2,
     isMobile: true,
     hasTouch: true,
   });
   const page = await ctx.newPage();
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(`[${name}] ${m.text()}`); });
-  page.on('pageerror', (e) => errors.push(`[${name}] PAGEERROR: ${e.message}`));
+  page.on('console', (m) => {
+    if (m.type() === 'error' && !isNoise(m.text())) errors.push(`[${name}] ${m.text()}`);
+  });
+  page.on('pageerror', (e) => {
+    if (!isNoise(e.message)) errors.push(`[${name}] PAGEERROR: ${e.message}`);
+  });
   await page.goto(BASE_URL, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1600);
 

@@ -41,15 +41,27 @@ export function Onboarding() {
   const [name, setName] = useState('');
   const [birthday, setBirthday] = useState<{ month: number; day: number }>();
 
-  // Only ask once they've actually reached the camera step — the screen that
-  // explains why — rather than the moment onboarding opens.
-  const { requestPermission, granted, canAsk, pending } = useCameraAccess({ ask: step === 'camera' });
+  // Auto-asks on a device once they reach the camera step. On the web it
+  // can't — Safari needs a press — so there the ask rides on "Start snapping".
+  const { requestPermission, granted, canAsk, needsGesture } = useCameraAccess({
+    ask: step === 'camera',
+  });
 
   const trimmed = name.trim();
 
   // The account is created when they leave the last screen, not the first —
   // so backing out halfway leaves nothing behind.
   const finish = () => completeOnboarding({ name: trimmed, birthday });
+
+  /**
+   * The press that leaves onboarding is also the press that asks for the
+   * camera, on platforms that need one. Two birds, and no button whose only
+   * job is to produce a system dialog.
+   */
+  const startSnapping = async () => {
+    if (!granted && canAsk) await requestPermission().catch(() => undefined);
+    finish();
+  };
 
   return (
     <GlowGround
@@ -192,30 +204,32 @@ export function Onboarding() {
               they fill up — snap a thing, scan a barcode, or just say what you want.
             </AppText>
 
-            {/* The permission dialog is already up — this screen is the
-                explanation standing behind it, not a button in front of it. */}
             {granted ? (
               <AppText tone="lime" style={{ fontSize: 12.5, fontWeight: '800' }}>
                 Camera’s on. ✓
               </AppText>
-            ) : pending ? null : canAsk ? (
-              <Squish onPress={() => void requestPermission()} hitSlop={8}>
-                <AppText tone="violet" style={{ fontSize: 12.5, fontWeight: '800' }}>
-                  Ask me again
-                </AppText>
-              </Squish>
-            ) : (
+            ) : !canAsk ? (
               <AppText tone="muted" style={{ fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
-                No camera for now — you can turn it on in Settings whenever you like.
+                Camera access is off — you can turn it back on in Settings whenever you like.
               </AppText>
-            )}
+            ) : needsGesture ? (
+              <AppText tone="muted" style={{ fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
+                Tap below and your browser will ask for the camera.
+              </AppText>
+            ) : null}
 
             <Button
-              label={granted ? 'Start snapping' : 'Carry on without it'}
+              label="Start snapping"
               size="lg"
               style={{ alignSelf: 'stretch', marginTop: 4 }}
-              onPress={finish}
+              onPress={() => void startSnapping()}
             />
+
+            <Squish onPress={finish} hitSlop={8}>
+              <AppText tone="muted" style={{ fontSize: 12, fontWeight: '700' }}>
+                Skip for now
+              </AppText>
+            </Squish>
           </RiseIn>
         ) : null}
 
