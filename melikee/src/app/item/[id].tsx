@@ -52,8 +52,14 @@ export default function ItemDetailRoute() {
             colors={[theme.photo2, theme.bg]}
             style={{ position: 'absolute', inset: 0 }}
           />
-          {item.photoUri ? (
-            <Photo uri={item.photoUri} style={{ position: 'absolute', inset: 0 }} />
+          {/* Your own photo leads when there is one — it is the memory of
+              wanting it. The retailer's picture stands in otherwise, which is
+              what a barcode scan or a spoken want leaves you with. */}
+          {item.photoUri || item.imageUrl ? (
+            <Photo
+              uri={item.photoUri ?? item.imageUrl}
+              style={{ position: 'absolute', inset: 0 }}
+            />
           ) : null}
 
           <Squish

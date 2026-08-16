@@ -92,6 +92,11 @@ const ListingsSchema = z.object({
             'Other retailers you happened to see carrying the same item, at most two. Only from results already in front of you — never search again to fill this in. Empty is the normal answer.',
           ),
         buyUrl: z.string().describe('Direct link to the product page. "" if none was found.'),
+        imageUrl: z
+          .string()
+          .describe(
+            'Direct URL of the retailer\'s product photo — the image file itself, not the page it sits on. Only if you actually saw it in a result; never assembled or guessed. "" otherwise.',
+          ),
         upc: z.string().describe('UPC/EAN if one appeared in the results. "" otherwise.'),
         reason: z
           .string()
@@ -128,7 +133,9 @@ Use web search to find *current* retail listings. Rules:
 
 - Every price, store name and link must come from a search result you actually saw. Never reconstruct a price from memory — a stale price shown as current is worse than no price.
 - Prefer large retailers a teenager or their family can actually order from: the brand's own store, Best Buy, Target, Amazon, Walmart, REI, Apple, and equivalents in the user's market.
-- Rank best match first. The first candidate is the one the app will show, so it must be the product the user meant, not the cheapest or the most popular.
+- Rank best match first. The first candidate is the one the app will show, so it must be the product the user meant — not the cheapest, not the best-selling, not the one easiest to find a price for.
+- The reading you were given is evidence, not a suggestion. A model number, a colourway, or text seen on the product outranks popularity every time: a less famous item that matches what was actually read beats a flagship that doesn't. If you are about to rank a product first while ignoring a detail from the reading, rank the one that honours the detail instead.
+- Include a product photo URL wherever you saw one. The user is holding the real thing and comparing it to your answer, and the picture is how they check.
 - Fill the remaining slots with the near-misses a person would actually want to see: last year's model, a different colourway, a different size, a bundle. Say which in the reason field.
 - If nothing buyable turns up, set found to false and return an empty candidates array. Do not pad the list.
 
@@ -206,7 +213,11 @@ async function readProduct(image: RecognizeImage): Promise<ProductReading> {
     ],
   });
 
-  console.log(`[recognize] vision ${Date.now() - visionStartedAt}ms stop=${message.stop_reason}`);
+  console.log(
+    `[recognize] vision ${Date.now() - visionStartedAt}ms stop=${message.stop_reason} read=${JSON.stringify(
+      message.parsed_output ?? null,
+    )}`,
+  );
 
   if (message.stop_reason === 'refusal') {
     throw new RecognizeError('refused', 'The model declined to describe this photo.');
@@ -395,6 +406,10 @@ function toMatches(listings: Listings, fallbackUpc: string): ProductMatch[] {
           ? `best match, ${Math.round(clamp(c.confidence, 0, 100))}%`
           : c.reason.trim() || 'another option',
       buyUrl: c.buyUrl.trim() || undefined,
+      // Not verified here on purpose: a HEAD request per candidate is latency
+      // spent on a problem the UI already solves, since a photo that fails to
+      // load falls back to the placeholder.
+      imageUrl: c.imageUrl.trim().startsWith('http') ? c.imageUrl.trim() : undefined,
       otherStores: others.length ? others : undefined,
       confidence: clamp(c.confidence, 0, 100),
     };

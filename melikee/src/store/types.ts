@@ -35,6 +35,8 @@ export type Shiny = {
   pending?: boolean;
   /** Where to buy it, when the lookup found a link. */
   buyUrl?: string;
+  /** The retailer's photo of the product, when the lookup found one. */
+  imageUrl?: string;
   /** When that price was last checked, ISO. Saved items outlive their prices. */
   checkedAt?: string;
   /** Other retailers the lookup found, with their own prices. */

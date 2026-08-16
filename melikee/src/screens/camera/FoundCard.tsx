@@ -14,6 +14,30 @@ import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { CaptureMode, ProductMatch } from '@/store/types';
 
+/** The little label sitting on the bottom edge of each half of the compare. */
+function Caption({ children }: { children: string }) {
+  const theme = useTheme();
+  return (
+    <AppText
+      style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        fontSize: 8.5,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+        textAlign: 'center',
+        paddingVertical: 2,
+        color: theme.text,
+        backgroundColor: theme.cardTranslucent,
+      }}
+    >
+      {children}
+    </AppText>
+  );
+}
+
 export function FoundCard({
   match,
   mode,
@@ -55,7 +79,28 @@ export function FoundCard({
     >
       <Twinkle size={14} color={brand.lime} duration={1600} style={{ position: 'absolute', top: 8, right: 10, zIndex: 1 }} />
 
-      <Photo uri={photoUri} label={foundImageLabel(mode)} style={{ height: 110 }} />
+      {/* Yours against theirs. A name and a price cannot answer "is this the
+          right one?" — only the two pictures side by side can, and that is the
+          question being asked at exactly this moment. */}
+      {match.imageUrl && photoUri ? (
+        <View style={{ flexDirection: 'row', height: 110 }}>
+          <View style={{ flex: 1 }}>
+            <Photo uri={photoUri} label="yours" style={{ flex: 1 }} />
+            <Caption>yours</Caption>
+          </View>
+          <View style={{ width: 1, backgroundColor: theme.violet44 }} />
+          <View style={{ flex: 1 }}>
+            <Photo uri={match.imageUrl} label="the match" style={{ flex: 1 }} />
+            <Caption>the match</Caption>
+          </View>
+        </View>
+      ) : (
+        <Photo
+          uri={match.imageUrl ?? photoUri}
+          label={foundImageLabel(mode)}
+          style={{ height: 110 }}
+        />
+      )}
 
       <View style={{ paddingHorizontal: 14, paddingVertical: 12, gap: 8 }}>
         <AppText style={{ fontSize: 14, fontWeight: '800', lineHeight: 17 }}>{match.name}</AppText>

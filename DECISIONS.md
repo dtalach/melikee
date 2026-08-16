@@ -248,6 +248,27 @@ same headphones are different bytes and the same product, so the cache key is
 brand, name, model, colour and variant — which is exactly what a second person
 photographing the same thing produces.
 
+**37c. Candidates carry the retailer's own photo, and the found card shows it
+next to yours.** The first real test returned a football as the top match and
+the *right* football second — and that was almost impossible to see, because
+near-matches showed the user's own photo on the first row and grey placeholders
+on the rest. A name and a price cannot answer "is this the right one?"; two
+pictures side by side can, and that is the only question being asked at that
+moment.
+
+The image URL is not verified server-side. A HEAD request per candidate is
+latency spent on a problem the UI already solves, since `Photo` falls back to
+the placeholder when an image fails to load.
+
+**37d. The reading is evidence, not a suggestion.** The same test showed the
+search ranking a more popular product above one that matched what was actually
+read off the ball. The prompt now says outright that a model number, a
+colourway or text seen on the product outranks popularity — and that a less
+famous item honouring a detail from the reading beats a flagship ignoring it.
+
+**37e. The reading is logged.** Everything downstream is built on it, and
+without seeing it there is no way to tell a bad *look* from a bad *search*.
+
 ---
 
 ## Persistence

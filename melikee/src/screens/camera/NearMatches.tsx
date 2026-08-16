@@ -51,8 +51,12 @@ export function NearMatches({ onSaveForLater }: { onSaveForLater: () => void }) 
                 paddingVertical: 10,
               }}
             >
+              {/* Each candidate wears its own face. Showing the user's photo
+                  on the first row and grey squares on the rest made the one
+                  question this screen exists to answer unanswerable. */}
               <Photo
-                uri={index === 0 ? photoUri : undefined}
+                uri={candidate.imageUrl ?? (index === 0 ? photoUri : undefined)}
+                label=""
                 style={{ width: 42, height: 42 }}
                 radius={9}
               />

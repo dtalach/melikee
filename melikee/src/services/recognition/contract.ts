@@ -20,6 +20,11 @@ export type ProductMatch = {
   reason: string;
   /** A direct link to the product page, when the search found one. */
   buyUrl?: string;
+  /**
+   * The retailer's own photo of the product. This is how a person tells a
+   * near-match from the real thing — a name and a price cannot do it.
+   */
+  imageUrl?: string;
   /** Other retailers carrying the same thing, with the prices they quoted. */
   otherStores?: StorePrice[];
   /** 0–100. How sure the service is that this is the right product. */
