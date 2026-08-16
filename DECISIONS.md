@@ -293,9 +293,20 @@ persists, it would have been wrong for months.
 wants, and asks for a birth year the app has no use for. Twelve month chips and
 a grid of days: nothing to type, and 31 February is unreachable.
 
-**49. Camera permission is asked during onboarding, not on the first shutter
-press.** Asking at the moment of intent, with the reason on screen, is both
-better manners and a better grant rate than ambushing someone mid-ritual.
+**49. Camera permission is asked on arrival, not on a tap.** It was behind a
+lime Sticker reading "TURN ON THE CAMERA" — but a Sticker is decoration
+everywhere else in this app ("YOUR WISHLIST WRITES ITSELF", "SNEAKERHEAD"), so
+the one control on the screen didn't look like one. Now the screen that
+explains why asks for the camera as it appears, and the explanation stands
+*behind* the system dialog instead of in front of it. The app opens shooting; a
+viewfinder waiting on a button is the app not working.
+
+The ask fires exactly once per mount, deliberately. On the web a dismissed
+prompt leaves the status undetermined and `canAskAgain` true, so an effect that
+merely reacted to "not granted yet" would prompt forever. On iOS and Android the
+system dialog only ever appears once, which is why there is separate copy for
+`canAskAgain` being false — at that point Settings is the only route, and saying
+so beats a button that silently does nothing.
 
 **50. The demo account is offered outright on the welcome screen.** Showing
 someone the whole populated app is a real need — the seed content is what makes

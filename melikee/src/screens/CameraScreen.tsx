@@ -6,9 +6,9 @@
  * the graceful save-my-photo fallback, and the flight into the shutter. The
  * dock steps aside for the whole flow so the reveal gets the full screen.
  */
-import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import { CameraView, type BarcodeScanningResult } from 'expo-camera';
 import { useCallback, useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTopInset } from '@/hooks/useTopInset';
 
 import { CaptureModeBar } from '@/screens/camera/CaptureModeBar';
@@ -21,9 +21,10 @@ import { useDictation } from '@/hooks/useDictation';
 import { setShutterHandler } from '@/services/captureBridge';
 import { captureHint } from '@/services/productMatch';
 import { preparePhoto } from '@/services/photo';
+import { useCameraAccess } from '@/hooks/useCameraAccess';
 import { BellIcon, CloseIcon, GiftIcon, ViewfinderBrackets } from '@/ui/icons';
 import { SlapIn, SnapFlash, SparkleBurst } from '@/ui/motion';
-import { AppText, GlowGround, Squish, Sticker } from '@/ui/primitives';
+import { AppText, Button, GlowGround, Squish, Sticker } from '@/ui/primitives';
 import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import { attentionCount, useAppStore } from '@/store/useAppStore';
@@ -42,7 +43,9 @@ export function CameraScreen({
   const theme = useTheme();
   const topInset = useTopInset();
   const cameraRef = useRef<CameraView>(null);
-  const [permission, requestPermission] = useCameraPermissions();
+  // Arriving here *is* the request — the app opens shooting, so a viewfinder
+  // waiting behind a button is the app not working.
+  const { requestPermission, granted, canAsk, pending } = useCameraAccess();
 
   const phase = useCaptureStore((s) => s.phase);
   const mode = useCaptureStore((s) => s.mode);
@@ -163,8 +166,6 @@ export function CameraScreen({
 
   // ── Chrome ───────────────────────────────────────────────────────────────
 
-  const granted = permission?.granted ?? false;
-  const canAsk = permission?.canAskAgain ?? true;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
@@ -350,8 +351,10 @@ export function CameraScreen({
         </View>
       ) : null}
 
-      {/* Permission prompt, in the app's own voice. */}
-      {!granted && idle ? (
+      {/* The permission was already asked for on arrival. This is what's left
+          when the answer was no, or the dialog was dismissed — so it leads with
+          the reason, and the way back in is a button that looks like one. */}
+      {!granted && !pending && idle ? (
         <View
           style={{
             position: 'absolute',
@@ -368,11 +371,7 @@ export function CameraScreen({
               : 'Camera access is off — turn it on in Settings to snap and scan.'}
           </AppText>
           {canAsk ? (
-            <Pressable onPress={requestPermission}>
-              <Sticker tone="lime" rotate={-1.5}>
-                TURN ON THE CAMERA
-              </Sticker>
-            </Pressable>
+            <Button label="Turn on the camera" size="md" onPress={() => void requestPermission()} />
           ) : null}
         </View>
       ) : null}

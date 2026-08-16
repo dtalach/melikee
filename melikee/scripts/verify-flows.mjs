@@ -97,7 +97,13 @@ await flow(
     await tap('9');
     await tap('Mar 9 it is');
     await shot('43-camera-ask', 500);
-    await tap('Start snapping');
+    // The label depends on whether the browser granted the camera — headless
+    // Chromium has none, so it reads "Carry on without it" here.
+    await page
+      .getByText(/Start snapping|Carry on without it/)
+      .last()
+      .click({ timeout: 4000 })
+      .catch(() => errors.push('[onboarding] could not leave the camera step'));
     await shot('44-fresh-camera', 1400);
 
     // A real new account: empty lists, no friends, nobody in the feed.

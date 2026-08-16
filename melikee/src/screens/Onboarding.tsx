@@ -9,15 +9,16 @@
  * Four screens now stand in front of that. They ask for one thing that matters
  * (a name, which becomes the handle and the public link), one thing that the
  * countdown on the camera screen needs (a birthday, skippable), and the camera
- * permission — at the moment of intent, rather than as an ambush on the first
- * shutter press. The welcome screen also offers the demo account outright,
- * because showing someone the full app is a real thing people need to do.
+ * permission — asked for on arrival at the screen that explains why, rather
+ * than as an ambush on the first shutter press. The welcome screen also offers
+ * the demo account outright, because showing someone the full app is a real
+ * thing people need to do.
  */
 import { useState } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
-import { useCameraPermissions } from 'expo-camera';
 
 import { BirthdayPicker } from '@/components/BirthdayPicker';
+import { useCameraAccess } from '@/hooks/useCameraAccess';
 import { useTopInset } from '@/hooks/useTopInset';
 import { MONTHS } from '@/store/profile';
 import { useAppStore } from '@/store/useAppStore';
@@ -40,8 +41,9 @@ export function Onboarding() {
   const [name, setName] = useState('');
   const [birthday, setBirthday] = useState<{ month: number; day: number }>();
 
-  const [permission, requestPermission] = useCameraPermissions();
-  const granted = permission?.granted ?? false;
+  // Only ask once they've actually reached the camera step — the screen that
+  // explains why — rather than the moment onboarding opens.
+  const { requestPermission, granted, canAsk, pending } = useCameraAccess({ ask: step === 'camera' });
 
   const trimmed = name.trim();
 
@@ -190,35 +192,30 @@ export function Onboarding() {
               they fill up — snap a thing, scan a barcode, or just say what you want.
             </AppText>
 
+            {/* The permission dialog is already up — this screen is the
+                explanation standing behind it, not a button in front of it. */}
             {granted ? (
               <AppText tone="lime" style={{ fontSize: 12.5, fontWeight: '800' }}>
                 Camera’s on. ✓
               </AppText>
-            ) : (
-              <Squish
-                onPress={() => {
-                  void requestPermission();
-                }}
-              >
-                <Sticker tone="lime" rotate={-1.5}>
-                  TURN ON THE CAMERA
-                </Sticker>
+            ) : pending ? null : canAsk ? (
+              <Squish onPress={() => void requestPermission()} hitSlop={8}>
+                <AppText tone="violet" style={{ fontSize: 12.5, fontWeight: '800' }}>
+                  Ask me again
+                </AppText>
               </Squish>
+            ) : (
+              <AppText tone="muted" style={{ fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
+                No camera for now — you can turn it on in Settings whenever you like.
+              </AppText>
             )}
 
             <Button
-              label="Start snapping"
+              label={granted ? 'Start snapping' : 'Carry on without it'}
               size="lg"
               style={{ alignSelf: 'stretch', marginTop: 4 }}
               onPress={finish}
             />
-            {!granted ? (
-              <Squish onPress={finish} hitSlop={8}>
-                <AppText tone="muted" style={{ fontSize: 12, fontWeight: '700' }}>
-                  Not now
-                </AppText>
-              </Squish>
-            ) : null}
           </RiseIn>
         ) : null}
 
