@@ -30,6 +30,8 @@ export function SettingsSheet() {
   const demoContent = useAppStore((s) => s.demoContent);
   const profile = useAppStore((s) => s.profile);
   const startOver = useAppStore((s) => s.startOver);
+  const openSheet = useAppStore((s) => s.openSheet);
+  const lastLookup = useAppStore((s) => s.lastLookup);
 
   return (
     <BottomSheet onClose={closeSheet}>
@@ -96,6 +98,20 @@ export function SettingsSheet() {
           On
         </AppText>
       </Row>
+
+      {/* Every question about a bad match used to be answered by reading a
+          server dashboard. The answers were already coming back in the
+          response — this is just showing them. */}
+      <Squish onPress={() => openSheet({ kind: 'diagnostics' })}>
+        <Row
+          title="Last lookup"
+          hint={lastLookup ? 'what the camera read and what the shops said' : 'nothing yet'}
+        >
+          <AppText tone="violet" style={{ fontSize: 11, fontWeight: '800' }}>
+            Show
+          </AppText>
+        </Row>
+      </Squish>
 
       <AppText tone="muted" style={{ fontSize: 10.5, textAlign: 'center' }}>
         Secret stash and secret shinies never show. To anyone.

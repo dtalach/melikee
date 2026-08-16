@@ -31,7 +31,10 @@ const READING = {
   category: 'headphones',
   color: 'black',
   variant: '',
-  visibleText: ['SONY', 'WH-1000XM6'],
+  // Deliberately more than the name repeats back: the identity card filters
+  // out anything already in the product name, so a stub whose only visible
+  // text *is* the name would never render the evidence chips at all.
+  visibleText: ['SONY', 'WH-1000XM6', 'NOISE CANCELLING', '30HR BATTERY'],
   confidence: 'high',
   searchQuery: 'Sony WH-1000XM6 headphones black',
   frameProblem: 'none',
@@ -86,8 +89,18 @@ const TYPES = {
   '.wasm': 'application/wasm',
 };
 
+let failNextRead = false;
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
+
+  // A test hook, not part of the contract: arms the next read to fail, so the
+  // miss screen and its recovery paths stay covered now that the stub
+  // otherwise always succeeds.
+  if (url.pathname === '/__stub/fail-next-read') {
+    failNextRead = true;
+    return json(res, 200, { armed: true });
+  }
 
   if (url.pathname === '/api/recognize') {
     if (req.method === 'GET') return json(res, 200, { ok: true, service: 'stub', configured: true });
@@ -95,6 +108,16 @@ const server = http.createServer(async (req, res) => {
 
     const body = await readBody(req);
     const checkedAt = new Date().toISOString();
+
+    if (body?.mode === 'read' && failNextRead) {
+      failNextRead = false;
+      return json(res, 200, {
+        ok: false,
+        code: 'no_product',
+        message: 'No product in that photo.',
+        timing: { totalMs: 30 },
+      });
+    }
 
     if (body?.mode === 'read') {
       return json(res, 200, { ok: true, reading: READING, timing: { readMs: 40, totalMs: 40 } });

@@ -15,6 +15,7 @@ import { ChevronLeftIcon, ShareIcon } from '@/ui/icons';
 import { RiseIn } from '@/ui/motion';
 import { AppText, Button, Card, Photo, Squish, Sticker } from '@/ui/primitives';
 import { priceFreshness } from '@/services/productMatch';
+import { retryPricing } from '@/services/pricing';
 import { brand, layout } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useAppStore } from '@/store/useAppStore';
@@ -79,14 +80,29 @@ export default function ItemDetailRoute() {
         </View>
 
         <View style={{ paddingHorizontal: 18, paddingTop: 14, gap: 13 }}>
+          {/* A fresh capture arrives here before its price does — the shiny is
+              claimed on what it *is*, and the shops answer half a minute
+              later. So the number has a waiting state and a failed state, and
+              neither of them is a blank. */}
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-            <AppText tone="lime" style={{ fontSize: 26, fontWeight: '800' }}>
-              {item.price}
+            <AppText
+              tone={item.pricing ? 'muted' : 'lime'}
+              style={{ fontSize: item.pricing ? 17 : 26, fontWeight: '800' }}
+            >
+              {item.pricing === 'working'
+                ? 'checking shops…'
+                : item.pricing === 'failed'
+                  ? 'no price yet'
+                  : item.price}
             </AppText>
             <AppText tone="muted" style={{ fontSize: 12 }}>
               {item.pending
                 ? 'still matching'
-                : `${item.store} · ${priceFreshness(item.checkedAt)}`}
+                : item.pricing === 'working'
+                  ? 'you can carry on — this fills itself in'
+                  : item.pricing === 'failed'
+                    ? 'nothing turned up online'
+                    : `${item.store} · ${priceFreshness(item.checkedAt)}`}
             </AppText>
             {item.secret ? (
               <View
@@ -103,6 +119,37 @@ export default function ItemDetailRoute() {
               </View>
             ) : null}
           </View>
+
+          {item.pricing === 'failed' ? (
+            <Button
+              label="Look again"
+              size="md"
+              variant="violet"
+              onPress={() => retryPricing(item.id)}
+              style={{ alignSelf: 'flex-start' }}
+            />
+          ) : null}
+
+          {/* What the eye read off it — the evidence behind the name. */}
+          {item.reading?.visibleText?.length ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
+              {item.reading.visibleText.slice(0, 5).map((line) => (
+                <View
+                  key={line}
+                  style={{
+                    backgroundColor: theme.inset,
+                    borderRadius: 6,
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                  }}
+                >
+                  <AppText tone="muted" style={{ fontSize: 10.5, fontWeight: '700' }}>
+                    {line}
+                  </AppText>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           {!item.pending && comparisons.length ? (
             <Card border={theme.violet66}>

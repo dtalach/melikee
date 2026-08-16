@@ -1,4 +1,4 @@
-import type { StorePrice } from '@/services/recognition/contract';
+import type { ProductMatch, ProductReading, StorePrice } from '@/services/recognition/contract';
 
 /** Who can see a list. Every list carries a default visibility (turn 7). */
 export type Visibility = 'friends' | 'invite' | 'me';
@@ -41,6 +41,34 @@ export type Shiny = {
   checkedAt?: string;
   /** Other retailers the lookup found, with their own prices. */
   otherStores?: StorePrice[];
+  /**
+   * Where the price stands. A capture is claimed as soon as we know *what* the
+   * thing is — about four seconds — and the shops are asked afterwards, so a
+   * fresh shiny spends its first half-minute here.
+   */
+  pricing?: 'working' | 'failed';
+  /** What the eye read off it. Kept as the evidence behind the name. */
+  reading?: ProductReading;
+  /** Runners-up from the search, so a wrong match is still recoverable later. */
+  alternates?: ProductMatch[];
+};
+
+/** What a lookup did, kept for the diagnostics panel. */
+export type LookupRecord = {
+  at: string;
+  mode: CaptureMode;
+  reading?: ProductReading;
+  readMs?: number;
+  searchMs?: number;
+  candidates?: {
+    name: string;
+    price: string;
+    store: string;
+    hasImage: boolean;
+    hasLink: boolean;
+    confidence?: number;
+  }[];
+  error?: { code: string; message: string };
 };
 
 export type Friend = {
@@ -138,7 +166,7 @@ export type Profile = {
  * recognition contract rather than here, because the serverless function
  * produces it and cannot import anything from the app's aliased tree.
  */
-export type { ProductMatch, StorePrice } from '@/services/recognition/contract';
+export type { ProductMatch, ProductReading, StorePrice } from '@/services/recognition/contract';
 
 /** How a capture was started; changes the copy throughout the flow. */
 export type CaptureMode = 'scan' | 'snap' | 'say';
@@ -149,4 +177,5 @@ export type SheetKind =
   | { kind: 'invite' }
   | { kind: 'newList' }
   | { kind: 'settings' }
-  | { kind: 'birthday' };
+  | { kind: 'birthday' }
+  | { kind: 'diagnostics' };

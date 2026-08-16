@@ -164,29 +164,37 @@ await flow(
   { onboard: 'none' },
 );
 
-// ── A real match, all the way through the client ──────────────────────────
-await flow('lookup', async ({ shot, page, shutter }) => {
+// ── Identify, claim, and let the price catch up ───────────────────────────
+await flow('lookup', async ({ shot, page, shutter, tap, go }) => {
   await shutter();
-  await shot('46-reading', 900);
+  await page.waitForTimeout(1800);
 
-  // The stub answers as the real endpoint does, so reaching a named product
-  // means the request, the response shape and the render all agreed.
-  await page.waitForTimeout(2500);
-  const found = await page.getByText('Sony WH-1000XM6', { exact: false }).count();
-  if (found === 0) errors.push('[lookup] the match from the endpoint never reached the found card');
-  else console.log('  endpoint match rendered');
-  await shot('47-real-found', 400);
+  // The capture ends at the reading, so the card must name the product from
+  // what the camera read — no price, no waiting on the shops.
+  const named = await page.getByText('Sony WH-1000XM6 headphones', { exact: false }).count();
+  if (named === 0) errors.push('[lookup] the reading never reached the identity card');
+  else console.log('  identified from the reading');
+  await shot('46-identified', 400);
+
+  await tap('Want it!');
+  await page.waitForTimeout(2600);
+  await shot('47-filed-while-pricing', 400);
+
+  // And the price arrives afterwards, onto an item that already exists.
+  await go('Lists');
+  await tap('My wants');
+  await page.waitForTimeout(900);
+  await shot('48-priced-later', 500);
+  const priced = await page.getByText('$399', { exact: false }).count();
+  if (priced === 0) errors.push('[lookup] the price never landed on the filed shiny');
+  else console.log('  price arrived after filing');
 });
 
 // ── The capture ritual, end to end ────────────────────────────────────────
 await flow('capture', async ({ shot, tap, shutter }) => {
   await shutter();
   await shot('10-magic', 700);
-  await shot('11-found', 2600);
-  await tap('not it — see near matches');
-  await shot('12-near-matches', 600);
-  await tap('Sony XM5 headphones');
-  await shot('13-picked-alternate', 700);
+  await shot('11-identified', 2000);
   await tap('Want it!');
   await shot('14-filing-tray', 1700);
   await tap('Sweet 16');
@@ -202,7 +210,11 @@ await flow('persist', async ({ shot, tap, shutter, page }) => {
 
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(2200);
-  await page.getByText('Lists', { exact: true }).last().click({ timeout: 4000 });
+  await page
+    .getByText('Lists', { exact: true })
+    .last()
+    .click({ timeout: 4000 })
+    .catch(() => errors.push('[persist] could not reach Lists after reload'));
   await page.waitForTimeout(900);
   await shot('39-after-reload', 600);
 
@@ -213,12 +225,18 @@ await flow('persist', async ({ shot, tap, shutter, page }) => {
   else console.log('  persisted across reload');
 });
 
-// ── Save-my-photo fallback ────────────────────────────────────────────────
-await flow('fallback', async ({ shot, tap, shutter }) => {
+// ── The miss, and never losing the wish ───────────────────────────────────
+await flow('fallback', async ({ shot, tap, shutter, page }) => {
+  // Arm the stub to refuse the next read, so the miss screen is reachable now
+  // that a stubbed lookup otherwise always succeeds.
+  await page.request.get(`${BASE_URL}/__stub/fail-next-read`);
+
   await shutter();
-  await shot('16-blank', 2600);
-  await tap('not it — see near matches');
-  await tap('None of these — save my photo, keep matching');
+  await shot('16-miss', 2600);
+  const missed = await page.getByText('Nothing shiny in there', { exact: false }).count();
+  if (missed === 0) errors.push('[fallback] the miss screen never appeared');
+
+  await tap('Save my photo, keep matching');
   await shot('17-photo-saved', 900);
 });
 

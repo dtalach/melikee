@@ -89,7 +89,7 @@ export type MatchRequest =
   | { mode: 'say'; transcript: string };
 
 export type ReadOutcome =
-  | { ok: true; reading: ProductReading }
+  | { ok: true; reading: ProductReading; readMs?: number }
   | { ok: false; code: RecognizeErrorCode; message: string };
 
 /**
@@ -103,7 +103,7 @@ export type ReadOutcome =
 export async function readPhoto(image?: RecognizeImage): Promise<ReadOutcome | null> {
   if (!hasRecognitionService || !image) return null;
   const response = await callRead({ mode: 'read', image });
-  if (response.ok) return { ok: true, reading: response.reading };
+  if (response.ok) return { ok: true, reading: response.reading, readMs: response.timing?.readMs };
   if (response.code === 'not_configured') return null;
   return { ok: false, code: response.code, message: response.message };
 }
@@ -119,11 +119,15 @@ export type MatchOutcome =
   | { ok: false; code: RecognizeErrorCode; message: string };
 
 export async function matchProduct(request: MatchRequest): Promise<MatchOutcome> {
-  // A snap that produced no image is not a lookup we can do, and it must never
-  // become one: answering it from the scripted catalogue once put a product on
-  // screen that nobody had photographed. The camera screen stops this before
-  // it gets here; this is the second lock on the same door.
-  if (request.mode === 'snap' && !request.image && hasRecognitionService) {
+  // A snap with neither an image nor a reading is not a lookup we can do, and
+  // it must never become one: answering it from the scripted catalogue once put
+  // a product on screen that nobody had photographed. The camera screen stops
+  // this before it gets here; this is the second lock on the same door.
+  //
+  // A reading on its own is fine, and is the normal case now — the price errand
+  // runs long after the photo has been read and thrown away.
+  const nothingToGoOn = request.mode === 'snap' && !request.image && !request.reading;
+  if (nothingToGoOn && hasRecognitionService) {
     return { ok: false, code: 'no_photo', message: 'The device produced no image to look at.' };
   }
 

@@ -13,9 +13,11 @@ import {
 import { demoProfile, makeProfile } from '@/store/profile';
 import type {
   DirectoryPerson,
+  LookupRecord,
   FeedPost,
   Friend,
   ProductMatch,
+  ProductReading,
   Profile,
   RequestStatus,
   SentInvite,
@@ -94,6 +96,9 @@ type AppState = {
   /** Whether the public link has been copied this session. */
   linkCopied: boolean;
 
+  /** What the last lookup did. Shown in Settings, so debugging is self-serve. */
+  lastLookup: LookupRecord | null;
+
   // ── Ephemeral UI ─────────────────────────────────────────────────────────
   toast: string | null;
   sheet: SheetKind | null;
@@ -117,6 +122,21 @@ type AppState = {
     match: ProductMatch,
     opts?: { photoUri?: string; provenance?: string; checkedAt?: string },
   ) => string;
+  /**
+   * Files a shiny the moment we know *what* it is, before anyone has asked a
+   * shop what it costs. The identity is the capture; the price is an errand
+   * that finishes afterwards.
+   */
+  addFromReading: (reading: ProductReading, opts?: { photoUri?: string; provenance?: string }) => string;
+  /** The errand came back. Fills in price, store, links and runners-up. */
+  attachPricing: (
+    itemId: string,
+    result: { match?: ProductMatch; alternates?: ProductMatch[]; checkedAt?: string },
+  ) => void;
+  /** Starts a fresh record of what a lookup is doing. */
+  recordLookup: (record: LookupRecord) => void;
+  /** Folds the second half of a lookup into the record the first half began. */
+  updateLookup: (patch: Partial<LookupRecord>) => void;
   /** Saves an unmatched photo so the wish is never lost. */
   savePendingPhoto: (photoUri?: string) => void;
   /** Copies someone else's find from the Feed into your own list. */
@@ -206,6 +226,7 @@ export const useAppStore = create<AppState>()(
 
       notes: {},
       linkCopied: false,
+      lastLookup: null,
 
       toast: null,
       sheet: null,
@@ -289,6 +310,63 @@ export const useAppStore = create<AppState>()(
         }));
         return id;
       },
+
+          addFromReading: (reading, opts) => {
+        const id = nextId();
+        const name = [reading.brand, reading.productName].filter(Boolean).join(' ').trim();
+        const item: Shiny = {
+          id,
+          listId: get().lastListId,
+          // The variant is part of the identity, not a detail — a 12 fl oz can
+          // and a 12-pack are different things at very different prices.
+          name: [name || reading.category || 'Something shiny', reading.variant].filter(Boolean).join(' · '),
+          price: '—',
+          store: 'finding the best price',
+          upc: '—',
+          provenance: opts?.provenance ?? 'just now',
+          secret: false,
+          photoUri: opts?.photoUri,
+          reading,
+          pricing: 'working',
+        };
+        set((s) => ({
+          items: [item, ...s.items],
+          firstRun: false,
+          filing: { itemId: id, secondsLeft: FILING_SECONDS },
+        }));
+        return id;
+      },
+
+      attachPricing: (itemId, { match, alternates, checkedAt }) =>
+        set((s) => ({
+          items: s.items.map((i) => {
+            if (i.id !== itemId) return i;
+            // Nothing found is a real outcome. The shiny stays — it is still a
+            // thing they want — and simply says the price is unknown.
+            if (!match) return { ...i, pricing: 'failed' as const, store: 'no price found' };
+            return {
+              ...i,
+              // The search knows the product's proper retail name; the reading
+              // knew what was printed on the packaging. The shop's name is the
+              // one a gifter will recognise.
+              name: match.name || i.name,
+              price: match.price,
+              store: match.storeName,
+              upc: match.upc !== '—' ? match.upc : i.upc,
+              buyUrl: match.buyUrl,
+              imageUrl: match.imageUrl,
+              otherStores: match.otherStores,
+              alternates,
+              checkedAt,
+              pricing: undefined,
+            };
+          }),
+        })),
+
+      recordLookup: (lastLookup) => set({ lastLookup }),
+
+      updateLookup: (patch) =>
+        set((s) => (s.lastLookup ? { lastLookup: { ...s.lastLookup, ...patch } } : s)),
 
       savePendingPhoto: (photoUri) => {
         const id = nextId();
@@ -505,6 +583,7 @@ export const useAppStore = create<AppState>()(
         friendDibs: s.friendDibs,
         gifterDibs: s.gifterDibs,
         notes: s.notes,
+        lastLookup: s.lastLookup,
       }),
 
       onRehydrateStorage: () => (state) => {

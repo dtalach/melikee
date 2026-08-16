@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { matchProduct, readPhoto, type MatchRequest } from '@/services/productMatch';
+import { useAppStore } from '@/store/useAppStore';
 import type {
   ProductReading,
   RecognizeErrorCode,
@@ -12,9 +13,16 @@ import type { CaptureMode, ProductMatch } from '@/store/types';
 /**
  * The capture state machine.
  *
- * idle → snap (flash) → magic → found → fly → (filing tray)
- *                          ↘ alts ↗
+ * Photo:  idle → snap (flash) → magic → identified → fly → (filing tray)
+ * Barcode / voice: idle → magic → found → fly → (filing tray)
+ *                                    ↘ alts ↗
  *                          ↘ miss
+ *
+ * A photo capture ends at `identified`, as soon as the eye knows what the
+ * thing is — four seconds, not twenty-five. What it costs and who sells it is
+ * an errand that runs after the shiny is already filed. A barcode and a spoken
+ * want have no cheap identity step of their own, so they still wait for the
+ * search and land on `found`.
  *
  * It lives in its own store because two components drive it: the camera screen
  * owns the viewfinder and the reveal, while the dock's centre shutter is the
@@ -25,10 +33,26 @@ import type { CaptureMode, ProductMatch } from '@/store/types';
  * that isn't sold anywhere, and the flow has to end somewhere honest instead of
  * showing headphones.
  */
-export type CapturePhase = 'idle' | 'snap' | 'magic' | 'found' | 'alts' | 'fly' | 'miss';
+export type CapturePhase =
+  | 'idle'
+  | 'snap'
+  | 'magic'
+  | 'identified'
+  | 'found'
+  | 'alts'
+  | 'fly'
+  | 'miss';
 
 /** Phases where the reveal owns the screen and the dock steps aside. */
-export const BUSY_PHASES: CapturePhase[] = ['snap', 'magic', 'found', 'alts', 'fly', 'miss'];
+export const BUSY_PHASES: CapturePhase[] = [
+  'snap',
+  'magic',
+  'identified',
+  'found',
+  'alts',
+  'fly',
+  'miss',
+];
 
 type CaptureState = {
   phase: CapturePhase;
@@ -133,12 +157,25 @@ export const useCaptureStore = create<CaptureState>((set, get) => ({
       if (get().phase !== 'magic') return;
 
       if (read && !read.ok) {
+        useAppStore.getState().recordLookup({
+          at: new Date().toISOString(),
+          mode: 'snap',
+          error: { code: read.code, message: read.message },
+        });
         set({ candidates: [], missCode: read.code, missDetail: read.message, phase: 'miss' });
         return;
       }
+      // Knowing what it is *is* the capture. Stop here and let the user claim
+      // it; the shops get asked afterwards, against an item that already exists.
       if (read?.ok) {
-        set({ reading: read.reading });
-        lastRequest = { ...lastRequest, reading: read.reading } as MatchRequest;
+        useAppStore.getState().recordLookup({
+          at: new Date().toISOString(),
+          mode: 'snap',
+          reading: read.reading,
+          readMs: read.readMs,
+        });
+        set({ reading: read.reading, phase: 'identified' });
+        return;
       }
     }
 

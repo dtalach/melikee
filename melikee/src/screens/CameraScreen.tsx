@@ -13,6 +13,7 @@ import { useTopInset } from '@/hooks/useTopInset';
 
 import { CaptureModeBar } from '@/screens/camera/CaptureModeBar';
 import { FoundCard } from '@/screens/camera/FoundCard';
+import { IdentityCard } from '@/screens/camera/IdentityCard';
 import { MissCard } from '@/screens/camera/MissCard';
 import { NearMatches } from '@/screens/camera/NearMatches';
 import { WorkingOurMagic } from '@/screens/camera/WorkingOurMagic';
@@ -21,6 +22,7 @@ import { useDictation } from '@/hooks/useDictation';
 import { setShutterHandler } from '@/services/captureBridge';
 import { captureHint } from '@/services/productMatch';
 import { preparePhoto } from '@/services/photo';
+import { priceInBackground } from '@/services/pricing';
 import { useCameraAccess } from '@/hooks/useCameraAccess';
 import { BellIcon, CloseIcon, GiftIcon, ViewfinderBrackets } from '@/ui/icons';
 import { SlapIn, SnapFlash, SparkleBurst } from '@/ui/motion';
@@ -87,6 +89,7 @@ export function CameraScreen({
   const candidateCount = useCaptureStore((s) => s.candidates.length);
   const checkedAt = useCaptureStore((s) => s.checkedAt);
   const demo = useCaptureStore((s) => s.demo);
+  const reading = useCaptureStore((s) => s.reading);
   const missCode = useCaptureStore((s) => s.missCode);
   const missDetail = useCaptureStore((s) => s.missDetail);
   const begin = useCaptureStore((s) => s.begin);
@@ -101,6 +104,7 @@ export function CameraScreen({
   const waiting = useAppStore(attentionCount);
   const daysToBirthday = daysUntilBirthday(profile);
   const addShiny = useAppStore((s) => s.addShiny);
+  const addFromReading = useAppStore((s) => s.addFromReading);
   const savePendingPhoto = useAppStore((s) => s.savePendingPhoto);
   const showToast = useAppStore((s) => s.showToast);
 
@@ -208,6 +212,22 @@ export function CameraScreen({
   );
 
   // ── Outcomes ─────────────────────────────────────────────────────────────
+
+  /**
+   * The photo path claims on the identity alone. The shiny is filed now and
+   * the price errand is started against it — by the time it answers, this
+   * screen is back at the viewfinder and the item is on a list.
+   */
+  const wantIdentified = () => {
+    const current = useCaptureStore.getState();
+    if (!current.reading) return;
+    const id = addFromReading(current.reading, {
+      photoUri: current.photoUri,
+      provenance: 'by camera · just now',
+    });
+    priceInBackground(id, current.reading, current.photoUri);
+    claim();
+  };
 
   const wantIt = () => {
     if (!match) return;
@@ -456,6 +476,17 @@ export function CameraScreen({
           alternates={candidateCount - 1}
           onWantIt={wantIt}
           onSeeAlternates={showAlternates}
+          onFlightDone={finish}
+        />
+      ) : null}
+
+      {(phase === 'identified' || (phase === 'fly' && reading && !match)) && reading ? (
+        <IdentityCard
+          reading={reading}
+          photoUri={useCaptureStore.getState().photoUri}
+          flying={phase === 'fly'}
+          onWantIt={wantIdentified}
+          onNotIt={cancel}
           onFlightDone={finish}
         />
       ) : null}

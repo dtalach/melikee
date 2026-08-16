@@ -316,6 +316,51 @@ fails if a match cannot reach the found card.
 The canned payloads are written by hand against the contract on purpose. If the
 app and the endpoint drift apart, that is where it shows.
 
+## The capture ends at the reading
+
+**54. The found card was a trophy being used as a verdict.** In the prototype
+the match was scripted, instant and always right, so the card only had to be
+pretty — 236px with a sparkle on it. Once the lookup became real, that same card
+was the moment you decide whether the app got it right, and a small trophy
+showing *your own photo* gives you nothing to decide with. Testing it in a shop
+produced exactly that: "even though it was right it wasn't a great UX — I don't
+know if it matched right, and don't feel prepared to Want it or Try again."
+
+**55. So a photo capture now finishes when we know *what* the thing is.** That
+takes about four seconds. What it costs and who sells it takes twenty more, and
+nobody should stand still for that. The shiny is filed on the identity, and the
+price errand runs behind it, writing onto an item that already exists.
+
+Barcodes and spoken wants keep the old flow: they have no cheap identity step of
+their own, so they still wait for the search.
+
+**56. The evidence is words, not a picture.** The plan had been to prove the
+match with the retailer's product photo — until a reading came back carrying
+`CHERRY OBITUARY · 12 FL OZ · MURDER YOUR THIRST` off a can of sparkling water.
+That is a far stronger claim than a thumbnail: it proves the app read *the thing
+in your hand*, where a stock photo only proves it found *a* can. It also has no
+external dependency, which matters, because the search had returned no image
+URL at all that time.
+
+**57. No price on the capture card, and it says so.** Leaving a hole where a
+number should be reads as broken; "we'll find the price and where to buy it
+while you carry on" reads as deliberate, because it is.
+
+**58. The list and item detail grew a waiting state and a failed state.** A
+fresh shiny spends its first half-minute at "checking shops…", and an errand
+that finds nothing settles on "no price yet" with a Look again button — rather
+than a blank where a price should be.
+
+**59. Rejecting a capture now costs nothing.** The search only runs for things
+someone actually claimed, which is a real saving: the expensive half of the
+pipeline no longer runs for photos people discard.
+
+**60. Diagnostics moved into the app.** Every question about a bad match had
+been answered by reading the Vercel dashboard and pasting log lines into a chat
+— while the answers were already travelling back in the response, unshown.
+Settings → Last lookup gives the reading, both timings, the candidates, and
+whether each came with a photo and a link. Copyable in one tap.
+
 ---
 
 ## Persistence

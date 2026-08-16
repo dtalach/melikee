@@ -114,7 +114,11 @@ export default function ListDetailRoute() {
                     {item.name}
                   </AppText>
                   <AppText tone="lime" style={{ fontSize: 12, fontWeight: '800', marginTop: 3 }}>
-                    {item.price}
+                    {item.pricing === 'working'
+                      ? 'checking…'
+                      : item.pricing === 'failed'
+                        ? '—'
+                        : item.price}
                   </AppText>
                 </View>
               </View>
