@@ -42,8 +42,13 @@ import type {
 const VISION_MODEL = process.env.MELIKEE_VISION_MODEL || 'claude-opus-5';
 const SEARCH_MODEL = process.env.MELIKEE_SEARCH_MODEL || 'claude-opus-5';
 
-/** Ceiling on candidates — the found card shows one, near-matches show the rest. */
-const MAX_CANDIDATES = 4;
+/**
+ * Ceiling on candidates — the found card shows one, near-matches show the rest.
+ * Three, not four: the near-match sheet was designed around three, and every
+ * extra candidate is another product to research inside a request someone is
+ * standing still waiting for.
+ */
+const MAX_CANDIDATES = 3;
 
 // ── Schemas ────────────────────────────────────────────────────────────────
 
@@ -82,7 +87,9 @@ const ListingsSchema = z.object({
               buyUrl: z.string().describe('Direct link to that retailer\'s product page. "" if none.'),
             }),
           )
-          .describe('Up to three other retailers carrying the same item, with their own current prices. Empty if you only found one.'),
+          .describe(
+            'Other retailers you happened to see carrying the same item, at most two. Only from results already in front of you — never search again to fill this in. Empty is the normal answer.',
+          ),
         buyUrl: z.string().describe('Direct link to the product page. "" if none was found.'),
         upc: z.string().describe('UPC/EAN if one appeared in the results. "" otherwise.'),
         reason: z
@@ -93,7 +100,7 @@ const ListingsSchema = z.object({
         confidence: z.number().describe('0-100: how sure you are this is the product the user meant.'),
       }),
     )
-    .describe('Best match first, at most four.'),
+    .describe('Best match first, at most three.'),
 });
 
 type Listings = z.infer<typeof ListingsSchema>;
@@ -123,6 +130,8 @@ Use web search to find *current* retail listings. Rules:
 - Rank best match first. The first candidate is the one the app will show, so it must be the product the user meant, not the cheapest or the most popular.
 - Fill the remaining slots with the near-misses a person would actually want to see: last year's model, a different colourway, a different size, a bundle. Say which in the reason field.
 - If nothing buyable turns up, set found to false and return an empty candidates array. Do not pad the list.
+
+**Be quick.** Someone is standing in a shop holding their phone, waiting for this. Two searches is usually enough and three is plenty. Spend them on getting the *first* candidate right and priced — once you have that, one good near-miss is worth more than a complete survey, and answering with one solid candidate beats answering slowly with three. Never search again just to fill in extra retailers.
 
 The reason field is shown to the user under the price, so keep it to at most five lowercase words with no full stop.`;
 
@@ -175,6 +184,7 @@ class RecognizeError extends Error {
 // ── Pass 1: read the product ───────────────────────────────────────────────
 
 async function readProduct(image: RecognizeImage): Promise<ProductReading> {
+  const visionStartedAt = Date.now();
   // Thinking is off and effort is low on purpose. This pass is perception, not
   // reasoning — Opus 5 reads a label better with a bigger image than with a
   // longer thought, and the app is waiting on a human timescale.
@@ -194,6 +204,8 @@ async function readProduct(image: RecognizeImage): Promise<ProductReading> {
       },
     ],
   });
+
+  console.log(`[recognize] vision ${Date.now() - visionStartedAt}ms stop=${message.stop_reason}`);
 
   if (message.stop_reason === 'refusal') {
     throw new RecognizeError('refused', 'The model declined to describe this photo.');
@@ -247,10 +259,15 @@ Suggested query: ${r.searchQuery || r.productName || r.category}
 Find current listings for this product. If the reading is confident, find that exact item. If it is only "medium" or "low", treat it as a description and offer the closest real products you can find, best first.`;
 }
 
+/**
+ * Three searches, down from four. Each one is a round trip inside a request a
+ * person is waiting on, and four of them plus the `pause_turn` cycles they
+ * cause is what ran the first real capture into a 60-second wall.
+ */
 const WEB_SEARCH = {
   type: 'web_search_20260209',
   name: 'web_search',
-  max_uses: 4,
+  max_uses: 3,
 } as const;
 
 async function findListings(brief: string): Promise<Listings> {
@@ -262,17 +279,31 @@ async function findListings(brief: string): Promise<Listings> {
     max_tokens: 6000,
     system: SEARCH_SYSTEM,
     tools: [WEB_SEARCH],
-    output_config: { effort: 'medium' as const, format: zodOutputFormat(ListingsSchema) },
+    // Low effort, deliberately. The quality here comes from the search tool
+    // seeing real listings, not from deliberating about them, and thinking
+    // tokens are latency the user is standing still for.
+    output_config: { effort: 'low' as const, format: zodOutputFormat(ListingsSchema) },
   };
 
   const messages: Anthropic.MessageParam[] = [{ role: 'user', content: brief }];
 
   // A long search can come back as `pause_turn` — the turn is unfinished, not
   // failed. Hand the assistant's own work back to it and let it carry on.
-  for (let turn = 0; turn < 4; turn++) {
+  //
+  // Three turns, not four. Each is a whole conversation resent, and the first
+  // real capture spent its entire minute here without converging.
+  for (let turn = 0; turn < 3; turn++) {
+    const startedAt = Date.now();
     const message = await client()
       .messages.stream({ ...params, messages })
       .finalMessage();
+
+    // Logged per turn rather than at the end: a function killed at its
+    // duration ceiling never reaches a catch block, so anything written only
+    // on the way out is written never. This is the trail that survives.
+    console.log(
+      `[recognize] search turn ${turn + 1} ${Date.now() - startedAt}ms stop=${message.stop_reason} searches=${message.usage?.server_tool_use?.web_search_requests ?? '?'}`,
+    );
 
     if (message.stop_reason === 'refusal') {
       throw new RecognizeError('refused', 'The model declined to research this product.');
@@ -293,7 +324,10 @@ async function findListings(brief: string): Promise<Listings> {
     return message.parsed_output;
   }
 
-  throw new RecognizeError('upstream', 'The search pass never finished.');
+  throw new RecognizeError(
+    'upstream',
+    'The search pass paused three times without finishing — the query was too broad.',
+  );
 }
 
 // ── Shaping ────────────────────────────────────────────────────────────────

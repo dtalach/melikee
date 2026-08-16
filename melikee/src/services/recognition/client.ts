@@ -14,8 +14,12 @@ import { Platform } from 'react-native';
 
 import { RECOGNIZE_PATH, type RecognizeRequest, type RecognizeResponse } from '@/services/recognition/contract';
 
-/** Long enough for two Claude passes and a web search; short enough to recover. */
-const TIMEOUT_MS = 55_000;
+/**
+ * Must outlast the server, or the app reports a failure for a request that was
+ * still running — which is exactly what happened on the first real capture: the
+ * function was allowed 60 seconds and the app gave up at 55.
+ */
+const TIMEOUT_MS = 70_000;
 
 const base = (process.env.EXPO_PUBLIC_MELIKEE_API ?? '').replace(/\/+$/, '');
 
