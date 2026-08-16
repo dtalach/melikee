@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Smoke-test screenshots, unless deliberately refreshed into docs/screens.
+.verify-screens/

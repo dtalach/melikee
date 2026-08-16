@@ -10,6 +10,13 @@
  *   npx http-server dist -p 8099 -s &
  *   node scripts/verify-flows.mjs
  *
+ * Screenshots land in a scratch directory by default. They capture the app
+ * mid-animation, so their bytes differ on every run — checking them in
+ * automatically meant every verification dirtied the tree. To refresh the set
+ * under docs/screens deliberately:
+ *
+ *   OUT=docs/screens node scripts/verify-flows.mjs
+ *
  * Env: BASE_URL (default http://127.0.0.1:8099), CHROMIUM (path to a Chromium
  * binary; defaults to Playwright's own), OUT (screenshot directory).
  */
@@ -18,7 +25,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:8099';
-const OUT = process.env.OUT ?? path.resolve('docs/screens');
+const OUT = process.env.OUT ?? path.resolve('.verify-screens');
 fs.mkdirSync(OUT, { recursive: true });
 
 // A synthetic camera, auto-granted. The shutter asks for permission now — on
