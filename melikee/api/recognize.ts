@@ -9,7 +9,7 @@
  * GET returns a health check, so you can tell "the endpoint isn't deployed"
  * apart from "the endpoint has no key" from a browser address bar.
  */
-import { isConfigured, recognize } from '../src/services/recognition/server';
+import { isConfigured, probe, recognize } from '../src/services/recognition/server';
 import type { RecognizeImage, RecognizeRequest } from '../src/services/recognition/contract';
 
 /**
@@ -20,6 +20,7 @@ import type { RecognizeImage, RecognizeRequest } from '../src/services/recogniti
 type Req = {
   method?: string;
   body?: unknown;
+  query?: Record<string, string | string[] | undefined>;
   headers: Record<string, string | string[] | undefined>;
 };
 
@@ -46,7 +47,14 @@ export default async function handler(req: Req, res: Res) {
   }
 
   if (req.method === 'GET') {
-    res.status(200).json({ ok: true, service: 'melikee-recognize', configured: isConfigured() });
+    const base = { ok: true, service: 'melikee-recognize', configured: isConfigured() };
+    // `?probe=1` spends a fraction of a cent to prove the key actually works,
+    // rather than only that one is present.
+    if (req.query?.probe) {
+      res.status(200).json({ ...base, probe: await probe() });
+      return;
+    }
+    res.status(200).json(base);
     return;
   }
 

@@ -79,6 +79,15 @@ export type RecognizeErrorCode =
   | 'upstream'
   | 'bad_request';
 
+/** Where the seconds went. Diagnostic only — no screen renders this. */
+export type RecognizeTiming = {
+  /** The vision pass. Absent for barcodes and spoken wants, which skip it. */
+  readMs?: number;
+  /** The web-search pass. */
+  searchMs?: number;
+  totalMs: number;
+};
+
 export type RecognizeResponse =
   | {
       ok: true;
@@ -87,8 +96,9 @@ export type RecognizeResponse =
       reading?: ProductReading;
       /** How fresh the prices are — the app never presents one as fact. */
       checkedAt: string;
+      timing?: RecognizeTiming;
     }
-  | { ok: false; code: RecognizeErrorCode; message: string };
+  | { ok: false; code: RecognizeErrorCode; message: string; timing?: RecognizeTiming };
 
 /** The route the app posts to, relative to the API base. */
 export const RECOGNIZE_PATH = '/api/recognize';

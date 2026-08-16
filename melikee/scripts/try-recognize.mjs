@@ -29,8 +29,10 @@ const scan = flag('scan');
 const say = flag('say');
 const snap = flag('snap');
 
+// No capture flag: health check. `--probe` also proves the key works.
 if (!scan && !say && !snap) {
-  const response = await fetch(url);
+  const probe = args.includes('--probe') ? '?probe=1' : '';
+  const response = await fetch(`${url}${probe}`);
   console.log(response.status, await response.text());
   process.exit(0);
 }

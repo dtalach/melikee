@@ -139,6 +139,29 @@ export function isConfigured() {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
+/**
+ * Is the key real, and does this deployment have a route out to the API?
+ *
+ * `isConfigured` only proves a string is set — it says nothing about whether
+ * that string is valid, funded, or reachable. This costs a fraction of a cent
+ * and turns "the capture failed" into an answer before anyone photographs
+ * anything.
+ */
+export async function probe(): Promise<{ reachable: boolean; model?: string; detail?: string }> {
+  if (!isConfigured()) return { reachable: false, detail: 'No ANTHROPIC_API_KEY is set.' };
+  try {
+    const message = await client().messages.create({
+      model: VISION_MODEL,
+      max_tokens: 4,
+      thinking: { type: 'disabled' },
+      messages: [{ role: 'user', content: 'Reply with the word: ok' }],
+    });
+    return { reachable: true, model: message.model };
+  } catch (error) {
+    return { reachable: false, detail: describe(error).message };
+  }
+}
+
 /** Thrown when a pass fails in a way the app should be told about by name. */
 class RecognizeError extends Error {
   constructor(
@@ -175,8 +198,11 @@ async function readProduct(image: RecognizeImage): Promise<ProductReading> {
   if (message.stop_reason === 'refusal') {
     throw new RecognizeError('refused', 'The model declined to describe this photo.');
   }
+  if (message.stop_reason === 'max_tokens') {
+    throw new RecognizeError('upstream', 'The vision pass ran out of tokens.');
+  }
   if (!message.parsed_output) {
-    throw new RecognizeError('upstream', 'The vision pass returned nothing parseable.');
+    throw new RecognizeError('upstream', `The vision pass returned nothing parseable (stop_reason ${message.stop_reason}).`);
   }
   return message.parsed_output;
 }
@@ -255,8 +281,14 @@ async function findListings(brief: string): Promise<Listings> {
       messages.push({ role: 'assistant', content: message.content });
       continue;
     }
+    // Adaptive thinking shares the token budget with the answer, so a long
+    // deliberation can leave no room to write the JSON. Worth naming, because
+    // the fix is a number in this file rather than anything the user did.
+    if (message.stop_reason === 'max_tokens') {
+      throw new RecognizeError('upstream', `The search pass ran out of tokens (max_tokens ${params.max_tokens}).`);
+    }
     if (!message.parsed_output) {
-      throw new RecognizeError('upstream', 'The search pass returned nothing parseable.');
+      throw new RecognizeError('upstream', `The search pass returned nothing parseable (stop_reason ${message.stop_reason}).`);
     }
     return message.parsed_output;
   }
@@ -347,6 +379,25 @@ function writeCache(key: string | null, value: RecognizeResponse) {
 
 // ── Entry point ────────────────────────────────────────────────────────────
 
+/**
+ * Turns whatever went wrong into something a person can act on. The SDK's
+ * errors carry the API's own status and message, and collapsing those into
+ * "recognition failed" is how a one-line config mistake becomes an afternoon.
+ */
+function describe(error: unknown): { code: RecognizeErrorCode; message: string } {
+  if (error instanceof RecognizeError) return { code: error.code, message: error.message };
+
+  if (error instanceof Anthropic.APIError) {
+    const detail =
+      typeof error.error === 'object' && error.error && 'error' in error.error
+        ? ((error.error as { error?: { message?: string } }).error?.message ?? error.message)
+        : error.message;
+    return { code: 'upstream', message: `Anthropic API ${error.status ?? '?'}: ${detail}` };
+  }
+
+  return { code: 'upstream', message: error instanceof Error ? error.message : 'Recognition failed.' };
+}
+
 export async function recognize(request: RecognizeRequest): Promise<RecognizeResponse> {
   if (!isConfigured()) {
     return { ok: false, code: 'not_configured', message: 'The recognition service has no API key.' };
@@ -356,11 +407,15 @@ export async function recognize(request: RecognizeRequest): Promise<RecognizeRes
   const hit = readCache(key);
   if (hit) return hit;
 
+  const startedAt = Date.now();
+  let readMs: number | undefined;
+
   try {
     let reading: ProductReading | undefined;
 
     if (request.mode === 'snap') {
       reading = await readProduct(request.image);
+      readMs = Date.now() - startedAt;
       // Nothing in the frame. This is a real answer, not a failure — the app
       // has copy for it, and it is much better than searching for "".
       if (!reading.searchQuery && !reading.productName && !reading.category) {
@@ -381,14 +436,15 @@ export async function recognize(request: RecognizeRequest): Promise<RecognizeRes
       candidates,
       reading,
       checkedAt: new Date().toISOString(),
+      // How long each pass took. The app ignores this; it exists so the first
+      // question after a slow capture — which half was slow? — has an answer.
+      timing: { readMs, searchMs: Date.now() - startedAt - (readMs ?? 0), totalMs: Date.now() - startedAt },
     };
     writeCache(key, response);
     return response;
   } catch (error) {
-    if (error instanceof RecognizeError) {
-      return { ok: false, code: error.code, message: error.message };
-    }
-    const message = error instanceof Error ? error.message : 'Recognition failed.';
-    return { ok: false, code: 'upstream', message };
+    const described = describe(error);
+    console.error('[recognize]', request.mode, described.code, described.message);
+    return { ok: false, ...described, timing: { readMs, totalMs: Date.now() - startedAt } };
   }
 }
