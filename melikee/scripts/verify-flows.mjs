@@ -7,8 +7,13 @@
  * the a11y bug in the pager were caught.
  *
  *   npx expo export --platform web
- *   npx http-server dist -p 8099 -s &
+ *   node scripts/stub-server.mjs 8099 dist &
  *   node scripts/verify-flows.mjs
+ *
+ * The stub answers /api/recognize with contract-shaped payloads, so the whole
+ * client path runs for real — post, parse, check the shape, render a match.
+ * Against a plain static server every capture fell through to demo mode and a
+ * client/endpoint disagreement could not be seen from here.
  *
  * Screenshots land in a scratch directory by default. They capture the app
  * mid-animation, so their bytes differ on every run — checking them in
@@ -159,11 +164,25 @@ await flow(
   { onboard: 'none' },
 );
 
+// ── A real match, all the way through the client ──────────────────────────
+await flow('lookup', async ({ shot, page, shutter }) => {
+  await shutter();
+  await shot('46-reading', 900);
+
+  // The stub answers as the real endpoint does, so reaching a named product
+  // means the request, the response shape and the render all agreed.
+  await page.waitForTimeout(2500);
+  const found = await page.getByText('Sony WH-1000XM6', { exact: false }).count();
+  if (found === 0) errors.push('[lookup] the match from the endpoint never reached the found card');
+  else console.log('  endpoint match rendered');
+  await shot('47-real-found', 400);
+});
+
 // ── The capture ritual, end to end ────────────────────────────────────────
 await flow('capture', async ({ shot, tap, shutter }) => {
   await shutter();
   await shot('10-magic', 700);
-  await shot('11-found', 1800);
+  await shot('11-found', 2600);
   await tap('not it — see near matches');
   await shot('12-near-matches', 600);
   await tap('Sony XM5 headphones');

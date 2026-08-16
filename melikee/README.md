@@ -152,6 +152,10 @@ the photo.
 
 ## Verifying it
 
+`scripts/stub-server.mjs` serves the build alongside a stubbed `/api/recognize`
+that answers with contract-shaped payloads, so the whole client path runs for
+real rather than falling through to demo mode.
+
 `scripts/verify-flows.mjs` drives the built web app in a headless browser and
 screenshots every flow — the capture ritual, the filing tray, both dibs
 surfaces, every sheet, and light mode. It exits non-zero on any console error,
@@ -160,7 +164,7 @@ which is how the render loop and the pager accessibility bug were caught.
 ```bash
 npm install --no-save playwright && npx playwright install chromium
 npx expo export --platform web
-npx http-server dist -p 8099 -s &
+node scripts/stub-server.mjs 8099 dist &
 node scripts/verify-flows.mjs        # writes to .verify-screens/
 
 # to refresh the checked-in set under docs/screens instead:

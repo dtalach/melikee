@@ -298,6 +298,24 @@ was to point the camera somewhere better. The reading now carries a
 `frameProblem`, and "too dark, give it a second to focus" is both true and
 actionable.
 
+**37h. One validator cannot serve two shapes.** Splitting the passes gave the
+endpoint two possible answers — a reading, or a list of candidates — but the
+client kept a single check that required a `candidates` array. So a perfectly
+good reading was rejected as gibberish, and *every photo capture failed* with
+"couldn't reach the shops" over a 200 response. Transport and shape-checking
+are now separate: one function does the request, and each caller checks for the
+answer it actually asked for.
+
+**37i. The smoke test now runs against a stubbed endpoint.** That bug was
+invisible locally, because a static server has no `/api/recognize`, so every
+capture fell through to demo mode and the real client path — post, parse, check
+the shape, render a match — was never once exercised. `scripts/stub-server.mjs`
+serves the build alongside contract-shaped canned answers, and the run now
+fails if a match cannot reach the found card.
+
+The canned payloads are written by hand against the contract on purpose. If the
+app and the endpoint drift apart, that is where it shows.
+
 ---
 
 ## Persistence

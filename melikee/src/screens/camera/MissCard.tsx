@@ -73,7 +73,16 @@ export function MissCard({
             {showsDetail(code) && detail ? (
               <AppText
                 tone="muted"
-                style={{ fontSize: 9.5, textAlign: 'center', lineHeight: 13, opacity: 0.75 }}
+                numberOfLines={4}
+                style={{
+                  // Stretch, or a long unbroken error string spills past both
+                  // edges of the card under `alignItems: center`.
+                  alignSelf: 'stretch',
+                  fontSize: 9.5,
+                  textAlign: 'center',
+                  lineHeight: 13,
+                  opacity: 0.75,
+                }}
               >
                 {detail}
               </AppText>

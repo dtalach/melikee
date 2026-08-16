@@ -9,6 +9,12 @@
  *   the deployment. `EXPO_PUBLIC_` is the only prefix Expo inlines into the
  *   bundle, and a base URL is a safe thing to inline — the API key is not, and
  *   never appears on this side of the wire.
+ *
+ * The endpoint answers two different shapes — a reading, or a list of
+ * candidates — so the transport is separated from the shape-checking. They were
+ * one function once, validating every reply against the candidates shape, which
+ * meant a perfectly good reading was rejected as gibberish and every photo
+ * capture failed. Each caller now checks for the answer it actually asked for.
  */
 import { Platform } from 'react-native';
 
@@ -37,23 +43,43 @@ export const recognizeUrl: string | null = base
 
 export const hasRecognitionService = recognizeUrl !== null;
 
-/** The read-only pass. Same wire, narrower answer. */
+/** A failure that happened before any answer arrived, or instead of one. */
+type Transport = { ok: false; code: 'not_configured' | 'upstream'; message: string };
+
+/** The reading pass. */
 export async function callRead(
   request: Extract<RecognizeRequest, { mode: 'read' }>,
 ): Promise<ReadResponse> {
-  const response = await callRecognize(request);
-  if (!response.ok) return response;
-  // `ok` without a reading would be the endpoint answering a question it
-  // wasn't asked; treat it as upstream rather than inventing a product.
-  const reading = 'reading' in response ? response.reading : undefined;
-  return reading
-    ? { ok: true, reading, timing: response.timing }
-    : { ok: false, code: 'upstream', message: 'The read pass returned no reading.' };
+  const result = await post(request);
+  if ('failed' in result) return result.failed;
+
+  const body = result.body as Record<string, unknown>;
+  if (body.ok === true && isReading(body.reading)) {
+    return { ok: true, reading: body.reading, timing: body.timing as ReadResponse['timing'] };
+  }
+  if (body.ok === false && typeof body.code === 'string') return body as ReadResponse;
+  return unexpected(result.status, result.text);
 }
 
+/** The full pipeline, or the search half of it. */
 export async function callRecognize(request: RecognizeRequest): Promise<RecognizeResponse> {
+  const result = await post(request);
+  if ('failed' in result) return result.failed;
+
+  const body = result.body as Record<string, unknown>;
+  if (body.ok === true && Array.isArray(body.candidates)) return body as RecognizeResponse;
+  if (body.ok === false && typeof body.code === 'string') return body as RecognizeResponse;
+  return unexpected(result.status, result.text);
+}
+
+/** Everything both calls share: the request, the timeout, and JSON or not. */
+async function post(
+  request: RecognizeRequest,
+): Promise<{ body: unknown; status: number; text: string } | { failed: Transport }> {
   if (!recognizeUrl) {
-    return { ok: false, code: 'not_configured', message: 'No recognition service is configured.' };
+    return {
+      failed: { ok: false, code: 'not_configured', message: 'No recognition service is configured.' },
+    };
   }
 
   const abort = new AbortController();
@@ -70,37 +96,42 @@ export async function callRecognize(request: RecognizeRequest): Promise<Recogniz
     // A missing endpoint answers with the app's own HTML, courtesy of the
     // single-page rewrite. Treat anything unparseable as "not deployed".
     const text = await response.text();
-    let parsed: unknown;
     try {
-      parsed = JSON.parse(text);
+      return { body: JSON.parse(text), status: response.status, text };
     } catch {
-      return { ok: false, code: 'not_configured', message: 'The recognition endpoint is not deployed.' };
+      return {
+        failed: {
+          ok: false,
+          code: 'not_configured',
+          message: 'The recognition endpoint is not deployed.',
+        },
+      };
     }
-
-    if (isResponse(parsed)) return parsed;
-    // Something answered, in JSON, but not with our contract — a platform error
-    // page, most often a timeout. Carry what it actually said: this is the
-    // difference between "check your signal" and a one-line fix.
-    return {
-      ok: false,
-      code: 'upstream',
-      message: `Endpoint returned ${response.status}: ${text.slice(0, 200)}`,
-    };
   } catch (error) {
     const aborted = error instanceof Error && error.name === 'AbortError';
     return {
-      ok: false,
-      code: 'upstream',
-      message: aborted ? 'The lookup took too long.' : 'Could not reach the recognition service.',
+      failed: {
+        ok: false,
+        code: 'upstream',
+        message: aborted ? 'The lookup took too long.' : 'Could not reach the recognition service.',
+      },
     };
   } finally {
     clearTimeout(timer);
   }
 }
 
-function isResponse(value: unknown): value is RecognizeResponse {
+/**
+ * JSON arrived, but not ours — a platform error page, most often a timeout.
+ * Carrying what it actually said is the difference between "check your signal"
+ * and a one-line fix.
+ */
+function unexpected(status: number, text: string): Transport {
+  return { ok: false, code: 'upstream', message: `Endpoint returned ${status}: ${text.slice(0, 200)}` };
+}
+
+function isReading(value: unknown): value is NonNullable<Extract<ReadResponse, { ok: true }>['reading']> {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
-  if (v.ok === true) return Array.isArray(v.candidates);
-  return v.ok === false && typeof v.code === 'string';
+  return typeof v.searchQuery === 'string' && Array.isArray(v.visibleText);
 }
