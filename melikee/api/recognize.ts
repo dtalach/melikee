@@ -9,8 +9,12 @@
  * GET returns a health check, so you can tell "the endpoint isn't deployed"
  * apart from "the endpoint has no key" from a browser address bar.
  */
-import { isConfigured, probe, recognize } from '../src/services/recognition/server';
-import type { RecognizeImage, RecognizeRequest } from '../src/services/recognition/contract';
+import { isConfigured, probe, read, recognize } from '../src/services/recognition/server';
+import type {
+  ProductReading,
+  RecognizeImage,
+  RecognizeRequest,
+} from '../src/services/recognition/contract';
 
 /**
  * Typed structurally rather than against `@vercel/node`, so the app does not
@@ -69,7 +73,12 @@ export default async function handler(req: Req, res: Res) {
     return;
   }
 
-  const result = await recognize(parsed.request);
+  // `read` answers in about four seconds and `listings` in about twenty, so
+  // the app asks for them separately and fills the gap with the product name.
+  const result =
+    parsed.request.mode === 'read'
+      ? await read(parsed.request.image)
+      : await recognize(parsed.request);
 
   // A lookup that found nothing is still a successful round trip — the app has
   // copy for every one of these codes, so they travel as 200s with `ok: false`
@@ -102,18 +111,29 @@ function parseRequest(raw: unknown): { request: RecognizeRequest } | { error: st
     return { request: { mode: 'say', transcript } };
   }
 
-  if (b.mode === 'snap') {
+  if (b.mode === 'listings') {
+    const reading = b.reading as Partial<ProductReading> | undefined;
+    if (!reading || typeof reading.searchQuery !== 'string' || !Array.isArray(reading.visibleText)) {
+      return { error: 'listings needs a reading.' };
+    }
+    return { request: { mode: 'listings', reading: reading as ProductReading } };
+  }
+
+  if (b.mode === 'snap' || b.mode === 'read') {
     const image = b.image as Partial<RecognizeImage> | undefined;
-    if (!image || typeof image.data !== 'string' || !image.data) return { error: 'snap needs an image.' };
+    if (!image || typeof image.data !== 'string' || !image.data) return { error: `${b.mode} needs an image.` };
     if (typeof image.mediaType !== 'string' || !MEDIA_TYPES.includes(image.mediaType)) {
-      return { error: 'snap needs a jpeg, png or webp image.' };
+      return { error: `${b.mode} needs a jpeg, png or webp image.` };
     }
     // Base64 runs about 4/3 the size of the bytes it encodes.
     if (image.data.length * 0.75 > MAX_IMAGE_BYTES) return { error: 'That image is too big.' };
     return {
-      request: { mode: 'snap', image: { data: image.data, mediaType: image.mediaType as RecognizeImage['mediaType'] } },
+      request: {
+        mode: b.mode,
+        image: { data: image.data, mediaType: image.mediaType as RecognizeImage['mediaType'] },
+      },
     };
   }
 
-  return { error: 'mode must be scan, say or snap.' };
+  return { error: 'mode must be scan, say, snap, read or listings.' };
 }

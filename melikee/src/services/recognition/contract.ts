@@ -55,10 +55,21 @@ export type RecognizeImage = {
   mediaType: 'image/jpeg' | 'image/png' | 'image/webp';
 };
 
+/**
+ * The two Claude passes are separately addressable, because they finish at
+ * wildly different times. Reading a photo takes about four seconds; searching
+ * the shops takes closer to twenty. Asking for both behind one request means
+ * sitting on a good answer for sixteen seconds with nothing on screen.
+ *
+ * `snap` still runs both, for anything that would rather have one round trip.
+ * The app uses `read` then `listings`, and shows the reading in between.
+ */
 export type RecognizeRequest =
   | { mode: 'scan'; upc: string }
   | { mode: 'say'; transcript: string }
-  | { mode: 'snap'; image: RecognizeImage };
+  | { mode: 'snap'; image: RecognizeImage }
+  | { mode: 'read'; image: RecognizeImage }
+  | { mode: 'listings'; reading: ProductReading };
 
 /**
  * Why a lookup came back empty. The app maps each of these to different copy,
@@ -87,6 +98,11 @@ export type RecognizeTiming = {
   searchMs?: number;
   totalMs: number;
 };
+
+/** What the eye came back with, before anything has been searched. */
+export type ReadResponse =
+  | { ok: true; reading: ProductReading; timing?: RecognizeTiming }
+  | { ok: false; code: RecognizeErrorCode; message: string; timing?: RecognizeTiming };
 
 export type RecognizeResponse =
   | {

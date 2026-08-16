@@ -11,8 +11,12 @@
  * works end to end and every match it produces says so on its own face. A
  * demo that silently pretends to be real is the one thing worse than no demo.
  */
-import { callRecognize, hasRecognitionService } from '@/services/recognition/client';
-import type { RecognizeErrorCode, RecognizeImage } from '@/services/recognition/contract';
+import { callRead, callRecognize, hasRecognitionService } from '@/services/recognition/client';
+import type {
+  ProductReading,
+  RecognizeErrorCode,
+  RecognizeImage,
+} from '@/services/recognition/contract';
 import type { CaptureMode, ProductMatch } from '@/store/types';
 
 const SCRIPTED: ProductMatch[] = [
@@ -81,8 +85,28 @@ const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 
 export type MatchRequest =
   | { mode: 'scan'; upc: string }
-  | { mode: 'snap'; photoUri?: string; image?: RecognizeImage }
+  | { mode: 'snap'; photoUri?: string; image?: RecognizeImage; reading?: ProductReading }
   | { mode: 'say'; transcript: string };
+
+export type ReadOutcome =
+  | { ok: true; reading: ProductReading }
+  | { ok: false; code: RecognizeErrorCode; message: string };
+
+/**
+ * The eye, on its own. Roughly four seconds against roughly twenty for the
+ * search, which is the entire reason the two are asked for separately: the
+ * product's name can be on screen while the shops are still being checked.
+ *
+ * Returns null when there is nothing to ask — no service, or no photo — which
+ * means the caller should go straight to the demo.
+ */
+export async function readPhoto(image?: RecognizeImage): Promise<ReadOutcome | null> {
+  if (!hasRecognitionService || !image) return null;
+  const response = await callRead({ mode: 'read', image });
+  if (response.ok) return { ok: true, reading: response.reading };
+  if (response.code === 'not_configured') return null;
+  return { ok: false, code: response.code, message: response.message };
+}
 
 export type MatchOutcome =
   | {
@@ -107,7 +131,11 @@ export async function matchProduct(request: MatchRequest): Promise<MatchOutcome>
       ? { mode: 'scan', upc: request.upc }
       : request.mode === 'say'
         ? { mode: 'say', transcript: request.transcript }
-        : { mode: 'snap', image: request.image! },
+        : // A reading already in hand means the photo was read moments ago;
+          // asking for `listings` skips doing it twice.
+          request.reading
+          ? { mode: 'listings', reading: request.reading }
+          : { mode: 'snap', image: request.image! },
   );
 
   if (response.ok) return { ok: true, candidates: response.candidates, demo: false };

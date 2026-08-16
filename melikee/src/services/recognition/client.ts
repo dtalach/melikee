@@ -12,7 +12,12 @@
  */
 import { Platform } from 'react-native';
 
-import { RECOGNIZE_PATH, type RecognizeRequest, type RecognizeResponse } from '@/services/recognition/contract';
+import {
+  RECOGNIZE_PATH,
+  type ReadResponse,
+  type RecognizeRequest,
+  type RecognizeResponse,
+} from '@/services/recognition/contract';
 
 /**
  * Must outlast the server, or the app reports a failure for a request that was
@@ -31,6 +36,20 @@ export const recognizeUrl: string | null = base
     : null;
 
 export const hasRecognitionService = recognizeUrl !== null;
+
+/** The read-only pass. Same wire, narrower answer. */
+export async function callRead(
+  request: Extract<RecognizeRequest, { mode: 'read' }>,
+): Promise<ReadResponse> {
+  const response = await callRecognize(request);
+  if (!response.ok) return response;
+  // `ok` without a reading would be the endpoint answering a question it
+  // wasn't asked; treat it as upstream rather than inventing a product.
+  const reading = 'reading' in response ? response.reading : undefined;
+  return reading
+    ? { ok: true, reading, timing: response.timing }
+    : { ok: false, code: 'upstream', message: 'The read pass returned no reading.' };
+}
 
 export async function callRecognize(request: RecognizeRequest): Promise<RecognizeResponse> {
   if (!recognizeUrl) {

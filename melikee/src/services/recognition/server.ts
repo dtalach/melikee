@@ -27,6 +27,7 @@ import * as z from 'zod/v4';
 import type {
   ProductMatch,
   ProductReading,
+  ReadResponse,
   RecognizeErrorCode,
   RecognizeImage,
   RecognizeRequest,
@@ -221,6 +222,34 @@ async function readProduct(image: RecognizeImage): Promise<ProductReading> {
 
 // ── Pass 2: find where to buy it ───────────────────────────────────────────
 
+/**
+ * Just the eye. The app calls this first so it can put a product name on
+ * screen at four seconds instead of at twenty-three.
+ */
+export async function read(image: RecognizeImage): Promise<ReadResponse> {
+  if (!isConfigured()) {
+    return { ok: false, code: 'not_configured', message: 'The recognition service has no API key.' };
+  }
+
+  const startedAt = Date.now();
+  try {
+    const reading = await readProduct(image);
+    if (!hasSubject(reading)) {
+      return { ok: false, code: 'no_product', message: 'No product in that photo.' };
+    }
+    return { ok: true, reading, timing: { readMs: Date.now() - startedAt, totalMs: Date.now() - startedAt } };
+  } catch (error) {
+    const described = describe(error);
+    console.error('[recognize] read', described.code, described.message);
+    return { ok: false, ...described, timing: { totalMs: Date.now() - startedAt } };
+  }
+}
+
+/** Nothing in the frame is a real answer, not a failure — and not a search. */
+function hasSubject(reading: ProductReading): boolean {
+  return Boolean(reading.searchQuery || reading.productName || reading.category);
+}
+
 function searchBrief(request: RecognizeRequest, reading?: ProductReading): string {
   if (request.mode === 'scan') {
     return `A barcode was scanned in a shop. The digits are ${request.upc}.
@@ -236,6 +265,7 @@ Search for that barcode number to identify the exact product, then find current 
 It may be misheard, casual, or incomplete. Work out what product they mean, then find current listings for it. If the words genuinely could mean two different products, put both in the list and say which is which in the reason.`;
   }
 
+  // `snap` and `listings` both arrive here with a reading in hand.
   const r = reading;
   if (!r) return 'Find current listings for the product described above.';
 
@@ -388,6 +418,15 @@ const cache = new Map<string, { at: number; value: RecognizeResponse }>();
 function cacheKey(request: RecognizeRequest): string | null {
   if (request.mode === 'scan') return `scan:${request.upc}`;
   if (request.mode === 'say') return `say:${request.transcript.trim().toLowerCase()}`;
+  // A reading is the distilled product, so two photos of the same thing share
+  // a key even though the photos differ. Raw images never do.
+  if (request.mode === 'listings') {
+    const r = request.reading;
+    const key = [r.brand, r.productName, r.modelNumber, r.color, r.variant]
+      .map((part) => part.trim().toLowerCase())
+      .join('|');
+    return key.replace(/\|+/g, '|') === '|' ? null : `read:${key}`;
+  }
   return null;
 }
 
@@ -452,10 +491,14 @@ export async function recognize(request: RecognizeRequest): Promise<RecognizeRes
       readMs = Date.now() - startedAt;
       // Nothing in the frame. This is a real answer, not a failure — the app
       // has copy for it, and it is much better than searching for "".
-      if (!reading.searchQuery && !reading.productName && !reading.category) {
+      if (!hasSubject(reading)) {
         return { ok: false, code: 'no_product', message: 'No product in that photo.' };
       }
     }
+
+    // The app's own path: the photo was already read a moment ago, and this
+    // request is only the half that takes twenty seconds.
+    if (request.mode === 'listings') reading = request.reading;
 
     const listings = await findListings(searchBrief(request, reading));
     const fallbackUpc = request.mode === 'scan' ? request.upc : '—';

@@ -233,6 +233,21 @@ when only one was found.
 fixed string. Now every match carries the moment it was checked and the whisper
 counts up from it — and says "price may have moved" when it has no idea.
 
+**37a. The two Claude passes are asked for separately.** The first real capture
+measured 4 seconds to read the photo and about 18 more to search the shops —
+and the app showed a spinner for all 22 of them, sitting on a good answer for
+most of it. So the app asks for the reading first, puts the product's name on
+the waiting screen, and only then goes shopping. Same total, and most of it is
+now spent looking at something true.
+
+`snap` still runs both halves behind one request, for any caller that would
+rather have one round trip. The app uses `read` then `listings`.
+
+**37b. Listings are cached on the reading, not the photo.** Two photos of the
+same headphones are different bytes and the same product, so the cache key is
+brand, name, model, colour and variant — which is exactly what a second person
+photographing the same thing produces.
+
 ---
 
 ## Persistence

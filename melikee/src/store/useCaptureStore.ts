@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 
-import { matchProduct, type MatchRequest } from '@/services/productMatch';
-import type { RecognizeErrorCode, RecognizeImage } from '@/services/recognition/contract';
+import { matchProduct, readPhoto, type MatchRequest } from '@/services/productMatch';
+import type {
+  ProductReading,
+  RecognizeErrorCode,
+  RecognizeImage,
+} from '@/services/recognition/contract';
 import { motion } from '@/theme/tokens';
 import type { CaptureMode, ProductMatch } from '@/store/types';
 
@@ -42,6 +46,12 @@ type CaptureState = {
   missCode?: RecognizeErrorCode;
   /** What actually broke, when the cause was a fault rather than a miss. */
   missDetail?: string;
+  /**
+   * What the photo turned out to be, as soon as the eye knows — about four
+   * seconds in, against twenty for the shops. It goes on the waiting screen so
+   * the long half of the wait has something true in it.
+   */
+  reading?: ProductReading;
   /** Live dictation, in Say-it mode. */
   transcript: string;
   listening: boolean;
@@ -112,9 +122,26 @@ export const useCaptureStore = create<CaptureState>((set, get) => ({
       set({ phase: 'magic', mode: input.mode, chosen: 0, error: undefined });
     }
 
-    set({ phase: 'magic', missCode: undefined, missDetail: undefined });
+    set({ phase: 'magic', missCode: undefined, missDetail: undefined, reading: undefined });
 
     lastRequest = toRequest(input);
+
+    // Read the photo first and put the answer on screen, then go shopping.
+    // A barcode and a spoken want are already queries and skip straight to it.
+    if (input.mode === 'snap') {
+      const read = await readPhoto(input.image);
+      if (get().phase !== 'magic') return;
+
+      if (read && !read.ok) {
+        set({ candidates: [], missCode: read.code, missDetail: read.message, phase: 'miss' });
+        return;
+      }
+      if (read?.ok) {
+        set({ reading: read.reading });
+        lastRequest = { ...lastRequest, reading: read.reading } as MatchRequest;
+      }
+    }
+
     await resolve(lastRequest, set, get);
   },
 
@@ -137,6 +164,7 @@ export const useCaptureStore = create<CaptureState>((set, get) => ({
       transcript: '',
       missCode: undefined,
       missDetail: undefined,
+      reading: undefined,
       demo: false,
     });
   },
@@ -153,6 +181,7 @@ export const useCaptureStore = create<CaptureState>((set, get) => ({
       transcript: '',
       missCode: undefined,
       missDetail: undefined,
+      reading: undefined,
       demo: false,
     });
   },
