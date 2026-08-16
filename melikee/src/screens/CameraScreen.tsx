@@ -57,6 +57,7 @@ export function CameraScreen({
   const checkedAt = useCaptureStore((s) => s.checkedAt);
   const demo = useCaptureStore((s) => s.demo);
   const missCode = useCaptureStore((s) => s.missCode);
+  const missDetail = useCaptureStore((s) => s.missDetail);
   const begin = useCaptureStore((s) => s.begin);
   const retry = useCaptureStore((s) => s.retry);
   const cancel = useCaptureStore((s) => s.cancel);
@@ -399,6 +400,7 @@ export function CameraScreen({
       {phase === 'miss' && missCode ? (
         <MissCard
           code={missCode}
+          detail={missDetail}
           mode={mode}
           photoUri={useCaptureStore.getState().photoUri}
           onRetry={() => void retry()}

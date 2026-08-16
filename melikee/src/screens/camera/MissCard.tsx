@@ -21,6 +21,7 @@ import type { RecognizeErrorCode } from '@/services/recognition/contract';
 export function MissCard({
   code,
   mode,
+  detail,
   photoUri,
   onRetry,
   onSaveForLater,
@@ -28,6 +29,8 @@ export function MissCard({
 }: {
   code: RecognizeErrorCode;
   mode: CaptureMode;
+  /** What actually went wrong, when it was a fault rather than a miss. */
+  detail?: string;
   photoUri?: string;
   onRetry: () => void;
   onSaveForLater: () => void;
@@ -59,6 +62,17 @@ export function MissCard({
             <AppText tone="muted" style={{ fontSize: 12, textAlign: 'center', lineHeight: 17 }}>
               {copy.note}
             </AppText>
+            {/* When the app broke rather than merely failed to find something,
+                say what broke. "Check your signal" is a lie if the signal was
+                fine, and the real sentence is the whole of the bug report. */}
+            {code === 'upstream' && detail ? (
+              <AppText
+                tone="muted"
+                style={{ fontSize: 9.5, textAlign: 'center', lineHeight: 13, opacity: 0.75 }}
+              >
+                {detail}
+              </AppText>
+            ) : null}
           </View>
 
           <Squish onPress={onRetry}>

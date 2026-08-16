@@ -40,6 +40,8 @@ type CaptureState = {
   demo: boolean;
   /** Why the lookup came back empty, in the `miss` phase. */
   missCode?: RecognizeErrorCode;
+  /** What actually broke, when the cause was a fault rather than a miss. */
+  missDetail?: string;
   /** Live dictation, in Say-it mode. */
   transcript: string;
   listening: boolean;
@@ -110,7 +112,7 @@ export const useCaptureStore = create<CaptureState>((set, get) => ({
       set({ phase: 'magic', mode: input.mode, chosen: 0, error: undefined });
     }
 
-    set({ phase: 'magic', missCode: undefined });
+    set({ phase: 'magic', missCode: undefined, missDetail: undefined });
 
     lastRequest = toRequest(input);
     await resolve(lastRequest, set, get);
@@ -118,7 +120,7 @@ export const useCaptureStore = create<CaptureState>((set, get) => ({
 
   retry: async () => {
     if (!lastRequest) return set({ phase: 'idle' });
-    set({ phase: 'magic', missCode: undefined, chosen: 0 });
+    set({ phase: 'magic', missCode: undefined, missDetail: undefined, chosen: 0 });
     await resolve(lastRequest, set, get);
   },
 
@@ -134,6 +136,7 @@ export const useCaptureStore = create<CaptureState>((set, get) => ({
       photoUri: undefined,
       transcript: '',
       missCode: undefined,
+      missDetail: undefined,
       demo: false,
     });
   },
@@ -149,6 +152,7 @@ export const useCaptureStore = create<CaptureState>((set, get) => ({
       photoUri: undefined,
       transcript: '',
       missCode: undefined,
+      missDetail: undefined,
       demo: false,
     });
   },
@@ -171,7 +175,7 @@ async function resolve(request: MatchRequest, set: Setter, get: Getter) {
       phase: 'found',
     });
   } else {
-    set({ candidates: [], missCode: outcome.code, phase: 'miss' });
+    set({ candidates: [], missCode: outcome.code, missDetail: outcome.message, phase: 'miss' });
   }
 }
 

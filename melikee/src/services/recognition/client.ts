@@ -55,7 +55,14 @@ export async function callRecognize(request: RecognizeRequest): Promise<Recogniz
     }
 
     if (isResponse(parsed)) return parsed;
-    return { ok: false, code: 'upstream', message: 'The recognition endpoint answered with something unexpected.' };
+    // Something answered, in JSON, but not with our contract — a platform error
+    // page, most often a timeout. Carry what it actually said: this is the
+    // difference between "check your signal" and a one-line fix.
+    return {
+      ok: false,
+      code: 'upstream',
+      message: `Endpoint returned ${response.status}: ${text.slice(0, 200)}`,
+    };
   } catch (error) {
     const aborted = error instanceof Error && error.name === 'AbortError';
     return {
