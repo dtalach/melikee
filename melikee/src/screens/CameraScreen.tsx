@@ -31,6 +31,19 @@ import { attentionCount, useAppStore } from '@/store/useAppStore';
 import { daysUntilBirthday } from '@/store/profile';
 import { isBusy, selectMatch, useCaptureStore } from '@/store/useCaptureStore';
 
+/**
+ * Polls a ref rather than awaiting an event, because the readiness callback
+ * may already have fired before anyone pressed anything. Gives up after a few
+ * seconds so a camera that never starts doesn't hang the shutter.
+ */
+async function waitForCamera(ready: { current: boolean }, timeoutMs = 3000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (!ready.current && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return ready.current;
+}
+
 export function CameraScreen({
   active,
   onOpenFeed,
@@ -51,6 +64,18 @@ export function CameraScreen({
   const grantedRef = useRef(granted);
   useEffect(() => {
     grantedRef.current = granted;
+  }, [granted]);
+
+  // Permission granted is not the same as camera running. On iOS the stream
+  // takes a beat to start, and a shutter press in that gap used to produce a
+  // photo-less capture — which the matcher then answered with a demo product
+  // nobody had photographed.
+  const readyRef = useRef(false);
+  const onCameraReady = useCallback(() => {
+    readyRef.current = true;
+  }, []);
+  useEffect(() => {
+    if (!granted) readyRef.current = false;
   }, [granted]);
 
   const phase = useCaptureStore((s) => s.phase);
@@ -100,16 +125,22 @@ export function CameraScreen({
     // The shutter is the clearest statement of intent in the app, and on the
     // web it is also the user gesture Safari requires before it will show a
     // camera prompt at all. So pressing it asks.
-    //
-    // A "no" is not a dead end: the capture carries on and lands on a demo
-    // match that says so on its face, which is what keeps the app usable on a
-    // laptop with no webcam.
     if (!grantedRef.current && currentMode !== 'say') {
       const response = await requestPermission().catch(() => null);
-      if (response?.granted) {
-        // The viewfinder has only just been handed a stream; give it a moment
-        // to start before asking it for a frame.
-        await new Promise((resolve) => setTimeout(resolve, 400));
+      if (!response?.granted) {
+        showToast('MeLikee needs the camera for that');
+        return;
+      }
+    }
+
+    // Granted, but the stream may still be starting. Wait for the viewfinder
+    // to say it is running rather than photographing nothing — a press that
+    // does nothing is recoverable, and a wish nobody made is not.
+    if (currentMode !== 'say' && !readyRef.current) {
+      const ready = await waitForCamera(readyRef);
+      if (!ready) {
+        showToast('One sec — the camera’s still waking up');
+        return;
       }
     }
 
@@ -137,10 +168,17 @@ export function CameraScreen({
       const photo = await cameraRef.current?.takePictureAsync({ quality: 0.8 });
       prepared = await preparePhoto(photo);
     } catch {
-      // No camera (simulator, denied permission, web without a device): the
-      // ritual still runs — losing the wish would be the worse failure.
       prepared = {};
     }
+
+    // No frame, no capture. This used to fall through and be answered with a
+    // scripted product, which put a wishlist item on screen that nobody had
+    // photographed — a far worse outcome than a press that politely fails.
+    if (!prepared.uri && !prepared.image) {
+      showToast('That didn’t come through — try again');
+      return;
+    }
+
     await begin({ mode: 'snap', photoUri: prepared.uri, image: prepared.image });
   }, [begin, dictation, showToast, requestPermission]);
 
@@ -197,6 +235,7 @@ export function CameraScreen({
       {granted ? (
         <CameraView
           ref={cameraRef}
+          onCameraReady={onCameraReady}
           style={StyleSheet.absoluteFill}
           facing="back"
           active={active && phase !== 'fly'}

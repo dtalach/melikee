@@ -119,12 +119,18 @@ export type MatchOutcome =
   | { ok: false; code: RecognizeErrorCode; message: string };
 
 export async function matchProduct(request: MatchRequest): Promise<MatchOutcome> {
-  // No service to ask, or nothing to send it — a simulator, a laptop with no
-  // webcam, a capture the device refused. Both are the same situation: we
-  // cannot do a real lookup, and the ritual still has to run. The found card
-  // says on its face that the match is a demo, so nobody is misled.
-  const nothingToSend = request.mode === 'snap' && !request.image;
-  if (!hasRecognitionService || nothingToSend) return demoMatch(request);
+  // A snap that produced no image is not a lookup we can do, and it must never
+  // become one: answering it from the scripted catalogue once put a product on
+  // screen that nobody had photographed. The camera screen stops this before
+  // it gets here; this is the second lock on the same door.
+  if (request.mode === 'snap' && !request.image && hasRecognitionService) {
+    return { ok: false, code: 'no_product', message: 'That photo did not come through.' };
+  }
+
+  // No service to ask at all — a device build with nothing configured, a
+  // deployment missing its key, a plane. The ritual still runs, and the found
+  // card says on its own face that the match is a demo.
+  if (!hasRecognitionService) return demoMatch(request);
 
   const response = await callRecognize(
     request.mode === 'scan'

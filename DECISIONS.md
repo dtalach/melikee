@@ -351,11 +351,26 @@ status undetermined, so an effect reacting to "not granted yet" would prompt
 forever. And there is separate copy for `canAskAgain` being false, because at
 that point the system will never show a dialog again and only Settings will do.
 
-**49a. The shutter asks, and a "no" is still not a dead end.** Pressing it
-without permission used to quietly produce a demo match. It is the clearest
-statement of intent in the app — and on the web it is the gesture Safari wants —
-so it asks. If the answer is no the capture carries on to a demo match that says
-so on its face, which is what keeps the app usable on a laptop with no webcam.
+**49a. The shutter asks — and a capture with no photo never becomes a match.**
+Pressing the shutter without permission used to quietly produce a demo match.
+It is the clearest statement of intent in the app, and on the web it is the
+gesture Safari wants, so it asks.
+
+The first version of that let a refusal fall through to the demo, reasoning
+that a dead shutter was the worse failure. That was wrong, and testing found it
+within the hour: a shutter press while permission was still pending produced a
+scripted pair of headphones, and a wishlist item appeared that nobody had
+photographed. **Inventing a wish is worse than a press that politely fails.**
+
+Three separate holes led to the same place, so all three are shut. The shutter
+stops if permission is refused. It waits for `onCameraReady` before asking for
+a frame, because a granted permission is not a running camera — on iOS the
+stream takes a beat, and a press in that gap photographed nothing. And a snap
+with no image is now a failure in the matcher rather than a fallback to the
+catalogue, which is the second lock on the same door.
+
+Demo mode survives where it is honest: no recognition service configured at
+all still runs the scripted ritual, and the found card says so on its face.
 
 **50. The demo account is offered outright on the welcome screen.** Showing
 someone the whole populated app is a real need — the seed content is what makes
