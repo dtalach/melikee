@@ -164,8 +164,7 @@ which is how the render loop and the pager accessibility bug were caught.
 
 ```bash
 npm install --no-save playwright && npx playwright install chromium
-npx expo export --platform web
-node scripts/verify-flows.mjs        # writes to .verify-screens/
+npm run verify        # exports the web build, then drives it
 
 # to refresh the checked-in set under docs/screens instead:
 OUT=docs/screens node scripts/verify-flows.mjs

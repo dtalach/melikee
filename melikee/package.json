@@ -51,7 +51,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify": "expo export --platform web && node scripts/verify-flows.mjs",
+    "check": "npm run typecheck && npm run lint"
   },
   "private": true
 }

@@ -6,14 +6,14 @@
  * mode. It fails loudly on console errors, which is how the render loop and
  * the a11y bug in the pager were caught.
  *
- *   npx expo export --platform web
- *   node scripts/stub-server.mjs 8099 dist &
- *   node scripts/verify-flows.mjs
+ *   npm run verify        # export, then everything below
  *
- * The stub answers /api/recognize with contract-shaped payloads, so the whole
- * client path runs for real — post, parse, check the shape, render a match.
- * Against a plain static server every capture fell through to demo mode and a
- * client/endpoint disagreement could not be seen from here.
+ * It starts its own stub server on a free port, so there is nothing to run
+ * alongside it and nothing left listening afterwards. The stub answers
+ * /api/recognize with contract-shaped payloads, so the whole client path runs
+ * for real — post, parse, check the shape, render a match. Against a plain
+ * static server every capture fell through to demo mode, and a
+ * client/endpoint disagreement could not be seen from here at all.
  *
  * Screenshots land in a scratch directory by default. They capture the app
  * mid-animation, so their bytes differ on every run — checking them in
@@ -22,8 +22,9 @@
  *
  *   OUT=docs/screens node scripts/verify-flows.mjs
  *
- * Env: BASE_URL (default http://127.0.0.1:8099), CHROMIUM (path to a Chromium
- * binary; defaults to Playwright's own), OUT (screenshot directory).
+ * Env: BASE_URL (point it at something already running instead of the stub),
+ * CHROMIUM (path to a Chromium binary; defaults to Playwright's own),
+ * OUT (screenshot directory).
  */
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
@@ -98,7 +99,10 @@ const errors = [];
  * or behind a strict CSP, scan mode loses its decoder the same way.
  */
 const ENV_NOISE = [
+  // The proxy refuses that fetch differently depending on how it is feeling:
+  // a MITM cert it cannot vouch for, or a tunnel it will not open. Same cause.
   /ERR_CERT_AUTHORITY_INVALID/,
+  /ERR_TUNNEL_CONNECTION_FAILED/,
   /wasm streaming compile failed/,
   /falling back to ArrayBuffer instantiation/,
   /fetching of the wasm failed/,
