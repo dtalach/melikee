@@ -1,394 +1,170 @@
 /**
- * The app's motion vocabulary, ported from the turn-6 choreography card.
- *
- * The rules it set: transitions live in 200–350ms, overshoot is reserved for
- * rewards, motion always travels toward the shutter, and reduce-motion gets a
- * deliberately designed crossfade rather than a skipped animation.
+ * The prototype's keyframes (mlk-up, mlk-twinkle, mlk-breathe, mlk-spin,
+ * mlk-drain, mlk-slap, mlk-flash, mlk-burst), as small Animated wrappers.
  */
-import { useEffect, type ReactNode } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-  type WithTimingConfig,
-} from 'react-native-reanimated';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Animated, Easing, Platform, type StyleProp, type ViewStyle } from 'react-native';
 
-import { SparkleIcon } from '@/ui/icons';
-import { useAppStore } from '@/store/useAppStore';
-import { motion } from '@/theme/tokens';
+const native = Platform.OS !== 'web';
 
-const linear: WithTimingConfig = { easing: Easing.linear };
-const easeOut: WithTimingConfig = { easing: Easing.out(Easing.quad) };
-
-export function useReduceMotion() {
-  return useAppStore((s) => s.reduceMotion);
+function useValue(init: number) {
+  return useState(() => new Animated.Value(init))[0];
 }
 
-/**
- * A slowly pulsing sparkle. Used as ambient decoration on glow grounds — the
- * app's signal that "something magic happens here".
- */
-export function Twinkle({
-  size = 12,
-  color = '#c8f542',
-  duration = 2200,
-  delay = 0,
-  style,
-}: {
-  size?: number;
-  color?: string;
-  duration?: number;
-  delay?: number;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const t = useSharedValue(0);
-  const reduced = useReduceMotion();
-
+/** mlk-up: fade in while rising 16px. Used on every screen and sheet body. */
+export function Appear({ children, style, delay = 0, distance = 16, duration = 250 }: { children: ReactNode; style?: StyleProp<ViewStyle>; delay?: number; distance?: number; duration?: number }) {
+  const v = useValue(0);
   useEffect(() => {
-    if (reduced) {
-      t.value = 0.5;
+    Animated.timing(v, { toValue: 1, duration, delay, easing: Easing.out(Easing.cubic), useNativeDriver: native }).start();
+  }, [v, delay, duration]);
+  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] });
+  return <Animated.View style={[style, { opacity: v, transform: [{ translateY }] }]}>{children}</Animated.View>;
+}
+
+/** A bottom sheet's entrance: a springy rise, cubic-bezier(.34,1.2,.64,1). */
+export function SlideUp({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const v = useValue(0);
+  useEffect(() => {
+    Animated.spring(v, { toValue: 1, useNativeDriver: native, damping: 18, stiffness: 220, mass: 0.9 }).start();
+  }, [v]);
+  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [360, 0] });
+  return <Animated.View style={[style, { transform: [{ translateY }] }]}>{children}</Animated.View>;
+}
+
+function useLoop(make: (v: Animated.Value) => Animated.CompositeAnimation, init = 0) {
+  const v = useValue(init);
+  useEffect(() => {
+    const a = Animated.loop(make(v));
+    a.start();
+    return () => a.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [v]);
+  return v;
+}
+
+/** mlk-twinkle: opacity .25→1 and scale .8→1.15. */
+export function Twinkle({ children, period = 2200, delay = 0, style }: { children: ReactNode; period?: number; delay?: number; style?: StyleProp<ViewStyle> }) {
+  const v = useLoop((x) =>
+    Animated.sequence([
+      Animated.delay(delay),
+      Animated.timing(x, { toValue: 1, duration: period / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: native }),
+      Animated.timing(x, { toValue: 0, duration: period / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: native }),
+    ]),
+  );
+  const opacity = v.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] });
+  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.15] });
+  return <Animated.View style={[style, { opacity, transform: [{ scale }] }]}>{children}</Animated.View>;
+}
+
+/** mlk-breathe: a slow 1→1.05 swell. */
+export function Breathe({ children, period = 3200, on = true, style }: { children: ReactNode; period?: number; on?: boolean; style?: StyleProp<ViewStyle> }) {
+  const v = useValue(0);
+  useEffect(() => {
+    if (!on) {
+      v.setValue(0);
       return;
     }
-    t.value = withDelay(
-      delay,
-      withRepeat(withTiming(1, { duration, easing: Easing.inOut(Easing.quad) }), -1, true),
+    const a = Animated.loop(
+      Animated.sequence([
+        Animated.timing(v, { toValue: 1, duration: period / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: native }),
+        Animated.timing(v, { toValue: 0, duration: period / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: native }),
+      ]),
     );
-  }, [t, duration, delay, reduced]);
+    a.start();
+    return () => a.stop();
+  }, [v, on, period]);
+  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] });
+  return <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>;
+}
 
-  const animated = useAnimatedStyle(() => ({
-    opacity: 0.25 + t.value * 0.75,
-    transform: [{ scale: 0.8 + t.value * 0.35 }],
-  }));
+export function Spin({ children, period = 1200 }: { children: ReactNode; period?: number }) {
+  const v = useLoop((x) => Animated.timing(x, { toValue: 1, duration: period, easing: Easing.linear, useNativeDriver: native }));
+  const rotate = v.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  return <Animated.View style={{ transform: [{ rotate }] }}>{children}</Animated.View>;
+}
 
+/** mlk-drain: a bar that empties over `seconds`. */
+export function Drain({ seconds, color, height = 2, style }: { seconds: number; color: string; height?: number; style?: StyleProp<ViewStyle> }) {
+  const v = useValue(1);
+  useEffect(() => {
+    Animated.timing(v, { toValue: 0, duration: seconds * 1000, easing: Easing.linear, useNativeDriver: false }).start();
+  }, [v, seconds]);
+  const width = v.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+  return <Animated.View style={[{ height, backgroundColor: color, width }, style]} />;
+}
+
+/** mlk-slap: a sticker landing — big and tilted, then settling at -2°. */
+export function Slap({ children, delay = 400, style }: { children: ReactNode; delay?: number; style?: StyleProp<ViewStyle> }) {
+  const v = useValue(0);
+  useEffect(() => {
+    Animated.spring(v, { toValue: 1, delay, useNativeDriver: native, damping: 11, stiffness: 180 }).start();
+  }, [v, delay]);
+  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [1.6, 1] });
+  const rotate = v.interpolate({ inputRange: [0, 1], outputRange: ['-9deg', '-2deg'] });
+  const opacity = v.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] });
+  return <Animated.View style={[style, { opacity, transform: [{ scale }, { rotate }] }]}>{children}</Animated.View>;
+}
+
+/** mlk-flash: the white shutter flash. */
+export function Flash() {
+  const v = useValue(0.95);
+  useEffect(() => {
+    Animated.timing(v, { toValue: 0, duration: 400, easing: Easing.out(Easing.quad), useNativeDriver: native }).start();
+  }, [v]);
+  return <Animated.View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fdfcff', opacity: v }} />;
+}
+
+/** mlk-shim: a lime band sweeping up and down over the shot while matching. */
+export function Shimmer({ height, children }: { height: number; children: ReactNode }) {
+  const v = useValue(0);
+  useEffect(() => {
+    const a = Animated.loop(
+      Animated.sequence([
+        Animated.timing(v, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.ease), useNativeDriver: native }),
+        Animated.timing(v, { toValue: 0, duration: 1300, easing: Easing.inOut(Easing.ease), useNativeDriver: native }),
+      ]),
+    );
+    a.start();
+    return () => a.stop();
+  }, [v]);
+  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [-45, height - 45] });
   return (
-    <Animated.View style={[style, animated]} pointerEvents="none">
-      <SparkleIcon size={size} color={color} />
+    <Animated.View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 90, transform: [{ translateY }] }}>
+      {children}
     </Animated.View>
   );
 }
 
-/** The gentle 3.2s scale pulse on null-state orbs and the dock shutter. */
-export function Breathe({
-  children,
-  duration = 3200,
-  style,
-}: {
-  children: ReactNode;
-  duration?: number;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const t = useSharedValue(0);
-  const reduced = useReduceMotion();
-
+/** mlk-burst: one sparkle flying outward from the shutter and fading. */
+export function Burst({ dx, dy, delay, children }: { dx: number; dy: number; delay: number; children: ReactNode }) {
+  const v = useValue(0);
   useEffect(() => {
-    if (reduced) return;
-    t.value = withRepeat(withTiming(1, { duration, easing: Easing.inOut(Easing.quad) }), -1, true);
-  }, [t, duration, reduced]);
-
-  const animated = useAnimatedStyle(() => ({ transform: [{ scale: 1 + t.value * 0.05 }] }));
-
-  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
-}
-
-/** Continuous rotation — the "working our magic" arc and its orbiting sparkle. */
-export function Spin({
-  children,
-  duration = 1000,
-  style,
-}: {
-  children: ReactNode;
-  duration?: number;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const t = useSharedValue(0);
-  const reduced = useReduceMotion();
-
-  useEffect(() => {
-    if (reduced) return;
-    t.value = withRepeat(withTiming(1, { duration, ...linear }), -1, false);
-  }, [t, duration, reduced]);
-
-  const animated = useAnimatedStyle(() => ({ transform: [{ rotate: `${t.value * 360}deg` }] }));
-
-  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
-}
-
-/** A sparkle orbiting a centre point at a fixed radius. */
-export function Orbit({
-  radius = 40,
-  duration = 1600,
-  children,
-}: {
-  radius?: number;
-  duration?: number;
-  children: ReactNode;
-}) {
-  const t = useSharedValue(0);
-  const reduced = useReduceMotion();
-
-  useEffect(() => {
-    if (reduced) return;
-    t.value = withRepeat(withTiming(1, { duration, ...linear }), -1, false);
-  }, [t, duration, reduced]);
-
-  const animated = useAnimatedStyle(() => {
-    const angle = t.value * Math.PI * 2;
-    return {
-      transform: [{ translateX: Math.cos(angle) * radius }, { translateY: Math.sin(angle) * radius }],
-    };
-  });
-
-  return <Animated.View style={[{ position: 'absolute' }, animated]}>{children}</Animated.View>;
-}
-
-/**
- * The sticker slap-in: drops in big and tilted, snaps down with a slight
- * overshoot, settles at its resting -2° tilt. One time, first run only.
- */
-export function SlapIn({ children, delay = motion.slapDelay }: { children: ReactNode; delay?: number }) {
-  const t = useSharedValue(0);
-  const reduced = useReduceMotion();
-
-  useEffect(() => {
-    if (reduced) {
-      t.value = withDelay(delay, withTiming(1, { duration: motion.transition }));
-      return;
-    }
-    t.value = withDelay(
-      delay,
-      withSequence(
-        withTiming(0.6, { duration: motion.slap * 0.6, easing: Easing.out(Easing.cubic) }),
-        withTiming(1, { duration: motion.slap * 0.4, easing: Easing.inOut(Easing.quad) }),
-      ),
-    );
-  }, [t, delay, reduced]);
-
-  const animated = useAnimatedStyle(() => {
-    // 0 → big and tilted, 0.6 → slightly under, 1 → resting.
-    const scale = t.value < 0.6 ? 1.6 - (t.value / 0.6) * 0.64 : 0.96 + ((t.value - 0.6) / 0.4) * 0.04;
-    const rotate = t.value < 0.6 ? -9 + (t.value / 0.6) * 8 : -1 - ((t.value - 0.6) / 0.4);
-    return {
-      opacity: Math.min(1, t.value / 0.6),
-      transform: [{ scale }, { rotate: `${rotate}deg` }],
-    };
-  });
-
-  return <Animated.View style={animated}>{children}</Animated.View>;
-}
-
-/** Content entrance used by every screen — a 16px rise with a fade. */
-export function RiseIn({
-  children,
-  style,
-  delay = 0,
-}: {
-  children: ReactNode;
-  style?: StyleProp<ViewStyle>;
-  delay?: number;
-}) {
-  const t = useSharedValue(0);
-
-  useEffect(() => {
-    t.value = withDelay(delay, withTiming(1, { duration: motion.transition, ...easeOut }));
-  }, [t, delay]);
-
-  const animated = useAnimatedStyle(() => ({
-    opacity: t.value,
-    transform: [{ translateY: (1 - t.value) * 16 }],
-  }));
-
-  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
-}
-
-/**
- * The reward pop — the found card being dealt in. This is the one place
- * overshoot is allowed, and it's why the moment feels like a reveal.
- */
-export function PopIn({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  const t = useSharedValue(0);
-  const reduced = useReduceMotion();
-
-  useEffect(() => {
-    if (reduced) {
-      t.value = withTiming(1, { duration: motion.transition });
-      return;
-    }
-    t.value = withSequence(
-      withTiming(1.06, { duration: motion.pop * 0.6, easing: Easing.out(Easing.cubic) }),
-      withTiming(1, { duration: motion.pop * 0.4, easing: Easing.inOut(Easing.quad) }),
-    );
-  }, [t, reduced]);
-
-  const animated = useAnimatedStyle(() => ({
-    opacity: Math.min(1, t.value / 0.7),
-    transform: [{ scale: 0.7 + t.value * 0.3 }],
-  }));
-
-  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
-}
-
-/**
- * The claim: the card flies down into the shutter and shrinks away. Motion
- * always travels toward the dock, so wishes visibly collect into the button
- * you'll press next time.
- */
-export function FlyToShutter({
-  children,
-  distance = 225,
-  onDone,
-  style,
-}: {
-  children: ReactNode;
-  distance?: number;
-  onDone?: () => void;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const t = useSharedValue(0);
-  const reduced = useReduceMotion();
-
-  useEffect(() => {
-    const duration = reduced ? motion.transition : motion.fly;
-    t.value = withTiming(1, { duration, easing: reduced ? Easing.linear : Easing.in(Easing.cubic) });
-    const timer = setTimeout(() => onDone?.(), duration);
-    return () => clearTimeout(timer);
-  }, [t, reduced, onDone]);
-
-  const animated = useAnimatedStyle(() => {
-    if (reduced) return { opacity: 1 - t.value };
-    return {
-      opacity: t.value > 0.7 ? 1 - (t.value - 0.7) / 0.3 : 1,
-      transform: [{ translateY: t.value * distance }, { scale: 1 - t.value * 0.84 }],
-    };
-  });
-
-  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
-}
-
-const BURST = [
-  { dx: -34, dy: -26, size: 13, color: '#c8f542', delay: 0 },
-  { dx: 32, dy: -30, size: 11, color: '#ff5da2', delay: 30 },
-  { dx: -20, dy: 24, size: 10, color: '#a78bfa', delay: 50 },
-  { dx: 40, dy: 14, size: 9, color: '#c8f542', delay: 70 },
-  { dx: -42, dy: 6, size: 9, color: '#ff5da2', delay: 10 },
-];
-
-/** Sparkles bursting outward where the wish lands. */
-export function SparkleBurst({ style }: { style?: StyleProp<ViewStyle> }) {
-  const reduced = useReduceMotion();
-  if (reduced) return null;
-  return (
-    <View style={[{ position: 'absolute' }, style]} pointerEvents="none">
-      {BURST.map((s, i) => (
-        <BurstSparkle key={i} {...s} />
-      ))}
-    </View>
-  );
-}
-
-function BurstSparkle({
-  dx,
-  dy,
-  size,
-  color,
-  delay,
-}: {
-  dx: number;
-  dy: number;
-  size: number;
-  color: string;
-  delay: number;
-}) {
-  const t = useSharedValue(0);
-
-  useEffect(() => {
-    t.value = withDelay(delay, withTiming(1, { duration: motion.burst, ...easeOut }));
-  }, [t, delay]);
-
-  const animated = useAnimatedStyle(() => ({
-    opacity: 1 - t.value,
-    transform: [
-      { translateX: dx * t.value },
-      { translateY: dy * t.value },
-      { scale: 0.3 + t.value * 0.7 },
-    ],
-  }));
-
-  return (
-    <Animated.View style={[{ position: 'absolute' as const, inset: 0 }, animated]}>
-      <SparkleIcon size={size} color={color} />
-    </Animated.View>
-  );
-}
-
-/** A one-shot scale bump — the shinies counter reacting to a new arrival. */
-export function Bump({ trigger, children }: { trigger: unknown; children: ReactNode }) {
-  const t = useSharedValue(0);
-  const reduced = useReduceMotion();
-
-  useEffect(() => {
-    if (reduced) return;
-    t.value = withSequence(
-      withTiming(1, { duration: 140, ...easeOut }),
-      withTiming(0, { duration: 220, ...easeOut }),
-    );
-  }, [t, trigger, reduced]);
-
-  const animated = useAnimatedStyle(() => ({ transform: [{ scale: 1 + t.value * 0.35 }] }));
-
-  return <Animated.View style={animated}>{children}</Animated.View>;
-}
-
-/** The white flash on snap. */
-export function SnapFlash({ onDone }: { onDone?: () => void }) {
-  const t = useSharedValue(1);
-
-  useEffect(() => {
-    t.value = withTiming(0, { duration: motion.flash, ...easeOut });
-    const timer = setTimeout(() => onDone?.(), motion.flash);
-    return () => clearTimeout(timer);
-  }, [t, onDone]);
-
-  const animated = useAnimatedStyle(() => ({ opacity: t.value * 0.95 }));
-
+    Animated.timing(v, { toValue: 1, duration: 700, delay, easing: Easing.out(Easing.quad), useNativeDriver: native }).start();
+  }, [v, delay]);
   return (
     <Animated.View
-      pointerEvents="none"
-      style={[{ position: 'absolute' as const, inset: 0 }, { backgroundColor: '#fdfcff' }, animated]}
-    />
+      style={{
+        position: 'absolute',
+        opacity: v.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+        transform: [
+          { translateX: v.interpolate({ inputRange: [0, 1], outputRange: [0, dx] }) },
+          { translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, dy] }) },
+          { scale: v.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) },
+        ],
+      }}
+    >
+      {children}
+    </Animated.View>
   );
 }
 
-/** Bottom-sheet / filing-tray entrance: rises with a soft overshoot settle. */
-export function SlideUp({
-  children,
-  style,
-}: {
-  children: ReactNode;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const t = useSharedValue(0);
-  const reduced = useReduceMotion();
-
+/** mlk-sheetout: the found card dropping away into the dock on "Want it". */
+export function SheetOut({ children, active, style }: { children: ReactNode; active: boolean; style?: StyleProp<ViewStyle> }) {
+  const v = useValue(0);
   useEffect(() => {
-    if (reduced) {
-      t.value = withTiming(1, { duration: motion.transition });
-      return;
-    }
-    t.value = withSequence(
-      withTiming(1.04, { duration: 200, easing: Easing.out(Easing.cubic) }),
-      withTiming(1, { duration: 80, easing: Easing.inOut(Easing.quad) }),
-    );
-  }, [t, reduced]);
-
-  const animated = useAnimatedStyle(() => ({
-    opacity: Math.min(1, t.value * 2),
-    transform: [{ translateY: (1 - Math.min(t.value, 1)) * 40 }],
-  }));
-
-  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
+    if (active) Animated.timing(v, { toValue: 1, duration: 450, easing: Easing.bezier(0.5, 0, 0.75, 0), useNativeDriver: native }).start();
+  }, [v, active]);
+  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [0, 600] });
+  const opacity = v.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] });
+  return <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>{children}</Animated.View>;
 }

@@ -1,190 +1,142 @@
 /**
- * The floating dock (turn 8b + the centre-shutter round).
+ * The bottom dock: Feed · Lists · shutter · Friends · Me.
  *
- * Five destinations: Lists · Feed · ◉ · Friends · Me. The shutter is not a tab
- * — it's a raised 70px button breaking out of the dock's top edge that fires
- * the capture when you're on the camera and jumps you there from anywhere
- * else, with a brighter glow in the "this fires now" state so the two
- * meanings never blur.
+ * Tapping the shutter opens the full-screen camera. Holding it (450ms) opens
+ * the camera straight into Say mode; letting go captures.
  */
-import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
+import { useRef } from 'react';
+import { Platform, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { View, Text, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FeedIcon, FriendsIcon, ListsIcon, MeIcon, PlusIcon, SparkleIcon } from '@/ui/icons';
+import { useApp } from '@/store/useApp';
+import type { Route } from '@/store/types';
+import { brand, palette } from '@/theme/tokens';
+import { Plus, People, Sparkle, TabFeed, TabLists, TabMe } from '@/ui/icons';
 import { Breathe } from '@/ui/motion';
-import { brand, layout } from '@/theme/tokens';
-import { useTheme } from '@/theme/ThemeProvider';
-import { useAppStore, type Tab } from '@/store/useAppStore';
+import { T, Tap } from '@/ui/primitives';
 
-const TABS: { id: Tab; label: string; Icon: typeof ListsIcon }[] = [
-  { id: 'lists', label: 'Lists', Icon: ListsIcon },
-  { id: 'feed', label: 'Feed', Icon: FeedIcon },
-  { id: 'friends', label: 'Friends', Icon: FriendsIcon },
-  { id: 'me', label: 'Me', Icon: MeIcon },
-];
+/** Set when a dock hold opened Say mode, so its release captures. */
+let sayHeld = false;
 
-export function useDockBottom() {
+export function Dock({ route }: { route: Route }) {
   const insets = useSafeAreaInsets();
-  // The design sits the dock 26px off the bottom on a device with a home
-  // indicator (34px inset). Devices without one don't need that clearance.
-  return Math.max(16, insets.bottom - 8);
-}
+  const tab = useApp((s) => s.tab);
+  const openCamera = useApp((s) => s.openCamera);
+  const firstRun = useApp((s) => s.firstRun);
+  const friendsBadge = useApp((s) => !!s.request);
+  const held = useRef(false);
+  const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-export function Dock({
-  onSelect,
-  onShutter,
-  /** True when pressing the shutter fires a capture rather than navigating. */
-  armed = false,
-}: {
-  onSelect: (tab: Tab) => void;
-  onShutter: () => void;
-  armed?: boolean;
-}) {
-  const theme = useTheme();
-  const activeTab = useAppStore((s) => s.activeTab);
-  const bottom = useDockBottom();
+  const active = (n: string) => {
+    if (n === 'lists') return route.name === 'lists' || route.name === 'list';
+    if (n === 'me') return route.name === 'me' || route.name === 'settings';
+    if (n === 'people') return route.name === 'people';
+    return route.name === n;
+  };
+  const color = (n: string) => (active(n) ? palette.limeText : palette.muted);
 
-  const left = TABS.slice(0, 2);
-  const right = TABS.slice(2);
+  const onPressIn = () => {
+    held.current = false;
+    if (hold.current) clearTimeout(hold.current);
+    hold.current = setTimeout(() => {
+      held.current = true;
+      if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+      openCamera({ mode: 'say' });
+      useApp.getState().setCapture({ phase: 'idle' });
+      sayHeld = true;
+    }, 450);
+  };
+  const onPressOut = () => {
+    if (hold.current) clearTimeout(hold.current);
+    if (held.current && sayHeld) {
+      sayHeld = false;
+      useApp.getState().runCapture({ source: 'voice' });
+    }
+  };
+  const onPress = () => {
+    if (held.current) {
+      held.current = false;
+      return;
+    }
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+    openCamera();
+  };
+
+  const item = (n: 'feed' | 'lists' | 'people' | 'me', label: string, icon: React.ReactNode, badge?: boolean) => (
+    <Tap
+      onPress={() => tab(n)}
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active(n) }}
+      style={{ flex: 1, alignItems: 'center', gap: 3, paddingTop: 9 }}
+    >
+      {icon}
+      <T size={11} w={600} color={color(n)}>
+        {label}
+      </T>
+      {badge ? (
+        <View style={{ position: 'absolute', top: 7, left: '50%', marginLeft: 7, width: 9, height: 9, borderRadius: 5, backgroundColor: brand.pink, borderWidth: 2, borderColor: palette.bg }} />
+      ) : null}
+    </Tap>
+  );
 
   return (
     <View
-      pointerEvents="box-none"
       style={{
         position: 'absolute',
-        left: layout.dockInset,
-        right: layout.dockInset,
-        bottom,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        paddingHorizontal: 8,
+        paddingBottom: Math.max(insets.bottom, 12) + 4,
+        backgroundColor: palette.dock,
+        borderTopWidth: 1,
+        borderTopColor: palette.vio33,
         zIndex: 5,
       }}
     >
-      <BlurView
-        intensity={Platform.OS === 'web' ? 24 : 30}
-        tint={theme.isDark ? 'dark' : 'light'}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-around',
-          paddingVertical: 9,
-          paddingHorizontal: 10,
-          backgroundColor: theme.dock,
-          borderWidth: 1.5,
-          borderColor: theme.violet66,
-          borderRadius: 24,
-          overflow: 'visible',
-          boxShadow: `0 14px 34px ${theme.isDark ? 'rgba(0,0,0,0.55)' : 'rgba(45,36,71,0.18)'}`,
-        }}
-      >
-        {left.map((tab) => (
-          <DockTab key={tab.id} {...tab} active={activeTab === tab.id} onPress={() => onSelect(tab.id)} />
-        ))}
-
-        <Shutter armed={armed} onPress={onShutter} />
-
-        {right.map((tab) => (
-          <DockTab key={tab.id} {...tab} active={activeTab === tab.id} onPress={() => onSelect(tab.id)} />
-        ))}
-      </BlurView>
+      {item('feed', 'Feed', <TabFeed color={color('feed')} />)}
+      {item('lists', 'Lists', <TabLists color={color('lists')} />)}
+      <Breathe on={firstRun} period={3400} style={{ marginTop: -26 }}>
+        <Pressable
+          onPress={onPress}
+          onPressIn={onPressIn}
+          onPressOut={onPressOut}
+          accessibilityRole="button"
+          accessibilityLabel="Add a shiny"
+          accessibilityHint="Opens the camera. Hold to say what you want."
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            borderWidth: 3,
+            borderColor: palette.ring,
+            backgroundColor: palette.inset,
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
+          }}
+        >
+          <LinearGradient
+            colors={[brand.limeTop, brand.lime, brand.limeDeep]}
+            locations={[0, 0.55, 1]}
+            start={{ x: 0.3, y: 0.25 }}
+            end={{ x: 1, y: 1 }}
+            style={{ width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Plus color={brand.shutterInk} />
+            <View style={{ position: 'absolute', top: 5, right: 6, opacity: 0.85 }}>
+              <Sparkle size={9} color="#fff" />
+            </View>
+          </LinearGradient>
+        </Pressable>
+      </Breathe>
+      {item('people', 'Friends', <People size={22} strokeWidth={1.4} color={color('people')} />, friendsBadge)}
+      {item('me', 'Me', <TabMe color={color('me')} />)}
     </View>
   );
 }
 
-function DockTab({
-  label,
-  Icon,
-  active,
-  onPress,
-}: {
-  label: string;
-  Icon: typeof ListsIcon;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const color = active ? theme.limeText : theme.muted;
-
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="tab"
-      accessibilityState={{ selected: active }}
-      accessibilityLabel={label}
-      style={{ width: 56, alignItems: 'center', gap: 2 }}
-    >
-      {/* The active indicator: a lime bar riding above the glyph. */}
-      {active ? (
-        <View
-          style={{
-            position: 'absolute',
-            top: -10,
-            width: 26,
-            height: 3,
-            borderRadius: 2,
-            backgroundColor: theme.limeText,
-          }}
-        />
-      ) : null}
-      <Icon size={19} color={color} />
-      <Text style={{ fontSize: 10.5, fontWeight: '700', color }}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function Shutter({ armed, onPress }: { armed: boolean; onPress: () => void }) {
-  const theme = useTheme();
-
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={armed ? 'Capture a shiny' : 'Open the camera'}
-      hitSlop={6}
-      style={({ pressed }) => ({
-        width: layout.shutterSize,
-        height: layout.shutterSize,
-        marginTop: -layout.shutterOverhang,
-        transform: [{ scale: pressed ? 0.94 : 1 }],
-      })}
-    >
-      <Breathe duration={3400}>
-        <View
-          style={{
-            width: layout.shutterSize,
-            height: layout.shutterSize,
-            borderRadius: layout.shutterSize / 2,
-            borderWidth: 3,
-            borderColor: theme.ring,
-            backgroundColor: theme.inset,
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: armed
-              ? `0 0 30px ${brand.limeGlowStrong}`
-              : `0 0 16px ${brand.limeGlowSoft}`,
-          }}
-        >
-          <LinearGradient
-            colors={[brand.limeLight, brand.lime, brand.limeDeep]}
-            locations={[0, 0.55, 1]}
-            start={{ x: 0.25, y: 0.15 }}
-            end={{ x: 0.85, y: 1 }}
-            style={{
-              width: layout.shutterCore,
-              height: layout.shutterCore,
-              borderRadius: layout.shutterCore / 2,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <PlusIcon size={24} color={brand.shutterInk} />
-            {/* The glint that ties the button to the sparkle language. */}
-            <View style={{ position: 'absolute', top: 5, right: 6, opacity: 0.85 }}>
-              <SparkleIcon size={9} color="#ffffff" />
-            </View>
-          </LinearGradient>
-        </View>
-      </Breathe>
-    </Pressable>
-  );
-}

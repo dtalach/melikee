@@ -1,68 +1,58 @@
-import { useEffect } from 'react';
-import { View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, Platform, View } from 'react-native';
 
-import { AppText } from '@/ui/primitives';
-import { SparkleIcon } from '@/ui/icons';
-import { SlideUp } from '@/ui/motion';
-import { brand, layout } from '@/theme/tokens';
-import { useTheme } from '@/theme/ThemeProvider';
-import { useAppStore } from '@/store/useAppStore';
+import { useApp } from '@/store/useApp';
+import { brand, palette } from '@/theme/tokens';
+import { Sparkle } from '@/ui/icons';
+import { T } from '@/ui/primitives';
 
-/** How long a toast stays up before it clears itself. */
-const TOAST_MS = 2400;
+const MS = 2400;
 
-/**
- * The app's one-line confirmations — "Dibs called", "Undone. Never happened."
- * It sits above the dock so it never covers the shutter.
- */
+/** mlk-toast: rises in, holds, fades — 2.4s. */
 export function Toast() {
-  const theme = useTheme();
-  const toast = useAppStore((s) => s.toast);
-  const clearToast = useAppStore((s) => s.clearToast);
-  // The camera screen keeps its mode selector above the dock, so the toast
-  // clears that too rather than landing on top of SCAN · SNAP · SAY IT.
-  const onCamera = useAppStore((s) => s.activeTab === 'camera');
+  const toast = useApp((s) => s.toast);
+  const [v] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(clearToast, TOAST_MS);
-    return () => clearTimeout(timer);
-  }, [toast, clearToast]);
+    v.setValue(0);
+    const native = Platform.OS !== 'web';
+    const a = Animated.sequence([
+      Animated.timing(v, { toValue: 1, duration: MS * 0.1, useNativeDriver: native }),
+      Animated.delay(MS * 0.75),
+      Animated.timing(v, { toValue: 2, duration: MS * 0.15, useNativeDriver: native }),
+    ]);
+    a.start(({ finished }) => {
+      if (finished && useApp.getState().toast?.key === toast.key) useApp.setState({ toast: null });
+    });
+    return () => a.stop();
+  }, [toast, v]);
 
   if (!toast) return null;
-
   return (
-    <View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        left: 24,
-        right: 24,
-        bottom: onCamera ? 152 : 96,
-        alignItems: 'center',
-        zIndex: 7,
-      }}
-    >
-      {/* Keyed so a second toast replays the entrance instead of sitting still. */}
-      <SlideUp key={toast}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-            backgroundColor: theme.card,
-            borderWidth: 1.5,
-            borderColor: theme.violet66,
-            borderRadius: layout.radius.pill,
-            paddingVertical: 9,
-            paddingHorizontal: 16,
-            boxShadow: `0 8px 24px ${theme.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(45,36,71,0.18)'}`,
-          }}
-        >
-          <SparkleIcon size={13} color={brand.lime} />
-          <AppText style={{ fontSize: 12.5, fontWeight: '700' }}>{toast}</AppText>
-        </View>
-      </SlideUp>
+    <View pointerEvents="none" style={{ position: 'absolute', left: 24, right: 24, bottom: 104, alignItems: 'center', zIndex: 7 }}>
+      <Animated.View
+        accessibilityLiveRegion="polite"
+        style={{
+          opacity: v.interpolate({ inputRange: [0, 1, 2], outputRange: [0, 1, 0] }),
+          transform: [{ translateY: v.interpolate({ inputRange: [0, 1, 2], outputRange: [10, 0, 0] }) }],
+          backgroundColor: palette.card,
+          borderWidth: 1,
+          borderColor: palette.vio44,
+          borderRadius: 999,
+          paddingVertical: 9,
+          paddingHorizontal: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+        }}
+      >
+        <Sparkle size={13} color={brand.lime} />
+        <T size={12.5} w={700}>
+          {toast.msg}
+        </T>
+      </Animated.View>
     </View>
   );
 }
