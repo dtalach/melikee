@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import { PROFILE_HOST } from '@/screens/Me';
+import { profileLink } from '@/lib/links';
 import { QrStub } from '@/screens/Friends';
 import { WantButton } from '@/screens/Feed';
 import { useApp } from '@/store/useApp';
@@ -16,7 +16,7 @@ export function InviteSheet() {
   const [copied, setCopied] = useState(false);
   const needle = q.trim().toLowerCase();
   const results = s.contacts.filter((c) => (needle ? `${c.name} ${c.handle}`.toLowerCase().includes(needle) : !c.searchOnly));
-  const link = `${PROFILE_HOST}/${s.profile.handle}`;
+  const link = profileLink(s.profile.handle);
 
   return (
     <>
@@ -76,7 +76,7 @@ export function InviteSheet() {
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'stretch' }}>
         <Tap
           onPress={() => {
-            Clipboard.setStringAsync(`https://${link}`).catch(() => undefined);
+            Clipboard.setStringAsync(link.url).catch(() => undefined);
             setCopied(true);
             s.showToast('Link copied — send it anywhere');
           }}
@@ -84,7 +84,7 @@ export function InviteSheet() {
         >
           <SectionLabel>SEND YOUR LINK</SectionLabel>
           <T size={12} w={700} color={palette.limeText} style={{ marginTop: 2 }}>
-            {link}
+            {link.display}
           </T>
           <T size={11} color={palette.muted} style={{ marginTop: 2 }}>
             {copied ? 'copied ✓' : 'tap to copy'}

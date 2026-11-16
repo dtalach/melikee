@@ -53,6 +53,15 @@ localhost, call the production deployment; point them elsewhere with
 real price history or price-drop alerts), the endpoint has no rate limiting or
 auth, and anyone who finds the URL can spend API credit.
 
+## Public links
+
+The app hands out `melikee.app/<handle>` (your page) and
+`melikee.app/<handle>/<list>?t=<token>` (one list). Only Friends + link lists
+open from a link; "Reset link" changes the token, so old copies stop working.
+There's no shared backend yet, so these pages show a list only on the device
+that owns it: someone else opening your link sees "expired" until lists are
+stored on a server.
+
 ## What's still sample data
 
 Friends, the Feed, notifications other than "We think we found it", other
@@ -69,7 +78,8 @@ src/
   app/                 expo-router routes
     _layout.tsx        fonts, splash, store hydration
     index.tsx          the app shell
-    g/[handle].tsx     the public gifter page (?l=<list>&t=<link token>)
+    [handle]/          public links: melikee.app/<handle> and /<handle>/<list>?t=<token>
+    g/[handle].tsx     the older link form, kept so copied links still open
   components/          Shell (screen switch), Dock, FilingTray, Toast, sheets/
   screens/             one file per screen in the prototype
   store/               zustand store, types, seed data

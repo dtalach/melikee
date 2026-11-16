@@ -680,6 +680,3 @@ export function visSummary(s: AppState, l: WishList) {
   return l.vis === 'invite' ? `${fs} + link` : fs;
 }
 
-export function shareSlug(l: WishList) {
-  return l.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-}
