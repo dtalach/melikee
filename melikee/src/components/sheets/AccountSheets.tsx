@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { TextInput, View } from 'react-native';
+
+import { handleNote, useHandleCheck } from '@/components/useHandleCheck';
 
 import { DAYS, MONTHS, shortDate, type Month } from '@/lib/dates';
 import { listById, useApp, visibleLists } from '@/store/useApp';
-import { brand, palette } from '@/theme/tokens';
+import { brand, font, palette } from '@/theme/tokens';
 import { AccentButton, LimeButton, PhotoBox, Select, SheetTitle, T, Tap, ToggleRow } from '@/ui/primitives';
 
 export function BdaySheet() {
@@ -220,6 +222,53 @@ export function PrivacySheet() {
         ))}
       </View>
       <ToggleRow title="Friends can see My wants" sub={main.vis === 'me' ? 'private until you share it' : 'friends you pick see what you add'} on={main.vis !== 'me'} onPress={() => s.setVis('w', main.vis === 'me' ? 'friends' : 'me')} />
+    </>
+  );
+}
+
+/** Change your handle. Your link moves with it; the old one stops working. */
+export function HandleSheet() {
+  const current = useApp((s) => s.profile.handle);
+  const setProfile = useApp((s) => s.setProfile);
+  const close = useApp((s) => s.closeSheet);
+  const showToast = useApp((s) => s.showToast);
+  const [draft, setDraft] = useState(current);
+  const h = draft.trim();
+  const status = useHandleCheck(h);
+  const ok = h !== current && (status === 'free' || status === 'unknown');
+  return (
+    <>
+      <SheetTitle sub="Your links move to the new handle. Links with the old one stop working.">Change your handle</SheetTitle>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 12 }}>
+        <T size={14} w={600} color={palette.muted}>
+          @
+        </T>
+        <TextInput
+          value={draft}
+          onChangeText={(v) => setDraft(v.toLowerCase().replace(/\s/g, ''))}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoFocus
+          accessibilityLabel="Handle"
+          style={{ flex: 1, fontSize: 14, fontFamily: font[600], color: palette.text, padding: 0 }}
+        />
+      </View>
+      {h !== current ? (
+        <T size={12} w={600} color={status === 'free' || status === 'unknown' ? palette.limeText : status === 'checking' ? palette.muted : brand.pink} style={{ marginTop: -4 }}>
+          {handleNote(h, status)}
+        </T>
+      ) : null}
+      <LimeButton
+        label="Save"
+        size={13.5}
+        pad={12}
+        disabled={!ok}
+        onPress={() => {
+          setProfile({ handle: h });
+          close();
+          showToast(`You’re @${h} now`);
+        }}
+      />
     </>
   );
 }

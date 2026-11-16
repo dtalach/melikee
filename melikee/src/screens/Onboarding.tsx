@@ -7,15 +7,13 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ageOn, DAYS, MONTHS, type Month } from '@/lib/dates';
-import { RESERVED_HANDLES } from '@/lib/links';
+import { handleNote, useHandleCheck } from '@/components/useHandleCheck';
 import { useApp } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
 import { Chevron, Sparkle } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
 import { AccentButton, Field, LimeButton, Radio, RadialGround, Select, T, Tap } from '@/ui/primitives';
 
-const TAKEN = new Set(['maya', ...RESERVED_HANDLES]);
-const HANDLE = /^[a-z0-9_.]{3,20}$/;
 
 export function Onboarding() {
   const insets = useSafeAreaInsets();
@@ -38,7 +36,8 @@ export function Onboarding() {
   const age = ageOn({ month, day: parseInt(day, 10), year: parseInt(year, 10) });
   const under13 = age < 13;
   const h = handle.trim();
-  const hOk = HANDLE.test(h) && !TAKEN.has(h);
+  const hStatus = useHandleCheck(h);
+  const hOk = hStatus === 'free' || hStatus === 'unknown';
   const blocked = (step === 2 && !hOk) || (step === 3 && under13 && !parent.trim());
 
   const next = () => {
@@ -138,8 +137,8 @@ export function Onboarding() {
                   style={{ flex: 1, fontSize: 15, fontFamily: font[600], color: palette.text, padding: 0 }}
                 />
               </View>
-              <T size={12.5} w={600} color={hOk ? palette.limeText : brand.pink} style={{ marginTop: -8 }}>
-                {hOk ? `✓ @${h} is yours` : TAKEN.has(h) ? `@${h} is taken — try another` : '3–20 letters, numbers, _ or .'}
+              <T size={12.5} w={600} color={hOk ? palette.limeText : hStatus === 'checking' ? palette.muted : brand.pink} style={{ marginTop: -8 }}>
+                {handleNote(h, hStatus)}
               </T>
               <View style={{ flex: 1 }} />
               {nextBtn('Next')}

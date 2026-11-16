@@ -29,7 +29,7 @@ export type Match = {
 /** The production deployment, used when there's no same-origin API. */
 const DEFAULT_API = 'https://melikee-eight.vercel.app';
 
-function apiBase() {
+export function apiBase() {
   const env = process.env.EXPO_PUBLIC_API_URL;
   if (env) return env.replace(/\/$/, '');
   if (Platform.OS === 'web' && typeof window !== 'undefined' && !/^(localhost|127\.|192\.168\.)/.test(window.location.hostname)) return '';

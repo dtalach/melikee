@@ -142,6 +142,12 @@ type Content = {
   gifterDibs: Record<number, boolean>;
   /** Year the post-birthday "Got it / Still want" sort was done. */
   cleanupYear: number | null;
+  /** Proves to the server that this device owns its handle's page. Never shown. */
+  ownerSecret: string;
+  /** This device's identity when it calls dibs on someone else's list. */
+  gifterId: string;
+  /** The handle last published under, so a handle change removes the old page. */
+  publishedHandle: string | null;
 };
 
 type Session = {
@@ -150,6 +156,8 @@ type Session = {
   toast: { msg: string; key: number } | null;
   capture: Capture;
   filing: { itemId: number; key: number } | null;
+  /** Whether your shared lists are live at melikee.app. */
+  publishState: 'idle' | 'live' | 'taken' | 'off' | 'error';
 };
 
 type Actions = {
@@ -237,6 +245,9 @@ function freshContent(): Content {
     gifterName: '',
     gifterDibs: {},
     cleanupYear: null,
+    ownerSecret: secret(),
+    gifterId: secret(),
+    publishedHandle: null,
   };
 }
 
@@ -251,6 +262,11 @@ function clearTimers() {
 
 /** Bumped per capture so a slow answer to an abandoned capture is ignored. */
 let captureRun = 0;
+
+/** A long random string for device secrets (not a security boundary beyond "hard to guess"). */
+function secret() {
+  return Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 12)).join('');
+}
 let toastKey = 0;
 let filingKey = 0;
 let filingTimer: ReturnType<typeof setTimeout> | null = null;
@@ -264,6 +280,7 @@ export const useApp = create<AppState>()(
       toast: null,
       capture: idleCapture,
       filing: null,
+      publishState: 'idle',
 
       go: (r) => set((s) => ({ stack: [...s.stack, r], sheet: null })),
       replace: (r) => set((s) => ({ stack: [...s.stack.slice(0, -1), r], sheet: null })),
@@ -496,14 +513,14 @@ export const useApp = create<AppState>()(
 
       createList: ({ name, vis, accent, date }) => {
         const id = `l${Date.now().toString(36)}`;
-        set((s) => ({ lists: [...s.lists, { id, name, vis, accent, date, linkToken: token(), linkExpiry: date ? 'date' : 'always' }] }));
+        set((s) => ({ lists: [...s.lists, { id, name, vis, accent, date, linkToken: token(), linkSince: Date.now(), linkExpiry: date ? 'date' : 'always' }] }));
         return id;
       },
       updateList: (id, patch) => set((s) => ({ lists: s.lists.map((l) => (l.id === id ? { ...l, ...patch } : l)) })),
       setVis: (id, vis) =>
         set((s) => ({
           // Leaving Friends + link kills the link at once (spec).
-          lists: s.lists.map((l) => (l.id === id ? { ...l, vis, linkToken: l.vis === 'invite' && vis !== 'invite' ? token() : l.linkToken } : l)),
+          lists: s.lists.map((l) => (l.id === id ? { ...l, vis, ...(l.vis === 'invite' && vis !== 'invite' ? { linkToken: token(), linkSince: Date.now() } : {}) } : l)),
         })),
       archiveList: (id) => set((s) => ({ lists: s.lists.map((l) => (l.id === id ? { ...l, archived: true } : l)) })),
       deleteList: (id) =>
@@ -513,7 +530,7 @@ export const useApp = create<AppState>()(
           lastList: s.lastList === id ? 'w' : s.lastList,
         })),
       resetLink: (id) =>
-        set((s) => ({ lists: s.lists.map((l) => (!id || l.id === id ? { ...l, linkToken: token() } : l)) })),
+        set((s) => ({ lists: s.lists.map((l) => (!id || l.id === id ? { ...l, linkToken: token(), linkSince: Date.now() } : l)) })),
 
       toggleAccess: (friendId, listId) =>
         set((s) => ({
@@ -580,7 +597,8 @@ export const useApp = create<AppState>()(
       version: 2,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => {
-        const { stack, sheet, toast, capture, filing, ...rest } = s;
+        const { stack, sheet, toast, capture, filing, publishState, ...rest } = s;
+        void publishState;
         void stack;
         void sheet;
         void toast;
