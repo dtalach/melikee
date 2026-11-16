@@ -1,28 +1,44 @@
-import { BirthdaySheet } from '@/components/sheets/BirthdaySheet';
-import { DiagnosticsSheet } from '@/components/sheets/DiagnosticsSheet';
-import { InviteSheet } from '@/components/sheets/InviteSheet';
-import { NewListSheet } from '@/components/sheets/NewListSheet';
-import { SettingsSheet } from '@/components/sheets/SettingsSheet';
-import { ShareSheet } from '@/components/sheets/ShareSheet';
-import { useAppStore } from '@/store/useAppStore';
+import type { Sheet } from '@/store/types';
+import { useApp } from '@/store/useApp';
+import { SheetFrame } from '@/ui/primitives';
+import { BdaySheet, CleanupSheet, NotifSettingsSheet, ParentSheet, PrivacySheet } from './AccountSheets';
+import { ConfirmSheet, FeedItemSheet, InviteSheet } from './PeopleSheets';
+import { ListSettingsSheet, NewListSheet, ShareSheet, VisSheet } from './ListSheets';
 
-/** One host for every half-sheet, mounted above the navigator. */
-export function Sheets() {
-  const sheet = useAppStore((s) => s.sheet);
-  if (!sheet) return null;
+export function Sheets({ sheet }: { sheet: Sheet }) {
+  const close = useApp((s) => s.closeSheet);
+  return (
+    <SheetFrame key={sheet.type} onClose={close} gap={sheet.type === 'notifSettings' ? 4 : sheet.type === 'vis' ? 10 : 12}>
+      <Body sheet={sheet} />
+    </SheetFrame>
+  );
+}
 
-  switch (sheet.kind) {
+function Body({ sheet }: { sheet: Sheet }) {
+  switch (sheet.type) {
     case 'share':
       return <ShareSheet listId={sheet.listId} />;
-    case 'invite':
-      return <InviteSheet />;
+    case 'vis':
+      return <VisSheet listId={sheet.listId} />;
     case 'newList':
       return <NewListSheet />;
-    case 'settings':
-      return <SettingsSheet />;
-    case 'birthday':
-      return <BirthdaySheet />;
-    case 'diagnostics':
-      return <DiagnosticsSheet />;
+    case 'listSettings':
+      return <ListSettingsSheet listId={sheet.listId} />;
+    case 'invite':
+      return <InviteSheet />;
+    case 'feedItem':
+      return <FeedItemSheet id={sheet.id} />;
+    case 'confirm':
+      return <ConfirmSheet action={sheet.action} friendId={sheet.friendId} />;
+    case 'bday':
+      return <BdaySheet />;
+    case 'parent':
+      return <ParentSheet />;
+    case 'cleanup':
+      return <CleanupSheet listId={sheet.listId} />;
+    case 'notifSettings':
+      return <NotifSettingsSheet />;
+    case 'privacy':
+      return <PrivacySheet />;
   }
 }

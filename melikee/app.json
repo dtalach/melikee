@@ -6,22 +6,19 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "melikee",
-    "userInterfaceStyle": "automatic",
-    "backgroundColor": "#14101f",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#121212",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.melikee.client",
       "infoPlist": {
-        "NSCameraUsageDescription": "MeLikee uses the camera so you can snap or scan anything you want and add it to your wishlist.",
-        "NSMicrophoneUsageDescription": "MeLikee uses the microphone so you can say what you want instead of typing it.",
-        "NSSpeechRecognitionUsageDescription": "MeLikee turns what you say into the product you're looking for.",
-        "NSPhotoLibraryAddUsageDescription": "MeLikee saves the photos you snap so a wish is never lost while we match it."
+        "NSCameraUsageDescription": "MeLikee uses the camera so you can snap or scan anything you want and add it to your wishlist."
       }
     },
     "android": {
       "package": "app.melikee.client",
       "adaptiveIcon": {
-        "backgroundColor": "#14101f",
+        "backgroundColor": "#121212",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -38,7 +35,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#14101f",
+          "backgroundColor": "#121212",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
@@ -47,17 +44,10 @@
         "expo-camera",
         {
           "cameraPermission": "MeLikee uses the camera so you can snap or scan anything you want.",
-          "microphonePermission": "MeLikee uses the microphone so you can say what you want.",
           "recordAudioAndroid": false
         }
       ],
-      [
-        "expo-speech-recognition",
-        {
-          "microphonePermission": "MeLikee uses the microphone so you can say what you want.",
-          "speechRecognitionPermission": "MeLikee turns what you say into the product you're looking for."
-        }
-      ]
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,542 +1,448 @@
 /**
- * The shared building blocks every screen is assembled from. They encode the
- * turn-8 contrast treatment the user picked: cards sit two steps above the
- * ground with a 2px tinted border and a real shadow, so they read as objects
- * rather than tints.
+ * Building blocks shared by every screen. Sizes and colors come straight from
+ * the prototype's inline styles; tap targets are padded to 44pt the way the
+ * prototype's `::before` hit areas were.
  */
-import { useMemo, useState, type ReactNode } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useState, type ReactNode } from 'react';
 import {
-  Image,
-  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
-  type ImageStyle,
   type PressableProps,
   type StyleProp,
+  type TextInputProps,
   type TextProps,
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
-import { brand, layout } from '@/theme/tokens';
-import { useTheme } from '@/theme/ThemeProvider';
+import { brand, font, palette, type Weight } from '@/theme/tokens';
+import { Chevron } from './icons';
+import { SlideUp } from './motion';
 
-/**
- * On web a TextInput is a DOM input, which draws the browser's own focus ring
- * over our border. The fields already show focus through their own styling.
- */
-export const webInputReset = Platform.select({
-  web: { outlineStyle: 'none' } as unknown as TextStyle,
-  default: undefined,
-});
+// ——— text ———
 
-// ── Text ───────────────────────────────────────────────────────────────────
+export function T({
+  size = 13,
+  w = 500,
+  color = palette.text,
+  style,
+  ...rest
+}: TextProps & { size?: number; w?: Weight; color?: string; style?: StyleProp<TextStyle> }) {
+  return <Text {...rest} style={[{ fontFamily: font[w], fontSize: size, color }, style]} />;
+}
 
-type AppTextProps = TextProps & {
-  /** Semantic colour role; falls back to the theme's primary text. */
-  tone?: 'text' | 'muted' | 'soft' | 'lime' | 'violet' | 'pink' | 'ink';
-  /** Adds the signature lilac glow used on hero headlines. */
-  glow?: boolean;
-};
-
-export function AppText({ tone = 'text', glow, style, ...rest }: AppTextProps) {
-  const theme = useTheme();
-  const color =
-    tone === 'muted'
-      ? theme.muted
-      : tone === 'soft'
-        ? theme.soft
-        : tone === 'lime'
-          ? theme.limeText
-          : tone === 'violet'
-            ? theme.violet
-            : tone === 'pink'
-              ? brand.pink
-              : tone === 'ink'
-                ? brand.limeInk
-                : theme.text;
-
+/** "WHAT FRIENDS SEE" — the small tracked-out caps label above a group. */
+export function SectionLabel({ children, style, color = palette.muted }: { children: ReactNode; style?: StyleProp<TextStyle>; color?: string }) {
   return (
-    <Text
-      style={[
-        { color, fontWeight: '600' },
-        glow && {
-          textShadowColor: brand.violetGlow,
-          textShadowOffset: { width: 0, height: 4 },
-          textShadowRadius: 24,
-        },
-        style,
-      ]}
+    <T size={11} w={700} color={color} style={[{ letterSpacing: 0.66 }, style]}>
+      {children}
+    </T>
+  );
+}
+
+// ——— press ———
+
+const HIT = { top: 8, bottom: 8, left: 4, right: 4 };
+
+export function Tap({ style, children, hitSlop = HIT, ...rest }: PressableProps & { style?: StyleProp<ViewStyle>; children?: ReactNode }) {
+  return (
+    <Pressable
+      hitSlop={hitSlop}
+      accessibilityRole="button"
       {...rest}
-    />
-  );
-}
-
-// ── Surfaces ───────────────────────────────────────────────────────────────
-
-type CardProps = {
-  children: ReactNode;
-  /** Border colour — defaults to the standard lilac card edge. */
-  border?: string;
-  /** Passive cards are flattened: inset ground, hairline edge, no shadow. */
-  variant?: 'raised' | 'flat';
-  style?: StyleProp<ViewStyle>;
-};
-
-export function Card({ children, border, variant = 'raised', style }: CardProps) {
-  const theme = useTheme();
-  const flat = variant === 'flat';
-  return (
-    <View
-      style={[
-        {
-          backgroundColor: flat ? theme.inset : theme.card,
-          borderWidth: flat ? 1.5 : 2,
-          borderColor: border ?? (flat ? theme.violet22 : theme.violet66),
-          borderRadius: layout.radius.card,
-          overflow: 'hidden',
-        },
-        !flat && {
-          boxShadow: `0 10px 28px ${theme.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(45,36,71,0.10)'}`,
-        },
-        style,
-      ]}
+      style={({ pressed }) => [style, pressed && { opacity: 0.75 }]}
     >
       {children}
-    </View>
+    </Pressable>
   );
 }
 
-/**
- * The radial glow ground the app uses to stage its hero moments — the camera
- * screen, and both full-bleed null states.
- */
-let glowId = 0;
-
-export function GlowGround({
-  children,
-  style,
-  /** Vertical position of the glow's centre, as a fraction of the box. */
-  center = 0.3,
-  spread = { x: 0.6, y: 0.4 },
-  /**
-   * Where the glow lands. The camera's full-bleed ground falls off into the
-   * deep stop; panels sitting inside a page fade into the page ground instead,
-   * so there's no visible seam where the panel ends.
-   */
-  edge = 'page',
-  /** How far out the glow reaches before it's fully faded. */
-  falloff = 0.9,
-}: {
-  children?: ReactNode;
-  style?: StyleProp<ViewStyle>;
-  center?: number;
-  spread?: { x: number; y: number };
-  edge?: 'page' | 'deep';
-  falloff?: number;
-}) {
-  const theme = useTheme();
-  // Gradient ids are document-global in SVG, so each instance needs its own.
-  const id = useMemo(() => `glow-${++glowId}`, []);
-
+/** The lime gradient fill used on every primary action. */
+export function LimeFill({ style, children, radius = 999 }: { style?: StyleProp<ViewStyle>; children?: ReactNode; radius?: number }) {
   return (
-    <View style={[{ overflow: 'hidden' }, style]}>
-      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-        <Defs>
-          <RadialGradient
-            id={id}
-            cx="50%"
-            cy={`${center * 100}%`}
-            rx={`${spread.x * 100}%`}
-            ry={`${spread.y * 100}%`}
-          >
-            <Stop offset="0" stopColor={theme.radial1} />
-            <Stop offset={String(falloff)} stopColor={edge === 'deep' ? theme.radial2 : theme.bg} />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
-      </Svg>
+    <LinearGradient colors={[brand.limeTop, brand.lime]} style={[{ borderRadius: radius }, style]}>
       {children}
-    </View>
-  );
-}
-
-/** Placeholder standing in for product imagery, or the real captured photo. */
-export function Photo({
-  uri,
-  label = 'photo',
-  style,
-  radius = 0,
-}: {
-  uri?: string;
-  label?: string;
-  style?: StyleProp<ViewStyle>;
-  radius?: number;
-}) {
-  const theme = useTheme();
-
-  // A photo saved on a previous launch points at a cache file the OS is free
-  // to sweep up. When that URI no longer resolves, fall back to the
-  // placeholder rather than leaving a hole where the picture was.
-  // Remembering *which* URI failed rather than a boolean means a new photo is
-  // never born broken, with no effect needed to reset it.
-  const [failedUri, setFailedUri] = useState<string | null>(null);
-
-  if (uri && uri !== failedUri) {
-    // Layout styles are shared between the placeholder and the real image;
-    // the overlap with ImageStyle is safe for everything callers pass here.
-    return (
-      <Image
-        source={{ uri }}
-        style={[{ borderRadius: radius }, style as StyleProp<ImageStyle>]}
-        resizeMode="cover"
-        onError={() => setFailedUri(uri)}
-      />
-    );
-  }
-  return (
-    <LinearGradient
-      colors={[theme.photo1, theme.photo2]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[{ alignItems: 'center', justifyContent: 'center', borderRadius: radius }, style]}
-    >
-      <AppText tone="muted" style={{ fontSize: 9 }}>
-        {label}
-      </AppText>
     </LinearGradient>
   );
 }
 
-// ── Controls ───────────────────────────────────────────────────────────────
-
-type ButtonProps = PressableProps & {
+type BtnProps = {
   label: string;
-  /** lime = the primary squishy CTA; the rest are secondary treatments. */
-  variant?: 'lime' | 'pink' | 'violet' | 'chip' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  onPress?: () => void;
+  size?: number;
+  pad?: number;
+  disabled?: boolean;
   style?: StyleProp<ViewStyle>;
-  textStyle?: StyleProp<TextStyle>;
-  icon?: ReactNode;
+  flex?: boolean;
+  accessibilityLabel?: string;
 };
 
-export function Button({
-  label,
-  variant = 'lime',
-  size = 'md',
-  style,
-  textStyle,
-  icon,
-  ...rest
-}: ButtonProps) {
-  const theme = useTheme();
-  const pad =
-    size === 'lg'
-      ? { paddingVertical: 12, paddingHorizontal: 24, fontSize: 13 }
-      : size === 'sm'
-        ? { paddingVertical: 5, paddingHorizontal: 11, fontSize: 11 }
-        : { paddingVertical: 7, paddingHorizontal: 14, fontSize: 12 };
-
-  const body = (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      {icon}
-      <Text
-        style={[
-          {
-            fontSize: pad.fontSize,
-            fontWeight: '800',
-            color:
-              variant === 'lime'
-                ? brand.limeInk
-                : variant === 'pink'
-                  ? brand.pinkInk
-                  : variant === 'violet'
-                    ? theme.bg
-                    : variant === 'chip'
-                      ? theme.limeText
-                      : theme.muted,
-          },
-          textStyle,
-        ]}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-
-  const shared: ViewStyle = {
-    paddingVertical: pad.paddingVertical,
-    paddingHorizontal: pad.paddingHorizontal,
-    borderRadius: layout.radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  if (variant === 'lime') {
-    return (
-      <Squish style={style} {...rest}>
-        <LinearGradient
-          colors={[brand.limeLight, brand.lime]}
-          style={[shared, { boxShadow: `0 6px 18px ${brand.limeGlow}` }]}
-        >
-          {body}
-        </LinearGradient>
-      </Squish>
-    );
-  }
-
+export function LimeButton({ label, onPress, size = 14, pad = 13, disabled, style, flex }: BtnProps) {
   return (
-    <Squish style={style} {...rest}>
-      <View
-        style={[
-          shared,
-          variant === 'pink' && { backgroundColor: brand.pink },
-          variant === 'violet' && { backgroundColor: theme.violet },
-          variant === 'chip' && {
-            backgroundColor: theme.chip,
-            borderWidth: 1.5,
-            borderColor: theme.violet55,
-          },
-        ]}
-      >
-        {body}
-      </View>
-    </Squish>
-  );
-}
-
-/**
- * Press feedback for the whole app: a small squish. The teen direction called
- * for "touchable" UI, and a uniform 0.96 press keeps it consistent without the
- * jelly overshoot that read as cartoonish.
- */
-export function Squish({
-  children,
-  style,
-  ...rest
-}: PressableProps & { children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  return (
-    <Pressable
-      style={({ pressed }) => [{ transform: [{ scale: pressed ? 0.96 : 1 }] }, style]}
-      {...rest}
-    >
-      {children}
-    </Pressable>
-  );
-}
-
-/** A rotated sticker label — the brand's way of shouting one short line. */
-export function Sticker({
-  children,
-  tone = 'lime',
-  rotate = -2,
-  style,
-}: {
-  children: ReactNode;
-  tone?: 'lime' | 'pink' | 'violet';
-  rotate?: number;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const theme = useTheme();
-  const bg = tone === 'lime' ? brand.lime : tone === 'pink' ? brand.pink : theme.violet;
-  const fg = tone === 'lime' ? brand.limeInk : tone === 'pink' ? brand.pinkInk : theme.bg;
-  return (
-    <View
-      style={[
-        {
-          backgroundColor: bg,
-          borderRadius: 6,
-          paddingHorizontal: 10,
-          paddingVertical: 3,
-          transform: [{ rotate: `${rotate}deg` }],
-          alignSelf: 'flex-start',
-        },
-        style,
-      ]}
-    >
-      <Text style={{ color: fg, fontSize: 10.5, fontWeight: '800', letterSpacing: 0.5 }}>
-        {children}
-      </Text>
-    </View>
-  );
-}
-
-/** A selectable chip — list access, move targets, request permissions. */
-export function Chip({
-  label,
-  selected,
-  onPress,
-  trailing,
-}: {
-  label: string;
-  selected?: boolean;
-  onPress?: () => void;
-  trailing?: ReactNode;
-}) {
-  const theme = useTheme();
-  return (
-    <Squish onPress={onPress}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 5,
-          backgroundColor: selected ? brand.lime : theme.chip,
-          borderWidth: 1.5,
-          borderColor: theme.violet55,
-          borderRadius: layout.radius.pill,
-          paddingHorizontal: 12,
-          paddingVertical: 5,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 11.5,
-            fontWeight: '800',
-            color: selected ? brand.limeInk : theme.soft,
-          }}
-        >
+    <Tap onPress={disabled ? undefined : onPress} disabled={disabled} style={[flex && { flex: 1 }, { opacity: disabled ? 0.45 : 1 }, style]}>
+      <LimeFill style={{ paddingVertical: pad, paddingHorizontal: 16, alignItems: 'center' }}>
+        <T size={size} w={800} color={brand.limeInk}>
           {label}
-        </Text>
-        {trailing}
-      </View>
-    </Squish>
+        </T>
+      </LimeFill>
+    </Tap>
   );
 }
 
-/** The make-it-secret switch. */
-export function Toggle({ value, onToggle }: { value: boolean; onToggle: () => void }) {
-  const theme = useTheme();
+/** Outlined in the accent: "Type it instead", "Paste a link". */
+export function AccentButton({ label, onPress, size = 13.5, pad = 12, style, flex, color = palette.vio, width = 1.5 }: BtnProps & { color?: string; width?: number }) {
   return (
-    <Pressable onPress={onToggle} hitSlop={8}>
-      <View
-        style={{
-          width: 38,
-          height: 22,
-          borderRadius: 11,
-          backgroundColor: value ? theme.violet : theme.chip,
-          justifyContent: 'center',
-        }}
-      >
-        <View
-          style={{
-            position: 'absolute',
-            left: value ? 19 : 3,
-            width: 16,
-            height: 16,
-            borderRadius: 8,
-            backgroundColor: value ? theme.bg : '#7d6fae',
-          }}
-        />
-      </View>
-    </Pressable>
+    <Tap onPress={onPress} style={[flex && { flex: 1 }, { paddingVertical: pad, paddingHorizontal: 16, borderRadius: 999, borderWidth: width, borderColor: color, alignItems: 'center' }, style]}>
+      <T size={size} w={800} color={color}>
+        {label}
+      </T>
+    </Tap>
   );
 }
 
-/** Gradient-ringed avatar; the ring goes flat when there's no connection. */
-export function Avatar({
-  initial,
-  size = 38,
-  ring = 'gradient',
-}: {
-  initial: string;
-  size?: number;
-  ring?: 'gradient' | 'flat' | 'none';
-}) {
-  const theme = useTheme();
-  const padding = size >= 60 ? 3 : 2;
-  const inner = (
-    <View
+/** Quiet, outlined: "Not it", "Edit profile", "Share". */
+export function GhostButton({ label, onPress, size = 13.5, pad = 12, style, flex, w = 700, border = palette.vio55, color = palette.text }: BtnProps & { w?: Weight; border?: string; color?: string }) {
+  return (
+    <Tap onPress={onPress} style={[flex && { flex: 1 }, { paddingVertical: pad, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: border, alignItems: 'center' }, style]}>
+      <T size={size} w={w} color={color}>
+        {label}
+      </T>
+    </Tap>
+  );
+}
+
+/** Filled chip-grey: "Try again", "Cancel", "Undo". */
+export function ChipButton({ label, onPress, size = 13.5, pad = 12, style, flex }: BtnProps) {
+  return (
+    <Tap onPress={onPress} style={[flex && { flex: 1 }, { paddingVertical: pad, paddingHorizontal: 16, borderRadius: 999, backgroundColor: palette.chip, alignItems: 'center' }, style]}>
+      <T size={size} w={700}>
+        {label}
+      </T>
+    </Tap>
+  );
+}
+
+/** Small solid lime pill: "+ New list", "+ Invite", "Accept", "Add". */
+export function LimePill({ label, onPress, size = 12.5, style }: { label: string; onPress?: () => void; size?: number; style?: StyleProp<ViewStyle> }) {
+  return (
+    <Tap onPress={onPress} style={[{ backgroundColor: brand.lime, paddingVertical: 7, paddingHorizontal: 15, borderRadius: 999 }, style]}>
+      <T size={size} w={800} color={brand.limeInk}>
+        {label}
+      </T>
+    </Tap>
+  );
+}
+
+/** Segmented option pill: sort, link expiry, new-list visibility. */
+export function OptionPill({ label, on, onPress, size = 11.5 }: { label: string; on: boolean; onPress: () => void; size?: number }) {
+  return (
+    <Tap
+      onPress={onPress}
+      accessibilityState={{ selected: on }}
       style={{
-        width: '100%',
-        height: '100%',
-        borderRadius: size / 2,
-        backgroundColor: theme.chip,
-        alignItems: 'center',
-        justifyContent: 'center',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 999,
+        borderWidth: 1.5,
+        borderColor: on ? palette.vio : palette.vio33,
+        backgroundColor: on ? palette.vio22 : 'transparent',
       }}
     >
-      <Text style={{ fontSize: size * 0.36, fontWeight: '800', color: theme.avatarText }}>
-        {initial}
-      </Text>
+      <T size={size} w={700} color={on ? palette.text : palette.muted}>
+        {label}
+      </T>
+    </Tap>
+  );
+}
+
+/** Lime-when-on access chip: which lists a friend can see. */
+export function AccessChip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  return (
+    <Tap
+      onPress={onPress}
+      accessibilityState={{ selected: on }}
+      style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: palette.vio55, backgroundColor: on ? brand.lime : palette.chip }}
+    >
+      <T size={11.5} w={700} color={on ? brand.limeInk : palette.soft}>
+        {label}
+      </T>
+    </Tap>
+  );
+}
+
+// ——— toggles ———
+
+export function Toggle({ on }: { on: boolean }) {
+  return (
+    <View style={{ width: 38, height: 22, borderRadius: 11, backgroundColor: on ? palette.vio : palette.chip }}>
+      <View style={{ position: 'absolute', top: 3, left: on ? 19 : 3, width: 16, height: 16, borderRadius: 8, backgroundColor: on ? palette.bg : palette.text }} />
     </View>
   );
+}
 
-  if (ring === 'gradient') {
+export function ToggleRow({ title, sub, on, onPress, style }: { title: string; sub?: string; on: boolean; onPress: () => void; style?: StyleProp<ViewStyle> }) {
+  return (
+    <Tap onPress={onPress} accessibilityRole="switch" accessibilityState={{ checked: on }} style={[{ flexDirection: 'row', alignItems: 'center', gap: 10 }, style]}>
+      <View style={{ flex: 1 }}>
+        <T size={13} w={700}>
+          {title}
+        </T>
+        {sub ? (
+          <T size={11} color={palette.muted}>
+            {sub}
+          </T>
+        ) : null}
+      </View>
+      <Toggle on={on} />
+    </Tap>
+  );
+}
+
+export function Radio({ on }: { on: boolean }) {
+  return (
+    <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: on ? palette.vio : palette.vio55, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: on ? palette.vio : 'transparent' }} />
+    </View>
+  );
+}
+
+// ——— surfaces ———
+
+export function Card({ children, style, border = palette.vio33, onPress }: { children: ReactNode; style?: StyleProp<ViewStyle>; border?: string; onPress?: () => void }) {
+  const s = [{ backgroundColor: palette.card, borderWidth: 1, borderColor: border, borderRadius: 16 }, style];
+  if (onPress) {
     return (
-      <LinearGradient
-        colors={[brand.pink, theme.violet]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ width: size, height: size, borderRadius: size / 2, padding }}
-      >
+      <Tap onPress={onPress} style={s}>
+        {children}
+      </Tap>
+    );
+  }
+  return <View style={s}>{children}</View>;
+}
+
+/** Card row with a chevron — Settings and Me. */
+export function NavRow({ title, sub, onPress, left, border = palette.vio33, right }: { title: ReactNode; sub?: string; onPress: () => void; left?: ReactNode; border?: string; right?: ReactNode }) {
+  return (
+    <Card onPress={onPress} border={border} style={{ paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      {left}
+      <View style={{ flex: 1 }}>
+        {typeof title === 'string' ? (
+          <T size={13} w={700}>
+            {title}
+          </T>
+        ) : (
+          title
+        )}
+        {sub ? (
+          <T size={11} color={palette.muted} style={{ marginTop: 2 }}>
+            {sub}
+          </T>
+        ) : null}
+      </View>
+      {right ?? <Chevron dir="right" size={14} color={palette.muted} />}
+    </Card>
+  );
+}
+
+/** Stand-in for a product photo: the theme's placeholder gradient. */
+export function PhotoBox({ style, label = 'photo', labelSize = 11, children, vertical }: { style?: StyleProp<ViewStyle>; label?: string; labelSize?: number; children?: ReactNode; vertical?: boolean }) {
+  return (
+    <LinearGradient
+      colors={[palette.ph1, palette.ph2]}
+      start={{ x: 0, y: 0 }}
+      end={vertical ? { x: 0, y: 1 } : { x: 1, y: 1 }}
+      style={[{ alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, style]}
+    >
+      {label ? (
+        <T size={labelSize} color={palette.muted}>
+          {label}
+        </T>
+      ) : null}
+      {children}
+    </LinearGradient>
+  );
+}
+
+/** A radial glow ground, e.g. radial-gradient(120% 80% at 50% 12%, rad1, bg 75%). */
+export function RadialGround({ inner, outer, cx = '50%', cy = '20%', rx = '75%', ry = '70%', style }: { inner: string; outer: string; cx?: string; cy?: string; rx?: string; ry?: string; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>
+      <Svg width="100%" height="100%">
+        <Defs>
+          <RadialGradient id="g" cx={cx} cy={cy} rx={rx} ry={ry} fx={cx} fy={cy} gradientUnits="userSpaceOnUse">
+            <Stop offset="0" stopColor={inner} />
+            <Stop offset="1" stopColor={outer} />
+          </RadialGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#g)" />
+      </Svg>
+    </View>
+  );
+}
+
+export function Avatar({ initial, size = 36, ring, ringWidth = 2, fontSize, gap = palette.bg, fill = palette.chip, color = palette.avt, w = 800 }: { initial: string; size?: number; ring?: readonly string[] | string | null; ringWidth?: number; fontSize?: number; gap?: string; fill?: string; color?: string; w?: Weight }) {
+  const inner = (
+    <View style={{ flex: 1, borderRadius: size, backgroundColor: fill, borderWidth: ring ? 2 : 0, borderColor: gap, alignItems: 'center', justifyContent: 'center' }}>
+      <T size={fontSize ?? Math.round(size * 0.36)} w={w} color={color}>
+        {initial}
+      </T>
+    </View>
+  );
+  if (Array.isArray(ring)) {
+    return (
+      <LinearGradient colors={ring as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: size, height: size, borderRadius: size / 2, padding: ringWidth }}>
         {inner}
       </LinearGradient>
     );
   }
+  return <View style={{ width: size, height: size, borderRadius: size / 2, padding: ring ? ringWidth : 0, backgroundColor: (ring as string) || 'transparent' }}>{inner}</View>;
+}
+
+/** Pink day-count tag: "12d", "in 12 days". */
+export function DaysTag({ label, radius = 6, size = 11, style }: { label: string; radius?: number; size?: number; style?: StyleProp<ViewStyle> }) {
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        padding,
-        borderWidth: ring === 'flat' ? 2.5 : 0,
-        borderColor: theme.deep,
-        backgroundColor: ring === 'none' ? theme.deep : undefined,
-      }}
-    >
-      {inner}
+    <View style={[{ backgroundColor: brand.pink, paddingVertical: 2, paddingHorizontal: 8, borderRadius: radius }, style]}>
+      <T size={size} w={800} color={brand.white}>
+        {label}
+      </T>
     </View>
   );
 }
 
-/** Section caption — "WHILE YOU WERE OUT". */
-export function Eyebrow({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
+// ——— inputs ———
+
+export function Field({ style, ...rest }: TextInputProps & { style?: StyleProp<TextStyle> }) {
   return (
-    <AppText tone="muted" style={[{ fontSize: 11, fontWeight: '800', letterSpacing: 0.88 }, style]}>
-      {children}
-    </AppText>
+    <TextInput
+      placeholderTextColor={palette.muted}
+      {...rest}
+      style={[
+        {
+          backgroundColor: palette.inset,
+          borderWidth: 1,
+          borderColor: palette.vio44,
+          borderRadius: 12,
+          paddingVertical: 10,
+          paddingHorizontal: 12,
+          fontSize: 13,
+          fontFamily: font[500],
+          color: palette.text,
+        },
+        style,
+      ]}
+    />
   );
 }
 
-/** A stand-in for the user's QR code — real encoding is a backend concern. */
-export function QrPlaceholder({ size = 54 }: { size?: number }) {
-  const theme = useTheme();
-  const cells = 5;
-  const cell = (size - 6) / cells;
+/**
+ * A dropdown that works the same on iOS, Android and web: a field that opens
+ * a short scrolling list beneath itself.
+ */
+export function Select<V extends string>({ value, options, onChange, style, size = 13, pad = 10, accessibilityLabel }: { value: V; options: readonly V[]; onChange: (v: V) => void; style?: StyleProp<ViewStyle>; size?: number; pad?: number; accessibilityLabel?: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 8,
-        borderWidth: 3,
-        borderColor: theme.text,
-        backgroundColor: theme.bg,
-        overflow: 'hidden',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-      }}
-    >
-      {Array.from({ length: cells * cells }).map((_, i) => {
-        const row = Math.floor(i / cells);
-        const col = i % cells;
-        return (
-          <View
-            key={i}
-            style={{
-              width: cell,
-              height: cell,
-              backgroundColor: (row + col) % 2 === 0 ? theme.text : theme.bg,
-            }}
-          />
-        );
-      })}
+    <View style={style}>
+      <Tap
+        onPress={() => setOpen((o) => !o)}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityState={{ expanded: open }}
+        style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: open ? palette.vio : palette.vio44, borderRadius: 12, paddingVertical: pad, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center' }}
+      >
+        <T size={size} w={600} style={{ flex: 1 }}>
+          {value}
+        </T>
+        <Chevron dir={open ? 'up' : 'down'} size={12} color={palette.muted} strokeWidth={2} />
+      </Tap>
+      {open ? (
+        <ScrollView style={{ maxHeight: 176, marginTop: 4, backgroundColor: palette.chip, borderRadius: 12, borderWidth: 1, borderColor: palette.vio33 }} nestedScrollEnabled>
+          {options.map((o) => (
+            <Tap
+              key={o}
+              onPress={() => {
+                onChange(o);
+                setOpen(false);
+              }}
+              accessibilityState={{ selected: o === value }}
+              style={{ paddingVertical: 9, paddingHorizontal: 12, backgroundColor: o === value ? palette.vio22 : 'transparent' }}
+            >
+              <T size={size} w={o === value ? 700 : 500}>
+                {o}
+              </T>
+            </Tap>
+          ))}
+        </ScrollView>
+      ) : null}
+    </View>
+  );
+}
+
+// ——— layout ———
+
+/** Back chevron + title row used on pushed screens. */
+export function BackHeader({ title, onBack, right, sub }: { title: string; onBack: () => void; right?: ReactNode; sub?: ReactNode }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 4 }}>
+      <Tap onPress={onBack} accessibilityLabel="Back" style={{ width: 28, height: 32, justifyContent: 'center' }}>
+        <Chevron color={palette.muted} />
+      </Tap>
+      <View style={{ flex: 1, minWidth: 0, gap: 5, alignItems: 'flex-start' }}>
+        <T size={20} w={800}>
+          {title}
+        </T>
+        {sub}
+      </View>
+      {right}
+    </View>
+  );
+}
+
+/** The scrim + rounded panel every bottom sheet sits in. */
+export function SheetFrame({ children, onClose, gap = 12, border = palette.vio44, bottom = 34 }: { children: ReactNode; onClose: () => void; gap?: number; border?: string; bottom?: number }) {
+  return (
+    <View style={[StyleSheet.absoluteFill, { zIndex: 9 }]}>
+      <Pressable accessibilityLabel="Close" onPress={onClose} style={[StyleSheet.absoluteFill, { backgroundColor: palette.scrim }]} />
+      <SlideUp style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+        <View
+          style={{
+            backgroundColor: palette.card,
+            borderWidth: 1,
+            borderBottomWidth: 0,
+            borderColor: border,
+            borderTopLeftRadius: 22,
+            borderTopRightRadius: 22,
+            paddingTop: 14,
+            paddingHorizontal: 18,
+            paddingBottom: bottom,
+            gap,
+            boxShadow: '0 -10px 34px rgba(0,0,0,0.6)',
+            maxHeight: '92%',
+          }}
+        >
+          <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: palette.vio55, alignSelf: 'center' }} />
+          {children}
+        </View>
+      </SlideUp>
+    </View>
+  );
+}
+
+export function SheetTitle({ children, sub }: { children: ReactNode; sub?: string }) {
+  return (
+    <View>
+      <T size={17} w={800}>
+        {children}
+      </T>
+      {sub ? (
+        <T size={12} color={palette.muted} style={{ marginTop: 3, lineHeight: 18 }}>
+          {sub}
+        </T>
+      ) : null}
     </View>
   );
 }

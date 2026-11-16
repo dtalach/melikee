@@ -1,181 +1,173 @@
-import type { ProductMatch, ProductReading, StorePrice } from '@/services/recognition/contract';
+import type { Month, MonthDay } from '@/lib/dates';
 
-/** Who can see a list. Every list carries a default visibility (turn 7). */
-export type Visibility = 'friends' | 'invite' | 'me';
+/** Private · Friends · Friends + link — the one sharing scale from the spec. */
+export type Vis = 'me' | 'friends' | 'invite';
+
+export type LinkExpiry = 'date' | '30d' | 'always';
 
 export type WishList = {
   id: string;
   name: string;
-  visibility: Visibility;
-  /** Border accent used on the list row and its shelf cards. */
+  vis: Vis;
   accent: string;
-  /** Occasion countdown badge, e.g. "71 days". Absent on everyday lists. */
-  countdown?: string;
-  /** A list created for an occasion that has no date set yet. */
-  needsDate?: boolean;
-  /** Starter lists cannot be deleted — every account has My wants. */
-  starter?: boolean;
+  /** Optional occasion date. The birthday list follows the profile's birthday. */
+  date?: MonthDay;
+  isBirthday?: boolean;
+  archived?: boolean;
+  /** Note shown at the top of the gifter page. */
+  note?: string;
+  /** Changes on "Reset link"; old links stop working. */
+  linkToken: string;
+  linkExpiry: LinkExpiry;
 };
 
-export type Shiny = {
-  id: string;
-  listId: string;
+export type MatchSource = 'barcode' | 'link' | 'catalog' | 'search' | 'photo' | 'voice' | 'screenshot';
+
+export type Item = {
+  id: number;
+  list: string;
   name: string;
-  /** Display price, e.g. "$399". "—" while a saved photo is still matching. */
+  /** Display price, e.g. "$79". "—" while pending. */
   price: string;
   store: string;
   upc: string;
-  /** Provenance line — "by camera · Sat", "from the Feed", "photo saved". */
-  provenance: string;
-  /** Secret shinies are invisible to everyone, on any list (turn 7). */
-  secret: boolean;
-  /** Local URI of the photo captured for this shiny, when there was one. */
-  photoUri?: string;
-  /** True while a fallback-saved photo is still waiting on a match. */
+  /** "by camera · Sat", "from Feed · Jul 18" — how and when it arrived. */
+  added: string;
+  createdAt: number;
+  star?: boolean;
+  size?: string;
+  note?: string;
+  /** Price drop vs. 30-day high, e.g. "$3". */
+  drop?: string;
+  /** Price alerts default on (spec). */
+  alert?: boolean;
+  /** Saved photo/link/video still being matched. Gifters can't dib it. */
   pending?: boolean;
-  /** Where to buy it, when the lookup found a link. */
-  buyUrl?: string;
-  /** The retailer's photo of the product, when the lookup found one. */
-  imageUrl?: string;
-  /** When that price was last checked, ISO. Saved items outlive their prices. */
-  checkedAt?: string;
-  /** Other retailers the lookup found, with their own prices. */
-  otherStores?: StorePrice[];
-  /**
-   * Where the price stands. A capture is claimed as soon as we know *what* the
-   * thing is — about four seconds — and the shops are asked afterwards, so a
-   * fresh shiny spends its first half-minute here.
-   */
-  pricing?: 'working' | 'failed';
-  /** What the eye read off it. Kept as the evidence behind the name. */
-  reading?: ProductReading;
-  /** Runners-up from the search, so a wrong match is still recoverable later. */
-  alternates?: ProductMatch[];
-};
-
-/** What a lookup did, kept for the diagnostics panel. */
-export type LookupRecord = {
-  at: string;
-  mode: CaptureMode;
-  reading?: ProductReading;
-  readMs?: number;
-  searchMs?: number;
-  candidates?: {
-    name: string;
-    price: string;
-    store: string;
-    hasImage: boolean;
-    hasLink: boolean;
-    confidence?: number;
-  }[];
-  error?: { code: string; message: string };
+  suggest?: { name: string; price: string; store: string } | null;
 };
 
 export type Friend = {
   id: string;
   name: string;
   initial: string;
-  /** Birthday shown as reference data on the row, e.g. "Aug 17". */
-  birthday: string;
-  /** Days until that birthday; drives the "— in 12 days" suffix. */
-  daysAway?: number;
-  /** Which of your lists this friend can see, by list id. */
+  birthday: MonthDay;
+  /** Per-list access the user grants this friend. */
   access: Record<string, boolean>;
 };
 
-export type SentInvite = {
+/** One shiny on a friend's list, seen from the gifter's side. */
+export type FriendItem = {
   id: string;
   name: string;
-  initial: string;
-  when: string;
+  price: string;
+  store: string;
+  star?: boolean;
+  drop?: string;
+  /** Someone else already called dibs. */
+  taken?: boolean;
+  /** Chip-in items take pooled, anonymous contributions. */
+  chipIn?: boolean;
 };
 
-/** A searchable MeLikee user — the "find existing users" half of the sheet. */
-export type DirectoryPerson = {
+export type FriendList = {
   id: string;
+  friendId: string;
   name: string;
-  handle: string;
-  initial: string;
-  /** School or "from your contacts" — the context cue in search results. */
-  context: string;
-  mutual: number;
-  followsYou: boolean;
-  requested: boolean;
-  /** Only surfaced when searched for, not in "People you may know". */
-  searchOnly?: boolean;
+  items: FriendItem[];
 };
 
-export type FeedPost = {
+export type FeedEntry = {
   id: string;
-  who: string;
-  initial: string;
-  listName: string;
-  productName: string;
-  productPrice: string;
-  when: string;
-  fires: number;
+  friendId: string;
+  list: string;
+  name: string;
+  price: string;
+  store: string;
+  at: number;
   hearts: number;
-  myFire: boolean;
   myHeart: boolean;
-  /** True once you've copied this find into your own list. */
   wanted: boolean;
 };
 
-export type TrendingItem = {
-  rank: string;
-  name: string;
-  price: string;
-  /** Which brand colour dresses this card — cycles pink / lilac / lime. */
-  tone: 'pink' | 'violet' | 'lime';
-};
-
-/** An item on someone else's list, from the gifter's side. */
-export type FriendListItem = {
+export type Contact = {
   id: string;
   name: string;
-  price: string;
-  store?: string;
+  handle: string;
+  initial: string;
+  /** Shown as context only when it comes from the user's own contacts. */
+  context: string;
+  mutual: number;
+  follows: boolean;
+  requested: boolean;
+  /** Only appears when searched for, never suggested. */
+  searchOnly?: boolean;
 };
 
-export type RequestStatus = 'pending' | 'accepted' | 'declined';
+export type SentInvite = { id: string; name: string; initial: string; at: number };
 
-/**
- * The signed-in user. Made during onboarding rather than shipped in the seed,
- * so a new account is their own account and not Maya's.
- */
-export type Profile = {
-  /** First name only — it's what the app calls you, not a legal record. */
+export type LinkHolder = { id: string; initial: string; name: string; listId: string; action: string; at: number };
+
+export type FriendRequest = {
+  id: string;
   name: string;
   initial: string;
-  /** "@mayalikes". */
-  handle: string;
-  /** The path on the public page — "maya" in melikee.app/maya. */
-  slug: string;
-  /** Month index 0–11 and day of month. Absent until they say. */
-  birthdayMonth?: number;
-  birthdayDay?: number;
-  /** Taste tags inferred from your shinies. Fixture content, for now. */
-  tasteTags?: string[];
-  reactionsReceived: number;
-  dibsCalled: number;
-  mostLovedShiny?: { name: string; fires: number };
+  mutual: number;
+  birthday: MonthDay;
+  state: 'pending' | 'choosing';
+  access: Record<string, boolean>;
 };
 
-/**
- * A product match returned by the recognition service. It is defined in the
- * recognition contract rather than here, because the serverless function
- * produces it and cannot import anything from the app's aliased tree.
- */
-export type { ProductMatch, ProductReading, StorePrice } from '@/services/recognition/contract';
+export type NotifKind = 'drop' | 'bday' | 'too' | 'coming' | 'req' | 'match' | 'love';
 
-/** How a capture was started; changes the copy throughout the flow. */
-export type CaptureMode = 'scan' | 'snap' | 'say';
+export type Notif = {
+  id: string;
+  kind: NotifKind;
+  title: string;
+  sub: string;
+  at: number;
+  read: boolean;
+  /** Where tapping it goes. */
+  to: Route;
+};
 
-/** The bottom sheets that can be open over any screen. */
-export type SheetKind =
-  | { kind: 'share'; listId: string }
-  | { kind: 'invite' }
-  | { kind: 'newList' }
-  | { kind: 'settings' }
-  | { kind: 'birthday' }
-  | { kind: 'diagnostics' };
+export type NotifSettings = Record<'drop' | 'bday' | 'too' | 'coming' | 'req', boolean>;
+
+export type Profile = {
+  name: string;
+  handle: string;
+  birthday: MonthDay & { year: number };
+  remindGifters: boolean;
+  showCountdown: boolean;
+  parent: { on: boolean; approve: boolean; name: string; contact: string; since: number } | null;
+  email: string;
+};
+
+export type Route =
+  | { name: 'camera' }
+  | { name: 'feed' }
+  | { name: 'lists' }
+  | { name: 'list'; id: string }
+  | { name: 'item'; id: number }
+  | { name: 'people' }
+  | { name: 'friendList'; id: string }
+  | { name: 'me' }
+  | { name: 'settings' }
+  | { name: 'notifs' }
+  | { name: 'gifter'; listId: string }
+  | { name: 'onboarding' };
+
+export type Sheet =
+  | { type: 'share'; listId: string }
+  | { type: 'invite' }
+  | { type: 'bday' }
+  | { type: 'parent' }
+  | { type: 'cleanup'; listId: string }
+  | { type: 'feedItem'; id: string }
+  | { type: 'confirm'; action: 'remove' | 'block'; friendId: string }
+  | { type: 'newList' }
+  | { type: 'listSettings'; listId: string }
+  | { type: 'vis'; listId: string }
+  | { type: 'notifSettings' }
+  | { type: 'privacy' };
+
+export type { Month, MonthDay };

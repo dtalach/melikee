@@ -1,265 +1,232 @@
 /**
- * First run.
- *
- * Before this, opening MeLikee for the first time made you Maya: her name, her
- * handle, her public link, her three lists, her six shinies, four friends you
- * had never met, and a stranger asking to follow you. It read as a demo because
- * it was one.
- *
- * Four screens now stand in front of that. They ask for one thing that matters
- * (a name, which becomes the handle and the public link), one thing that the
- * countdown on the camera screen needs (a birthday, skippable), and the camera
- * permission — asked for on arrival at the screen that explains why, rather
- * than as an ambush on the first shutter press. The welcome screen also offers
- * the demo account outright, because showing someone the full app is a real
- * thing people need to do.
+ * Onboarding (spec): birthday → handle → parent → default sharing → contacts.
+ * Under 13, a parent must be added before going on.
  */
 import { useState } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BirthdayPicker } from '@/components/BirthdayPicker';
-import { useCameraAccess } from '@/hooks/useCameraAccess';
-import { useTopInset } from '@/hooks/useTopInset';
-import { MONTHS } from '@/store/profile';
-import { useAppStore } from '@/store/useAppStore';
-import { SparkleIcon } from '@/ui/icons';
-import { RiseIn, SlapIn, Twinkle } from '@/ui/motion';
-import { AppText, Button, GlowGround, Squish, Sticker, webInputReset } from '@/ui/primitives';
-import { brand, layout } from '@/theme/tokens';
-import { useTheme } from '@/theme/ThemeProvider';
+import { ageOn, DAYS, MONTHS, type Month } from '@/lib/dates';
+import { useApp } from '@/store/useApp';
+import { brand, font, palette } from '@/theme/tokens';
+import { Chevron, Sparkle } from '@/ui/icons';
+import { Appear } from '@/ui/motion';
+import { AccentButton, Field, LimeButton, Radio, RadialGround, Select, T, Tap } from '@/ui/primitives';
 
-type Step = 'welcome' | 'name' | 'birthday' | 'camera';
+const TAKEN = new Set(['maya', 'melikee', 'admin']);
+const HANDLE = /^[a-z0-9_.]{3,20}$/;
 
 export function Onboarding() {
-  const theme = useTheme();
-  const topInset = useTopInset();
+  const insets = useSafeAreaInsets();
+  const profile = useApp((s) => s.profile);
+  const onboarded = useApp((s) => s.onboarded);
+  const finish = useApp((s) => s.finishOnboarding);
+  const showToast = useApp((s) => s.showToast);
 
-  const completeOnboarding = useAppStore((s) => s.completeOnboarding);
-  const useDemoAccount = useAppStore((s) => s.useDemoAccount);
+  const [step, setStep] = useState(0);
+  const [month, setMonth] = useState<Month>(profile.birthday.month);
+  const [day, setDay] = useState(String(profile.birthday.day));
+  const thisYear = new Date().getFullYear();
+  const years = Array.from({ length: 14 }, (_, i) => String(thisYear - 9 - i));
+  const [year, setYear] = useState(String(Math.min(profile.birthday.year, thisYear - 9)));
+  const [handle, setHandle] = useState(profile.handle);
+  const [parent, setParent] = useState(profile.parent?.contact ?? '');
+  const [priv, setPriv] = useState(false);
+  const [contacts, setContacts] = useState(false);
 
-  const [step, setStep] = useState<Step>('welcome');
-  const [name, setName] = useState('');
-  const [birthday, setBirthday] = useState<{ month: number; day: number }>();
+  const age = ageOn({ month, day: parseInt(day, 10), year: parseInt(year, 10) });
+  const under13 = age < 13;
+  const h = handle.trim();
+  const hOk = HANDLE.test(h) && !TAKEN.has(h);
+  const blocked = (step === 2 && !hOk) || (step === 3 && under13 && !parent.trim());
 
-  // Auto-asks on a device once they reach the camera step. On the web it
-  // can't — Safari needs a press — so there the ask rides on "Start snapping".
-  const { requestPermission, granted, canAsk, needsGesture } = useCameraAccess({
-    ask: step === 'camera',
-  });
-
-  const trimmed = name.trim();
-
-  // The account is created when they leave the last screen, not the first —
-  // so backing out halfway leaves nothing behind.
-  const finish = () => completeOnboarding({ name: trimmed, birthday });
-
-  /**
-   * The press that leaves onboarding is also the press that asks for the
-   * camera, on platforms that need one. Two birds, and no button whose only
-   * job is to produce a system dialog.
-   */
-  const startSnapping = async () => {
-    if (!granted && canAsk) await requestPermission().catch(() => undefined);
-    finish();
+  const next = () => {
+    if (!blocked) setStep((x) => x + 1);
+  };
+  const done = () => {
+    finish({ handle: h, birthday: { month, day: parseInt(day, 10), year: parseInt(year, 10) }, parent: under13 || parent.trim() ? parent : '', privateDefault: priv });
+    showToast(`Welcome, @${h}`);
   };
 
-  return (
-    <GlowGround
-      edge="page"
-      style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundColor: theme.bg,
-        zIndex: 20,
-      }}
-    >
-      <Twinkle size={14} color={brand.lime} duration={2200} style={{ position: 'absolute', top: 120, left: 42 }} />
-      <Twinkle size={10} color={brand.pink} duration={2800} delay={600} style={{ position: 'absolute', top: 180, right: 48 }} />
-      <Twinkle size={9} color={theme.violet} duration={3100} delay={1200} style={{ position: 'absolute', bottom: 150, left: 60 }} />
-
-      <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: 'center',
-          paddingTop: topInset + 40,
-          paddingBottom: 40,
-          paddingHorizontal: 30,
-          gap: 18,
-        }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {step === 'welcome' ? (
-          <RiseIn style={{ gap: 16, alignItems: 'center' }}>
-            <SparkleIcon size={34} color={brand.lime} />
-            <AppText glow style={{ fontSize: 32, fontWeight: '800', letterSpacing: -0.96 }}>
-              Ooh. Shiny.
-            </AppText>
-            <AppText tone="soft" style={{ fontSize: 14, textAlign: 'center', lineHeight: 21 }}>
-              Point your camera at anything you want. MeLikee finds it, prices it, and
-              puts it on a list your people can actually shop from.
-            </AppText>
-            <SlapIn>
-              <Sticker>YOUR WISHLIST WRITES ITSELF</Sticker>
-            </SlapIn>
-
-            <Button
-              label="Let’s go"
-              size="lg"
-              style={{ alignSelf: 'stretch', marginTop: 6 }}
-              onPress={() => setStep('name')}
-            />
-
-            {/* Kept deliberately: showing someone the whole app, populated, is
-                a real need — and it says outright that it isn't yours. */}
-            <Squish onPress={useDemoAccount} hitSlop={8}>
-              <AppText tone="muted" style={{ fontSize: 12, fontWeight: '700' }}>
-                Just show me a demo account
-              </AppText>
-            </Squish>
-          </RiseIn>
-        ) : null}
-
-        {step === 'name' ? (
-          <RiseIn style={{ gap: 14 }}>
-            <AppText style={{ fontSize: 26, fontWeight: '800', letterSpacing: -0.78 }}>
-              What should we call you?
-            </AppText>
-            <AppText tone="muted" style={{ fontSize: 12.5, lineHeight: 18 }}>
-              First name is plenty. It becomes your handle and the link you send people.
-            </AppText>
-
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Maya"
-              placeholderTextColor={theme.muted}
-              autoFocus
-              autoCapitalize="words"
-              autoCorrect={false}
-              returnKeyType="next"
-              onSubmitEditing={() => trimmed && setStep('birthday')}
-              style={[
-                {
-                  backgroundColor: theme.inset,
-                  borderWidth: 2,
-                  borderColor: theme.violet44,
-                  borderRadius: layout.radius.chip,
-                  paddingHorizontal: 14,
-                  paddingVertical: 13,
-                  fontSize: 16,
-                  fontWeight: '700',
-                  color: theme.text,
-                },
-                webInputReset,
-              ]}
-            />
-
-            {trimmed ? (
-              <AppText tone="violet" style={{ fontSize: 12, fontWeight: '700' }}>
-                melikee.app/{handlePreview(trimmed)}
-              </AppText>
-            ) : null}
-
-            <Button
-              label="Next"
-              size="lg"
-              style={{ alignSelf: 'stretch', opacity: trimmed ? 1 : 0.5 }}
-              onPress={() => trimmed && setStep('birthday')}
-            />
-          </RiseIn>
-        ) : null}
-
-        {step === 'birthday' ? (
-          <RiseIn style={{ gap: 14 }}>
-            <AppText style={{ fontSize: 26, fontWeight: '800', letterSpacing: -0.78 }}>
-              When’s your birthday?
-            </AppText>
-            <AppText tone="muted" style={{ fontSize: 12.5, lineHeight: 18 }}>
-              So the countdown works and your people get a nudge in time. No year, no age.
-            </AppText>
-
-            <BirthdayPicker month={birthday?.month} day={birthday?.day} onChange={setBirthday} />
-
-            <Button
-              label={birthday ? `${MONTHS[birthday.month]} ${birthday.day} it is` : 'Pick a day'}
-              size="lg"
-              style={{ alignSelf: 'stretch', opacity: birthday ? 1 : 0.5 }}
-              onPress={() => birthday && setStep('camera')}
-            />
-            <Squish onPress={() => setStep('camera')} hitSlop={8}>
-              <AppText tone="muted" style={{ fontSize: 12, fontWeight: '700', textAlign: 'center' }}>
-                Skip — I’ll add it later
-              </AppText>
-            </Squish>
-          </RiseIn>
-        ) : null}
-
-        {step === 'camera' ? (
-          <RiseIn style={{ gap: 14, alignItems: 'center' }}>
-            <AppText style={{ fontSize: 26, fontWeight: '800', letterSpacing: -0.78, textAlign: 'center' }}>
-              Nice to meet you, {trimmed.split(' ')[0]}
-            </AppText>
-            <AppText tone="muted" style={{ fontSize: 12.5, textAlign: 'center', lineHeight: 19 }}>
-              You’ve got My wants and a Secret stash, both empty. The camera is how
-              they fill up — snap a thing, scan a barcode, or just say what you want.
-            </AppText>
-
-            {granted ? (
-              <AppText tone="lime" style={{ fontSize: 12.5, fontWeight: '800' }}>
-                Camera’s on. ✓
-              </AppText>
-            ) : !canAsk ? (
-              <AppText tone="muted" style={{ fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
-                Camera access is off — you can turn it back on in Settings whenever you like.
-              </AppText>
-            ) : needsGesture ? (
-              <AppText tone="muted" style={{ fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
-                Tap below and your browser will ask for the camera.
-              </AppText>
-            ) : null}
-
-            <Button
-              label="Start snapping"
-              size="lg"
-              style={{ alignSelf: 'stretch', marginTop: 4 }}
-              onPress={() => void startSnapping()}
-            />
-
-            <Squish onPress={finish} hitSlop={8}>
-              <AppText tone="muted" style={{ fontSize: 12, fontWeight: '700' }}>
-                Skip for now
-              </AppText>
-            </Squish>
-          </RiseIn>
-        ) : null}
-
-        {/* Where you are, without a progress bar's air of paperwork. */}
-        <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'center', paddingTop: 8 }}>
-          {(['welcome', 'name', 'birthday', 'camera'] as Step[]).map((s) => (
-            <View
-              key={s}
-              style={{
-                width: s === step ? 18 : 6,
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: s === step ? brand.lime : theme.violet44,
-              }}
-            />
-          ))}
-        </View>
-      </ScrollView>
-    </GlowGround>
+  const title = (t: string, sub: string) => (
+    <>
+      <T size={28} w={800} style={{ letterSpacing: -0.84, lineHeight: 31 }}>
+        {t}
+      </T>
+      <T size={13.5} color={palette.muted} style={{ lineHeight: 20, marginTop: -4 }}>
+        {sub}
+      </T>
+    </>
   );
-}
+  const nextBtn = (label: string, onPress = next) => <LimeButton label={label} size={15} pad={15} disabled={blocked} onPress={onPress} />;
 
-/** Mirrors `makeProfile`'s slug rule, so the preview is the real link. */
-function handlePreview(name: string): string {
-  const first = name.split(' ')[0] ?? '';
   return (
-    first
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-z0-9]/g, '') || 'you'
+    <View style={{ flex: 1, backgroundColor: palette.bg, paddingTop: insets.top }}>
+      <RadialGround inner={palette.rad1} outer={palette.bg} cy="0%" rx="80%" ry="70%" />
+      {step > 0 ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12, paddingHorizontal: 20 }}>
+          <Tap onPress={() => setStep((x) => Math.max(0, x - 1))} accessibilityLabel="Back" style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}>
+            <Chevron color={palette.muted} />
+          </Tap>
+          <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: palette.chip, overflow: 'hidden' }}>
+            <View style={{ height: '100%', width: `${Math.round((step / 5) * 100)}%`, backgroundColor: brand.lime }} />
+          </View>
+          <T size={11.5} w={600} color={palette.muted} style={{ width: 32, textAlign: 'right' }}>
+            {step}/5
+          </T>
+        </View>
+      ) : null}
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, gap: 16, paddingTop: 28, paddingHorizontal: 24, paddingBottom: 40 + insets.bottom }}>
+        <Appear key={step} style={{ flex: 1, gap: 16 }}>
+          {step === 0 ? (
+            <>
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Sparkle size={14} color={palette.limeText} />
+                  <T size={15} w={800} color={palette.limeText}>
+                    MeLikee
+                  </T>
+                </View>
+                <T size={40} w={800} style={{ letterSpacing: -1.6, lineHeight: 42 }}>
+                  Ooh. Shiny.
+                </T>
+                <T size={15} color={palette.soft} style={{ maxWidth: 270, lineHeight: 22.5, textAlign: 'center' }}>
+                  Snap what you want. Friends see it. Family calls dibs. No more guessing gifts.
+                </T>
+              </View>
+              {nextBtn('Get started')}
+              <Tap
+                onPress={() => {
+                  useApp.setState({ onboarded: true, stack: [{ name: 'feed' }] });
+                }}
+                style={{ alignItems: 'center', padding: 12 }}
+              >
+                <T size={13.5} w={700} color={palette.soft}>
+                  {onboarded ? 'Back to the app' : 'I already have an account'}
+                </T>
+              </Tap>
+            </>
+          ) : null}
+
+          {step === 1 ? (
+            <>
+              {title('When’s your birthday?', 'It powers your countdown. Your year stays private — we use it to keep things age-appropriate.')}
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
+                <Select value={month} options={MONTHS} onChange={setMonth} size={15} pad={13} style={{ flex: 1 }} accessibilityLabel="Month" />
+                <Select value={day} options={DAYS} onChange={setDay} size={15} pad={13} style={{ flex: 1 }} accessibilityLabel="Day" />
+                <Select value={year} options={years} onChange={setYear} size={15} pad={13} style={{ flex: 1 }} accessibilityLabel="Year" />
+              </View>
+              <View style={{ flex: 1 }} />
+              {nextBtn('Next')}
+            </>
+          ) : null}
+
+          {step === 2 ? (
+            <>
+              {title('Pick a handle', 'This is how friends find you. You can change it later.')}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14 }}>
+                <T size={15} w={600} color={palette.muted}>
+                  @
+                </T>
+                <TextInput
+                  value={handle}
+                  onChangeText={(v) => setHandle(v.toLowerCase().replace(/\s/g, ''))}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  accessibilityLabel="Handle"
+                  style={{ flex: 1, fontSize: 15, fontFamily: font[600], color: palette.text, padding: 0 }}
+                />
+              </View>
+              <T size={12.5} w={600} color={hOk ? palette.limeText : brand.pink} style={{ marginTop: -8 }}>
+                {hOk ? `✓ @${h} is yours` : TAKEN.has(h) ? `@${h} is taken — try another` : '3–20 letters, numbers, _ or .'}
+              </T>
+              <View style={{ flex: 1 }} />
+              {nextBtn('Next')}
+            </>
+          ) : null}
+
+          {step === 3 ? (
+            <>
+              {title(
+                under13 ? 'Add a parent' : 'Add a parent?',
+                under13 ? 'You’re under 13, so a parent needs to say OK before you can add friends.' : 'Optional. Some families like it — you can always add one later.',
+              )}
+              <Field value={parent} onChangeText={setParent} placeholder="Parent's phone or email" autoCapitalize="none" keyboardType="email-address" style={{ fontSize: 15, fontFamily: font[600], paddingVertical: 13, paddingHorizontal: 14, borderRadius: 14 }} />
+              <View style={{ backgroundColor: palette.inset, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 }}>
+                <T size={12} color={palette.soft} style={{ lineHeight: 18.5 }}>
+                  They’ll see your shared lists and approve new friends. Never your private lists, and never who called dibs.
+                </T>
+              </View>
+              <View style={{ flex: 1 }} />
+              {nextBtn(under13 ? 'Send them a request' : parent.trim() ? 'Send request' : 'Next')}
+              {!under13 ? (
+                <Tap
+                  onPress={() => {
+                    setParent('');
+                    setStep(4);
+                  }}
+                  style={{ alignItems: 'center', padding: 12 }}
+                >
+                  <T size={13.5} w={700} color={palette.soft}>
+                    Skip for now
+                  </T>
+                </Tap>
+              ) : null}
+            </>
+          ) : null}
+
+          {step === 4 ? (
+            <>
+              {title('Where do new shinies go?', 'You can change any list later.')}
+              {(
+                [
+                  [false, 'My wants, shared with friends', 'Friends you approve see what you add. Best for getting gifts right.'],
+                  [true, 'Private until I share', 'Everything starts just for you. Share a list when you’re ready.'],
+                ] as const
+              ).map(([p, t, sub]) => (
+                <Tap
+                  key={t}
+                  onPress={() => setPriv(p)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: priv === p }}
+                  style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: priv === p ? palette.vio : palette.vio33, backgroundColor: priv === p ? palette.vio22 : 'transparent' }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <T size={14.5} w={700}>
+                      {t}
+                    </T>
+                    <T size={12} color={palette.muted} style={{ marginTop: 2, lineHeight: 17.5 }}>
+                      {sub}
+                    </T>
+                  </View>
+                  <View style={{ marginTop: 2 }}>
+                    <Radio on={priv === p} />
+                  </View>
+                </Tap>
+              ))}
+              <View style={{ flex: 1 }} />
+              {nextBtn('Next')}
+            </>
+          ) : null}
+
+          {step === 5 ? (
+            <>
+              {title('Find your people', 'See who’s already on MeLikee. We only show people you know.')}
+              <AccentButton
+                label={contacts ? '4 friends found ✓' : 'Check my contacts'}
+                size={14}
+                pad={14}
+                onPress={() => {
+                  setContacts(true);
+                  showToast('Found 4 friends — Ava, Jordan, Sam, Mia');
+                }}
+              />
+              <View style={{ flex: 1 }} />
+              {nextBtn('Start snapping', done)}
+            </>
+          ) : null}
+        </Appear>
+      </ScrollView>
+    </View>
   );
 }

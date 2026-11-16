@@ -1,64 +1,43 @@
+import { Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold, useFonts } from '@expo-google-fonts/inter';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect, useSyncExternalStore } from 'react';
 import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { FilingTray } from '@/components/FilingTray';
-import { Sheets } from '@/components/sheets/Sheets';
-import { Toast } from '@/components/Toast';
-import { Onboarding } from '@/screens/Onboarding';
-import { useAppStore } from '@/store/useAppStore';
-import { useHydrated } from '@/store/persistence';
-import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
+import { useApp } from '@/store/useApp';
+import { palette } from '@/theme/tokens';
 
-export default function RootLayout() {
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <Shell />
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
+
+/** Saved state arrives a tick after launch; hold the first frame until it has. */
+function useHydrated() {
+  return useSyncExternalStore(
+    (cb) => useApp.persist.onFinishHydration(cb),
+    () => useApp.persist.hasHydrated(),
+    () => false,
   );
 }
 
-/**
- * The overlays live above the navigator rather than inside any one screen:
- * the filing tray follows an add made from the camera *or* the Feed, and the
- * toast and sheets can be raised from anywhere.
- */
-function Shell() {
-  const theme = useTheme();
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({ Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold });
   const hydrated = useHydrated();
-  const onboarded = useAppStore((s) => s.onboarded);
+  const ready = (fontsLoaded || !!fontError) && hydrated;
 
-  // Saved state arrives a tick after the first render. Showing that tick would
-  // flash the seed lists at someone who has their own, so the shell holds on
-  // the page ground instead — it resolves in a frame or two.
-  if (!hydrated) return <View style={{ flex: 1, backgroundColor: theme.bg }} />;
-
-  // Onboarding covers the app rather than replacing it, so the account it
-  // creates lands on a camera that is already mounted and warm.
-  if (!onboarded) return <Onboarding />;
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => undefined);
+  }, [ready]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.bg },
-          animation: 'slide_from_right',
-        }}
-      >
-        <Stack.Screen name="index" options={{ animation: 'none' }} />
-        <Stack.Screen name="g/[handle]" options={{ animation: 'slide_from_bottom' }} />
-      </Stack>
-      <FilingTray />
-      <Sheets />
-      <Toast />
-    </View>
+    <SafeAreaProvider>
+      <View style={{ flex: 1, backgroundColor: palette.bg }}>
+        {ready ? (
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.bg }, animation: 'fade' }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="g/[handle]" />
+          </Stack>
+        ) : null}
+      </View>
+    </SafeAreaProvider>
   );
 }
