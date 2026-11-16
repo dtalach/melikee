@@ -17,9 +17,6 @@ import { Plus, People, Sparkle, TabFeed, TabLists, TabMe } from '@/ui/icons';
 import { Breathe } from '@/ui/motion';
 import { T, Tap } from '@/ui/primitives';
 
-/** Set when a dock hold opened Say mode, so its release captures. */
-let sayHeld = false;
-
 export function Dock({ route }: { route: Route }) {
   const insets = useSafeAreaInsets();
   const tab = useApp((s) => s.tab);
@@ -43,17 +40,13 @@ export function Dock({ route }: { route: Route }) {
     hold.current = setTimeout(() => {
       held.current = true;
       if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+      // The dock goes away with the camera, so its press can't carry on into
+      // dictation: holding opens the camera ready in Say mode instead.
       openCamera({ mode: 'say' });
-      useApp.getState().setCapture({ phase: 'idle' });
-      sayHeld = true;
     }, 450);
   };
   const onPressOut = () => {
     if (hold.current) clearTimeout(hold.current);
-    if (held.current && sayHeld) {
-      sayHeld = false;
-      useApp.getState().runCapture({ source: 'voice' });
-    }
   };
   const onPress = () => {
     if (held.current) {
@@ -107,7 +100,7 @@ export function Dock({ route }: { route: Route }) {
           onPressOut={onPressOut}
           accessibilityRole="button"
           accessibilityLabel="Add a shiny"
-          accessibilityHint="Opens the camera. Hold to say what you want."
+          accessibilityHint="Opens the camera. Hold to open it in Say mode."
           style={{
             width: 64,
             height: 64,

@@ -8,7 +8,7 @@
  * "Still choosing"; after dibs, "Buy at {store} →".
  */
 import { useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { Image, Linking, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { label } from '@/lib/dates';
@@ -141,10 +141,14 @@ export function GifterPage({ listId, preview, expired }: { listId: string; previ
               const meta = choosing ? 'still choosing the exact one' : [i.price, i.store, i.size].filter(Boolean).join(' · ');
               return (
                 <View key={i.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: '#fff', borderWidth: 1, borderColor: mine ? gift.accent66 : gift.rowLine, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 12, boxShadow: '0 2px 8px rgba(45,36,71,0.06)' }}>
-                  <View style={{ width: 46, height: 46, borderRadius: 10, backgroundColor: gift.thumb, alignItems: 'center', justifyContent: 'center' }}>
-                    <T size={8} color={gift.meta}>
-                      photo
-                    </T>
+                  <View style={{ width: 46, height: 46, borderRadius: 10, backgroundColor: i.image && !choosing ? '#fff' : gift.thumb, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    {i.image && !choosing ? (
+                      <Image source={{ uri: i.image }} resizeMode="contain" style={{ width: '100%', height: '100%' }} accessibilityIgnoresInvertColors />
+                    ) : (
+                      <T size={8} color={gift.meta}>
+                        photo
+                      </T>
+                    )}
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <T size={13} w={700} color={gift.text} style={{ lineHeight: 16 }}>
@@ -159,7 +163,7 @@ export function GifterPage({ listId, preview, expired }: { listId: string; previ
                       </T>
                     ) : null}
                     {mine ? (
-                      <Tap onPress={() => s.showToast(`Opens ${i.store} — same price, MeLikee earns a little`)} style={{ marginTop: 4 }}>
+                      <Tap onPress={() => (i.url ? Linking.openURL(i.url).catch(() => undefined) : s.showToast(`Find it at ${i.store}`))} style={{ marginTop: 4 }}>
                         <T size={11.5} w={700} color={gift.accent}>
                           Buy at {i.store} →
                         </T>

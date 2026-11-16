@@ -5,8 +5,13 @@
   "installCommand": "npm install",
   "rewrites": [
     {
-      "source": "/((?!_expo/|assets/|favicon).*)",
+      "source": "/((?!api/|_expo/|assets/|favicon).*)",
       "destination": "/"
     }
-  ]
+  ],
+  "functions": {
+    "api/match.ts": {
+      "maxDuration": 60
+    }
+  }
 }

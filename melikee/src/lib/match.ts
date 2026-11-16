@@ -1,109 +1,117 @@
 /**
- * Product matching — stubbed.
+ * Product matching, app side. Every capture path (snap, scan, say, screenshot,
+ * pasted link, typed search, trending) goes through `matchFor`, which calls
+ * the server at /api/match. See `server/match.ts` for how matching works.
  *
- * There's no product API yet. Every capture path (snap, scan, say, screenshot,
- * pasted link, typed search, trending) goes through here and gets a scripted
- * result, so wiring in a real lookup is a change to this file only.
+ * On the web the API is same-origin. Native builds (and `expo start --web`,
+ * which has no /api) call the deployed app, overridable with
+ * EXPO_PUBLIC_API_URL.
  */
+import { Platform } from 'react-native';
+
 import type { MatchSource } from '@/store/types';
+import type { Candidate, ErrorResponse, FindRequest, FindResponse, ImagePayload, ReadResponse, Reading, StoreOffer } from './matchContract';
 
 export type Match = {
   name: string;
   price: string;
   store: string;
   source: MatchSource;
-  /** Shown on the alternates list. */
+  /** Alternates list: "best match, 92%", "last year's model". */
   tag?: string;
   confidence?: number;
+  url?: string;
+  image?: string;
+  upc?: string;
+  others?: StoreOffer[];
 };
 
-/** Below this, show "Can't tell what this is" instead of a guess. */
-export const CONFIDENCE_FLOOR = 0.6;
+/** The production deployment, used when there's no same-origin API. */
+const DEFAULT_API = 'https://melikee-eight.vercel.app';
 
-const photoMatches: Match[] = [
-  { name: 'Sony XM6 headphones', price: '$399', store: 'Best Buy', source: 'photo', tag: 'best match, 96%', confidence: 0.96 },
-  { name: 'Sony XM5 headphones', price: '$329', store: 'Best Buy', source: 'photo', tag: 'last year’s model', confidence: 0.81 },
-  { name: 'Sony XM6 — silver', price: '$399', store: 'Amazon', source: 'photo', tag: 'different color', confidence: 0.78 },
-];
+function apiBase() {
+  const env = process.env.EXPO_PUBLIC_API_URL;
+  if (env) return env.replace(/\/$/, '');
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && !/^(localhost|127\.|192\.168\.)/.test(window.location.hostname)) return '';
+  return DEFAULT_API;
+}
 
-export const SAY_SAMPLE = '“those Sony noise-cancelling headphones”';
-
-export function matchCapture(source: MatchSource): { best: Match; alternates: Match[] } {
-  if (source === 'barcode') {
-    return { best: { ...photoMatches[0], source, tag: 'exact', confidence: 1 }, alternates: photoMatches };
+export class MatchFailure extends Error {
+  constructor(
+    readonly code: ErrorResponse['code'] | 'network',
+    message: string,
+  ) {
+    super(message);
   }
-  return { best: { ...photoMatches[0], source }, alternates: photoMatches.map((m) => ({ ...m, source })) };
 }
 
-export function matchBarcode(data: string): Match {
-  return { ...photoMatches[0], source: 'barcode', tag: `UPC ${data}`, confidence: 1 };
-}
-
-/** A pasted product link. Returns null when the page has no product on it. */
-export function matchLink(url: string): Match | null {
-  if (!/^https?:\/\/[^/]+\/.+/i.test(url)) return null;
-  const host = hostOf(url);
-  const storeName = storeFromHost(host);
-  return { name: 'Stanley Quencher 40oz', price: '$45', store: storeName, source: 'link', confidence: 1 };
-}
-
-export function matchTyped(q: string): Match {
-  const name = q.trim().charAt(0).toUpperCase() + q.trim().slice(1);
-  return { name, price: '$34', store: 'Amazon', source: 'search', confidence: 1 };
-}
-
-export function matchTrending(t: { name: string; price: string }): Match {
-  return { name: t.name, price: t.price, store: 'Amazon', source: 'catalog', confidence: 1 };
-}
-
-/** Near matches offered for "Wrong product?" on an item already saved. */
-export function alternatesFor(item: { name: string; price: string; store: string; pending?: boolean }): Match[] {
-  if (item.pending) {
-    return [
-      { name: 'Stanley Quencher 40oz', price: '$45', store: 'Amazon', source: 'photo', tag: 'best guess from your photo' },
-      { name: 'Owala FreeSip 24oz', price: '$28', store: 'Target', source: 'photo', tag: 'similar shape' },
-      { name: 'Hydro Flask 32oz', price: '$45', store: 'REI', source: 'photo', tag: 'similar color' },
-    ];
+async function post<T>(body: unknown, signal?: AbortSignal): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${apiBase()}/api/match`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
+  } catch (e) {
+    if ((e as Error)?.name === 'AbortError') throw e;
+    throw new MatchFailure('network', 'Couldn’t reach MeLikee. Check your connection.');
   }
-  const n = priceValue(item.price) || 40;
-  return [
-    { name: `${item.name} — other color`, price: item.price, store: item.store, source: 'catalog', tag: 'same product, different color' },
-    { name: `${item.name} (previous model)`, price: `$${Math.max(5, Math.round(n * 0.82))}`, store: item.store, source: 'catalog', tag: 'last year’s version' },
-    { name: `Something similar to ${item.name}`, price: item.price, store: 'Amazon', source: 'catalog', tag: 'close match' },
-  ];
+  const json = (await res.json().catch(() => null)) as (T & { ok: true }) | ErrorResponse | null;
+  if (!json) throw new MatchFailure('upstream', `Matching answered ${res.status}.`);
+  if (!json.ok) throw new MatchFailure((json as ErrorResponse).code, (json as ErrorResponse).message);
+  return json as T;
 }
 
-/** The suggestion a pending photo resolves to after a while. */
-export const PENDING_SUGGESTION = { name: 'Stanley Quencher 40oz', price: '$45', store: 'Amazon' };
-
-/** Other stores for the found sheet and item detail, cheapest first. */
-export function otherStores(price: string, best: string, pool = ['Amazon', 'Target', 'Walmart', 'Best Buy']) {
-  const base = priceValue(price);
-  return pool
-    .filter((s) => s !== best)
-    .slice(0, 2)
-    .map((store, i) => ({ store, price: base ? `$${Math.round(base * (1.04 + i * 0.05))}` : '—' }));
+export async function readPhoto(image: ImagePayload, signal?: AbortSignal): Promise<Reading> {
+  return (await post<ReadResponse>({ mode: 'read', image }, signal)).reading;
 }
+
+export async function find(req: Omit<FindRequest, 'mode'>, signal?: AbortSignal): Promise<Match[]> {
+  const out = await post<FindResponse>({ mode: 'find', ...req }, signal);
+  if (!out.found) return [];
+  const source: MatchSource = req.source === 'alternates' ? 'catalog' : req.source === 'catalog' ? 'catalog' : req.source;
+  return out.candidates.map((c: Candidate) => ({
+    name: c.name,
+    price: c.price,
+    store: c.store,
+    source,
+    tag: c.tag,
+    confidence: c.confidence / 100,
+    url: c.url,
+    image: c.image,
+    upc: c.upc,
+    others: c.others,
+  }));
+}
+
+/** Why a capture found nothing, in the miss sheet's words. */
+export type Miss = { kind: 'nomatch' | 'badlink' | 'error'; title: string; body: string };
+
+export const MISS = {
+  photo: (problem: Reading['problem']): Miss => ({
+    kind: 'nomatch',
+    title: 'Can’t tell what this is',
+    body:
+      problem === 'too dark'
+        ? 'Too dark to read. Try more light, type it, or save the photo and we’ll keep looking.'
+        : problem === 'too blurry'
+          ? 'Too blurry to read. Try holding still, type it, or save the photo and we’ll keep looking.'
+          : problem === 'several things'
+            ? 'A few things in frame. Try closer on one, type it, or save the photo and we’ll keep looking.'
+            : 'Try closer, type it, or save the photo and we’ll keep looking.',
+  }),
+  nothing: (what: string): Miss => ({ kind: 'nomatch', title: 'Couldn’t find that one', body: `Nothing buyable turned up for ${what}. Try different words, or save it and pick later.` }),
+  badlink: (): Miss => ({ kind: 'badlink', title: 'No product on that page', body: 'That link goes to a page, not a product. Save it and pick the product later, or type what you want.' }),
+  error: (e: unknown): Miss => ({
+    kind: 'error',
+    title: 'Matching didn’t work',
+    body: e instanceof MatchFailure && e.code === 'not_configured' ? 'Product matching isn’t set up on this server yet.' : e instanceof MatchFailure ? e.message : 'Something went wrong. Try again, or type it.',
+  }),
+};
 
 export function priceValue(p: string) {
   return parseFloat(String(p).replace(/[^0-9.]/g, '')) || 0;
 }
 
 export function hostOf(url: string) {
-  return url.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0];
-}
-
-function storeFromHost(host: string) {
-  const known: Record<string, string> = {
-    'amazon.com': 'Amazon',
-    'target.com': 'Target',
-    'walmart.com': 'Walmart',
-    'bestbuy.com': 'Best Buy',
-    'urbanoutfitters.com': 'Urban Outfitters',
-    'sephora.com': 'Sephora',
-    'rei.com': 'REI',
-  };
-  return known[host] ?? host;
+  return url.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split(/[/?#]/)[0];
 }
 
 /** Badge text on the found sheet, per the spec's match-state table. */
@@ -118,7 +126,7 @@ export function matchBadge(m: Match, chosenIndex: number) {
     case 'search':
       return 'Search result';
     default:
-      return `Looks like · ${chosenIndex === 0 ? `${Math.round((m.confidence ?? 0.96) * 100)}%` : 'close match'}`;
+      return `Looks like · ${chosenIndex === 0 && m.confidence != null ? `${Math.round(m.confidence * 100)}%` : 'close match'}`;
   }
 }
 

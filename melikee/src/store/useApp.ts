@@ -10,7 +10,8 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { daysUntil, shortDate, type MonthDay } from '@/lib/dates';
-import { matchCapture, PENDING_SUGGESTION, type Match } from '@/lib/match';
+import { find, MISS, readPhoto, type Match, type Miss } from '@/lib/match';
+import type { ImagePayload } from '@/lib/matchContract';
 import {
   seedContacts,
   seedFeed,
@@ -46,7 +47,24 @@ import type {
 export const FILING_SECONDS = 6;
 
 export type CaptureMode = 'scan' | 'snap' | 'say';
-export type CapturePhase = 'idle' | 'snap' | 'scan' | 'found' | 'fly' | 'nomatch' | 'badlink' | 'alts' | 'type';
+export type CapturePhase = 'idle' | 'snap' | 'scan' | 'found' | 'fly' | 'nomatch' | 'alts' | 'type';
+
+/** What a capture starts from. Every path ends at /api/match. */
+export type CaptureInput =
+  | { source: 'photo' | 'screenshot'; image?: ImagePayload; uri?: string }
+  | { source: 'barcode'; upc: string }
+  | { source: 'voice' | 'search' | 'catalog'; query: string }
+  | { source: 'link'; url: string };
+
+const NOTES: Record<CaptureInput['source'], string> = {
+  photo: 'reading your photo',
+  screenshot: 'reading your screenshot',
+  barcode: 'exact match from the barcode',
+  voice: 'matching your words to products',
+  search: 'searching stores',
+  catalog: 'checking prices',
+  link: 'opening your link',
+};
 
 export type Capture = {
   phase: CapturePhase;
@@ -59,15 +77,23 @@ export type Capture = {
   fixItem: number | null;
   star: boolean;
   size: string;
-  color: string;
   storesOpen: boolean;
   destOpen: boolean;
   sizeEditing: boolean;
   typeQ: string;
   /** What the camera returns to on ✕. */
   from: Route | null;
-  /** The pasted link that produced a "no product" miss, kept for saving. */
-  link: string | null;
+  /** Why the last capture found nothing — the miss sheet's words. */
+  miss: Miss | null;
+  /** Status line under the spinner while matching. */
+  note: string;
+  /** The input being matched, kept so a miss can be saved and matched later. */
+  input: CaptureInput | null;
+  /** The photo the user took, shown inset on the found sheet. */
+  shotUri: string | null;
+  /** Say mode: live transcript while the shutter is held. */
+  transcript: string;
+  listening: boolean;
 };
 
 const idleCapture: Capture = {
@@ -80,13 +106,17 @@ const idleCapture: Capture = {
   fixItem: null,
   star: false,
   size: '',
-  color: 'Black',
   storesOpen: false,
   destOpen: false,
   sizeEditing: false,
   typeQ: '',
   from: null,
-  link: null,
+  miss: null,
+  note: '',
+  input: null,
+  shotUri: null,
+  transcript: '',
+  listening: false,
 };
 
 type Content = {
@@ -135,11 +165,12 @@ type Actions = {
   openCamera: (opts?: { mode?: CaptureMode; dest?: string }) => void;
   closeCamera: () => void;
   setCapture: (patch: Partial<Capture>) => void;
-  runCapture: (opts: { source: Match['source']; noMatch?: boolean; delay?: number }) => void;
-  showMatch: (m: Match, opts?: { viaScan?: boolean }) => void;
+  runCapture: (input: CaptureInput) => Promise<void>;
+  /** "Wrong product?": near matches for a saved shiny, or a typed search to replace it. */
+  openAlternates: (itemId: number, query?: string) => Promise<void>;
   resetCapture: () => void;
   wantIt: () => void;
-  savePending: (name: string, added: string) => void;
+  savePending: () => void;
   fixWith: (m: Match) => void;
   undoFiling: () => void;
   endFiling: () => void;
@@ -218,6 +249,8 @@ function clearTimers() {
   timers = [];
 }
 
+/** Bumped per capture so a slow answer to an abandoned capture is ignored. */
+let captureRun = 0;
 let toastKey = 0;
 let filingKey = 0;
 let filingTimer: ReturnType<typeof setTimeout> | null = null;
@@ -265,6 +298,7 @@ export const useApp = create<AppState>()(
       setCapture: (patch) => set((s) => ({ capture: { ...s.capture, ...patch } })),
       resetCapture: () => {
         clearTimers();
+        captureRun++;
         const c = get().capture;
         if (c.fixItem != null) {
           // Came from the item's "Wrong product?" — go straight back to it.
@@ -273,55 +307,86 @@ export const useApp = create<AppState>()(
         }
         set({ capture: { ...idleCapture, mode: c.mode, from: c.from } });
       },
-      runCapture: ({ source, noMatch, delay }) => {
+      runCapture: async (input) => {
         clearTimers();
         // A new capture replaces the last add's receipt, as in the prototype.
         get().endFiling();
-        const base = {
-          star: false,
-          size: '',
-          sizeEditing: false,
-          storesOpen: false,
-          destOpen: false,
-          chosen: 0,
-          fromRoll: source === 'screenshot',
+        const run = ++captureRun;
+        const live = () => run === captureRun;
+        const patch = (p: Partial<Capture>) => {
+          if (live()) set((s) => ({ capture: { ...s.capture, ...p } }));
         };
-        const { best, alternates } = matchCapture(source);
-        const finish = () =>
-          set((s) =>
-            s.capture.phase === 'scan'
-              ? { capture: { ...s.capture, phase: noMatch ? 'nomatch' : 'found', match: best, alternates } }
-              : {},
-          );
-        if (delay === 0) {
-          set((s) => ({ capture: { ...s.capture, ...base, phase: noMatch ? 'nomatch' : 'found', match: best, alternates } }));
-          return;
+        const miss = (m: Miss) => patch({ phase: 'nomatch', miss: m });
+        set((s) => ({
+          capture: {
+            ...s.capture,
+            star: false,
+            size: '',
+            sizeEditing: false,
+            storesOpen: false,
+            destOpen: false,
+            chosen: 0,
+            miss: null,
+            match: null,
+            alternates: [],
+            input,
+            fromRoll: input.source === 'screenshot',
+            shotUri: 'uri' in input ? (input.uri ?? null) : null,
+            // A shutter press flashes first; everything else goes straight to matching.
+            phase: input.source === 'photo' || input.source === 'barcode' ? 'snap' : 'scan',
+            note: NOTES[input.source],
+          },
+        }));
+        if (input.source === 'photo' || input.source === 'barcode') later(() => patch({ phase: 'scan' }), 420);
+
+        try {
+          let found: Match[];
+          if (input.source === 'photo' || input.source === 'screenshot') {
+            if (!input.image) return miss(MISS.error(new Error('That photo couldn’t be read. Try again, or type it.')));
+            const reading = await readPhoto(input.image);
+            if (!live()) return;
+            if (reading.problem !== 'none' || !reading.query) return miss(MISS.photo(reading.problem));
+            patch({ note: `found ${reading.name || 'it'} · finding stores` });
+            found = await find({ source: input.source, query: reading.query, hint: [reading.name, reading.detail].filter(Boolean).join(', ') });
+            // The reading's own confidence caps how sure the match can claim to be.
+            if (found[0] && reading.confidence !== 'high') found[0] = { ...found[0], confidence: Math.min(found[0].confidence ?? 1, reading.confidence === 'medium' ? 0.8 : 0.6) };
+          } else if (input.source === 'barcode') {
+            found = await find({ source: 'barcode', upc: input.upc });
+          } else if (input.source === 'link') {
+            found = await find({ source: 'link', url: input.url });
+            if (live() && !found.length) return miss(MISS.badlink());
+          } else {
+            found = 'query' in input ? await find({ source: input.source, query: input.query }) : [];
+          }
+          if (!live()) return;
+          if (!found.length) return miss(MISS.nothing(input.source === 'barcode' ? 'that barcode' : 'that'));
+          patch({ phase: 'found', match: found[0], alternates: found });
+        } catch (e) {
+          miss(MISS.error(e));
         }
-        // Flash, then "matching", then the reveal.
-        set((s) => ({ capture: { ...s.capture, ...base, phase: source === 'screenshot' ? 'scan' : 'snap' } }));
-        if (source !== 'screenshot') later(() => set((s) => ({ capture: { ...s.capture, phase: 'scan' } })), 420);
-        later(finish, delay ?? (source === 'screenshot' ? 1400 : 2000));
       },
-      showMatch: (m, opts) => {
-        clearTimers();
-        get().endFiling();
-        const patch = {
-          match: m,
-          alternates: [],
-          chosen: 0,
-          star: false,
-          size: '',
-          sizeEditing: false,
-          storesOpen: false,
-          destOpen: false,
-          fromRoll: false,
-        };
-        if (!opts?.viaScan) {
-          set((s) => ({ capture: { ...s.capture, ...patch, phase: 'found' } }));
-          return;
+      openAlternates: async (itemId, query) => {
+        const item = get().items.find((i) => i.id === itemId);
+        if (!item) return;
+        if (get().stack[get().stack.length - 1].name !== 'camera') get().openCamera();
+        const run = ++captureRun;
+        set((s) => ({ capture: { ...s.capture, fixItem: itemId, phase: 'scan', note: query ? 'searching stores' : 'finding close matches', miss: null } }));
+        try {
+          // A pending photo has no name yet, so "close matches" means searching what it was saved as.
+          const found = query
+            ? await find({ source: 'search', query })
+            : item.pending && !item.query
+              ? []
+              : await find({ source: 'alternates', query: item.query || item.name });
+          if (run !== captureRun) return;
+          if (!found.length) {
+            set((s) => ({ capture: { ...s.capture, phase: 'nomatch', miss: MISS.nothing(`“${item.name}”`) } }));
+            return;
+          }
+          set((s) => ({ capture: { ...s.capture, phase: 'alts', alternates: found } }));
+        } catch (e) {
+          if (run === captureRun) set((s) => ({ capture: { ...s.capture, phase: 'nomatch', miss: MISS.error(e) } }));
         }
-        set((s) => ({ capture: { ...s.capture, ...patch, phase: 'scan' } }));
-        later(() => set((s) => (s.capture.phase === 'scan' ? { capture: { ...s.capture, phase: 'found' } } : {})), 900);
       },
       wantIt: () => {
         const s = get();
@@ -341,10 +406,14 @@ export const useApp = create<AppState>()(
           name: m.name,
           price: m.price,
           store: m.store,
-          upc: m.source === 'barcode' && m.tag?.startsWith('UPC ') ? m.tag.slice(4) : '027242925175',
-          added: `${how[m.source] ?? 'by camera'} · just now`,
+          upc: m.upc ?? '—',
+          url: m.url,
+          image: m.image,
+          others: m.others,
+          checkedAt: Date.now(),
+          added: `${how[m.source] ?? 'by camera'} · ${shortDate(Date.now())}`,
           star: s.capture.star,
-          size: [s.capture.color, s.capture.size].filter(Boolean).join(', '),
+          size: s.capture.size.trim() || undefined,
           alert: true,
         });
         set((st) => ({ firstRun: false, capture: { ...st.capture, phase: 'fly', match: m } }));
@@ -353,43 +422,54 @@ export const useApp = create<AppState>()(
           startFiling(id);
         }, 480);
       },
-      savePending: (name, added) => {
+      savePending: () => {
         const s = get();
+        const input = s.capture.input;
         const id = s.nextId;
+        const query = input && 'query' in input ? input.query : undefined;
+        const name =
+          input?.source === 'link' ? 'Saved link — pick the product' : input?.source === 'voice' || input?.source === 'search' ? `“${query}” — matching…` : 'Your photo — matching…';
         set((st) => ({
           items: [
-            { id, list: st.lastList, name, price: '—', store: 'saved for later', upc: '—', added, createdAt: Date.now(), pending: true },
+            {
+              id,
+              list: st.lastList,
+              name,
+              price: '—',
+              store: 'saved for later',
+              upc: '—',
+              added: `${input?.source === 'link' ? 'link' : input?.source === 'voice' ? 'said' : 'photo'} saved · ${shortDate(Date.now())}`,
+              createdAt: Date.now(),
+              pending: true,
+              query,
+              url: input?.source === 'link' ? input.url : undefined,
+              image: s.capture.shotUri ?? undefined,
+            },
             ...st.items,
           ],
           nextId: st.nextId + 1,
           firstRun: false,
           capture: { ...idleCapture, mode: st.capture.mode, from: st.capture.from },
         }));
-        // Stub: the matcher "finds" it a little later and asks to confirm.
-        setTimeout(() => {
-          const it = get().items.find((i) => i.id === id);
-          if (!it || !it.pending) return;
-          set((st) => ({
-            items: st.items.map((i) => (i.id === id ? { ...i, suggest: PENDING_SUGGESTION } : i)),
-            notifs: [
-              {
-                id: `match-${id}`,
-                kind: 'match',
-                title: 'We think we found it',
-                sub: `${PENDING_SUGGESTION.name} · ${PENDING_SUGGESTION.price} — is this right?`,
-                at: Date.now(),
-                read: false,
-                to: { name: 'item', id },
-              },
-              ...st.notifs,
-            ],
-          }));
-        }, 5000);
+        // Keep matching in the background, more thoroughly than a live capture can
+        // afford; if it lands, ask "We think we found it".
+        void rematch(id, input);
       },
       fixWith: (m) => {
         const id = get().capture.fixItem;
         if (id == null) return;
-        get().updateItem(id, { name: m.name, price: m.price, store: m.store, pending: false, suggest: null });
+        get().updateItem(id, {
+          name: m.name,
+          price: m.price,
+          store: m.store,
+          url: m.url,
+          image: m.image,
+          upc: m.upc ?? '—',
+          others: m.others,
+          checkedAt: Date.now(),
+          pending: false,
+          suggest: null,
+        });
         get().closeCamera();
         get().showToast(`Fixed — now ${m.name}`);
       },
@@ -513,6 +593,39 @@ export const useApp = create<AppState>()(
     },
   ),
 );
+
+/**
+ * Background matching for a saved shiny: one thorough search (more searches,
+ * more effort than a live capture can wait for). If it lands, the shiny gets a
+ * suggestion and a "We think we found it" notification; if not, it stays
+ * pending and "Pick it myself" is always there.
+ */
+async function rematch(id: number, input: CaptureInput | null) {
+  try {
+    let query = input && 'query' in input ? input.query : undefined;
+    let hint: string | undefined;
+    if (!query && input && 'image' in input && input.image) {
+      const reading = await readPhoto(input.image);
+      if (reading.problem !== 'none' || !reading.query) return;
+      query = reading.query;
+      hint = [reading.name, reading.detail].filter(Boolean).join(', ');
+    }
+    const found = input?.source === 'link' ? await find({ source: 'link', url: input.url, thorough: true }) : query ? await find({ source: 'search', query, hint, thorough: true }) : [];
+    const best = found[0];
+    const it = useApp.getState().items.find((i) => i.id === id);
+    if (!best || !it || !it.pending) return;
+    const suggest = { name: best.name, price: best.price, store: best.store, url: best.url, image: best.image, upc: best.upc, others: best.others };
+    useApp.setState((st) => ({
+      items: st.items.map((i) => (i.id === id ? { ...i, suggest } : i)),
+      notifs: [
+        { id: `match-${id}`, kind: 'match', title: 'We think we found it', sub: `${best.name} · ${best.price} — is this right?`, at: Date.now(), read: false, to: { name: 'item', id } },
+        ...st.notifs,
+      ],
+    }));
+  } catch {
+    // Stays pending; the item screen offers "Pick it myself".
+  }
+}
 
 function startFiling(itemId: number) {
   if (filingTimer) clearTimeout(filingTimer);

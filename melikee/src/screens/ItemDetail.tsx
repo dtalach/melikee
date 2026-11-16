@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { ScrollView, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 
-import { otherStores } from '@/lib/match';
+import { ago } from '@/lib/dates';
 import { alsoWant } from '@/store/seed';
 import { listById, useApp, visWord } from '@/store/useApp';
 import { brand, palette } from '@/theme/tokens';
@@ -34,19 +34,37 @@ export function ItemDetail({ id }: { id: number }) {
   }
 
   const fix = () => {
-    useApp.getState().openCamera();
-    useApp.getState().setCapture({ phase: 'alts', fixItem: item.id });
+    // A saved photo has no name to find near matches for yet: go straight to typing it.
+    if (item.pending && !item.query) {
+      useApp.getState().openCamera();
+      useApp.getState().setCapture({ phase: 'type', typeQ: '', fixItem: item.id });
+      return;
+    }
+    void useApp.getState().openAlternates(item.id);
   };
-  const stores = [{ store: item.store, price: item.price, best: true }, ...otherStores(item.price, item.store, ['Amazon', 'Walmart', 'Target']).map((x) => ({ ...x, best: false }))];
+  // Only stores the search actually saw. Sample shinies carry just their own.
+  const stores = [{ store: item.store, price: item.price, url: item.url, best: true }, ...(item.others ?? []).map((x) => ({ ...x, best: false }))];
+  const checked = item.checkedAt ? `checked ${ago(item.checkedAt) === 'now' ? 'just now' : `${ago(item.checkedAt)} ago`}` : '';
+  const open = (url?: string, store = item.store) => {
+    if (url) Linking.openURL(url).catch(() => showToast(`Couldn’t open ${store}`));
+    else showToast(`No link saved for ${store}`);
+  };
   const also = alsoWant[item.id];
 
   return (
     <Appear style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
         <LinearGradient colors={[palette.ph2, palette.bg]} style={{ height: 200, alignItems: 'center', justifyContent: 'center' }}>
-          <T size={11} color={palette.muted}>
-            photo
-          </T>
+          {item.image ? (
+            <>
+              <PhotoBox uri={item.image} label="" fit={item.pending ? 'cover' : 'contain'} style={StyleSheet.absoluteFill} />
+              <LinearGradient pointerEvents="none" colors={['rgba(18,18,18,0)', palette.bg]} locations={[0.35, 1]} style={StyleSheet.absoluteFill} />
+            </>
+          ) : (
+            <T size={11} color={palette.muted}>
+              photo
+            </T>
+          )}
           <Tap onPress={back} accessibilityLabel="Back" style={{ position: 'absolute', left: 14, top: 8, padding: 4 }}>
             <Chevron size={22} strokeWidth={1.5} color={palette.text} />
           </Tap>
@@ -73,7 +91,7 @@ export function ItemDetail({ id }: { id: number }) {
               {item.suggest ? (
                 <>
                   <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-                    <PhotoBox label="" style={{ width: 46, height: 46, borderRadius: 10 }} />
+                    <PhotoBox uri={item.suggest.image} label="" style={{ width: 46, height: 46, borderRadius: 10 }} />
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <T size={11} w={700} color={palette.limeText} style={{ letterSpacing: 0.66 }}>
                         WE THINK WE FOUND IT
@@ -82,7 +100,7 @@ export function ItemDetail({ id }: { id: number }) {
                         {item.suggest.name}
                       </T>
                       <T size={11.5} color={palette.muted}>
-                        {item.suggest.price} · {item.suggest.store} · matched from your photo
+                        {item.suggest.price} · {item.suggest.store} · {item.url && !item.query ? 'from your link' : 'matched for you'}
                       </T>
                     </View>
                   </View>
@@ -94,7 +112,7 @@ export function ItemDetail({ id }: { id: number }) {
                       flex
                       onPress={() => {
                         const sg = item.suggest!;
-                        updateItem(item.id, { ...sg, pending: false, suggest: null, upc: '—', alert: true });
+                        updateItem(item.id, { ...sg, upc: sg.upc ?? '—', pending: false, suggest: null, alert: true, checkedAt: Date.now() });
                         showToast(`Matched — ${sg.name}`);
                       }}
                     />
@@ -133,7 +151,7 @@ export function ItemDetail({ id }: { id: number }) {
                   {item.price}
                 </T>
                 <T size={12} color={palette.muted}>
-                  lowest of 3 stores · checked 2h ago
+                  {[`at ${item.store}`, stores.length > 1 ? `${stores.length - 1} more ${stores.length === 2 ? 'store' : 'stores'}` : '', checked].filter(Boolean).join(' · ')}
                 </T>
                 {list.vis === 'me' ? (
                   <View style={{ borderWidth: 1, borderColor: palette.vio55, paddingVertical: 2, paddingHorizontal: 9, borderRadius: 999 }}>
@@ -145,22 +163,25 @@ export function ItemDetail({ id }: { id: number }) {
               </View>
               <Card style={{ paddingVertical: 4, paddingHorizontal: 14 }}>
                 {stores.map((st, i) => (
-                  <View key={st.store} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: i < stores.length - 1 ? 1 : 0, borderBottomColor: palette.vio22 }}>
+                  <Tap key={st.store + i} onPress={() => open(st.url, st.store)} accessibilityLabel={`Open at ${st.store}`} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: i < stores.length - 1 ? 1 : 0, borderBottomColor: palette.vio22 }}>
                     <T size={13} w={600}>
                       {st.store}
                     </T>
                     <T size={13} w={800} color={st.best ? palette.limeText : palette.muted}>
                       {st.price}
                     </T>
-                  </View>
+                  </Tap>
                 ))}
               </Card>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: palette.inset, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12 }}>
-                <TrendLine color={palette.limeText} />
-                <T size={12} w={600} style={{ flex: 1 }}>
-                  {item.drop ? `Down ${item.drop} this month · lowest in 30 days` : `Steady at ${item.price} for 30 days`}
-                </T>
-              </View>
+              {/* Price history isn't tracked yet; only shinies with a known drop show it. */}
+              {item.drop ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: palette.inset, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12 }}>
+                  <TrendLine color={palette.limeText} />
+                  <T size={12} w={600} style={{ flex: 1 }}>
+                    Down {item.drop} this month · lowest in 30 days
+                  </T>
+                </View>
+              ) : null}
             </>
           )}
 
@@ -229,7 +250,7 @@ export function ItemDetail({ id }: { id: number }) {
 
           {!item.pending ? (
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Tap onPress={() => showToast(`Opens ${item.store}`)} style={{ flex: 1 }}>
+              <Tap onPress={() => open(item.url)} style={{ flex: 1 }}>
                 <LimeFill style={{ paddingVertical: 11, alignItems: 'center' }}>
                   <T size={13} w={800} color={brand.limeInk}>
                     Open at {item.store}

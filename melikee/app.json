@@ -12,7 +12,10 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.melikee.client",
       "infoPlist": {
-        "NSCameraUsageDescription": "MeLikee uses the camera so you can snap or scan anything you want and add it to your wishlist."
+        "NSCameraUsageDescription": "MeLikee uses the camera so you can snap or scan anything you want and add it to your wishlist.",
+        "NSMicrophoneUsageDescription": "MeLikee uses the microphone so you can say what you want.",
+        "NSSpeechRecognitionUsageDescription": "MeLikee turns what you say into the product you're looking for.",
+        "NSPhotoLibraryUsageDescription": "MeLikee opens your photos so you can add a screenshot of something you want."
       }
     },
     "android": {
@@ -47,7 +50,22 @@
           "recordAudioAndroid": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MeLikee opens your photos so you can add a screenshot of something you want.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "MeLikee uses the microphone so you can say what you want.",
+          "speechRecognitionPermission": "MeLikee turns what you say into the product you're looking for."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

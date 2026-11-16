@@ -6,7 +6,6 @@
 import { ScrollView, View } from 'react-native';
 
 import { ago, daysUntil, SOON_DAYS } from '@/lib/dates';
-import { matchTrending } from '@/lib/match';
 import { trending } from '@/store/seed';
 import { useApp } from '@/store/useApp';
 import { brand, palette, ringSoon } from '@/theme/tokens';
@@ -27,7 +26,7 @@ export function Feed() {
   const wantToo = useApp((s) => s.wantToo);
   const showToast = useApp((s) => s.showToast);
   const openCamera = useApp((s) => s.openCamera);
-  const showMatch = useApp((s) => s.showMatch);
+  const runCapture = useApp((s) => s.runCapture);
 
   const people = friends.map((f) => ({ ...f, days: daysUntil(f.birthday) })).sort((a, b) => a.days - b.days);
   const empty = friends.length === 0;
@@ -200,8 +199,9 @@ export function Feed() {
               <Tap
                 key={t.rank}
                 onPress={() => {
+                  // Trending is a list of names; tapping one looks up its real price.
                   openCamera({ mode: 'snap' });
-                  showMatch(matchTrending(t));
+                  void runCapture({ source: 'catalog', query: t.name });
                 }}
                 style={{ width: 122, backgroundColor: palette.card, borderWidth: 2, borderColor: tone.bd, borderRadius: 16, overflow: 'hidden' }}
               >

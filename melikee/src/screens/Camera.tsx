@@ -2,19 +2,21 @@
  * Full-screen camera (Camera Options 1b): opened from the dock, no dock and no
  * top chrome, ✕ returns to wherever you came from.
  *
- * Modes: Scan (auto-captures on a barcode; shutter dims; torch appears),
- * Snap (tap), Say (hold the shutter). Swipe across the screen to switch.
- * The preview is live where the camera is available; otherwise the design's
- * grey ground stands in. Matching itself is stubbed in `lib/match.ts`.
+ * Modes: Scan (captures as soon as it reads a barcode; shutter dims; torch
+ * appears), Snap (tap), Say (hold the shutter, let go to search). Swipe across
+ * the screen to switch. Every capture is matched for real by /api/match.
  */
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useEffect, useRef, useState } from 'react';
 import { Linking, PanResponder, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
-import { alternatesFor, hostOf, isExact, matchBadge, matchBarcode, matchLink, matchTyped, otherStores, SAY_SAMPLE } from '@/lib/match';
+import { hostOf, isExact, matchBadge } from '@/lib/match';
+import { preparePhoto } from '@/lib/photo';
 import { listAccent, listById, useApp, type CaptureMode } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
 import { Close, Photos, Sparkle, Torch } from '@/ui/icons';
@@ -23,15 +25,18 @@ import { AccentButton, ChipButton, GhostButton, LimeButton, LimeFill, PhotoBox, 
 
 const MODES: CaptureMode[] = ['scan', 'snap', 'say'];
 const native = Platform.OS !== 'web';
+const BARCODES = ['upc_a', 'upc_e', 'ean13', 'ean8'] as const;
 
 export function Camera() {
   const c = useApp((s) => s.capture);
   const firstRun = useApp((s) => s.firstRun);
   const setCapture = useApp((s) => s.setCapture);
   const runCapture = useApp((s) => s.runCapture);
-  const showMatch = useApp((s) => s.showMatch);
   const closeCamera = useApp((s) => s.closeCamera);
+  const showToast = useApp((s) => s.showToast);
 
+  const cameraRef = useRef<CameraView>(null);
+  const [ready, setReady] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const asked = useRef(false);
   useEffect(() => {
@@ -56,7 +61,7 @@ export function Camera() {
         const text = (await Clipboard.getStringAsync()).trim();
         if (on && /^https?:\/\/\S+$/i.test(text)) setClip(text);
       } catch {
-        // Clipboard can be unavailable (web without permission) — no chip then.
+        // Clipboard can be unavailable (web without permission): no chip then.
       }
     })();
     return () => {
@@ -67,31 +72,92 @@ export function Camera() {
   const [torch, setTorch] = useState(false);
   const idle = c.phase === 'idle';
 
-  const shutter = (source: 'photo' | 'voice' = c.mode === 'say' ? 'voice' : 'photo') => {
+  // ── Snap ──
+  const snap = async () => {
     if (!idle) return;
     ensureCamera();
+    if (!live || !cameraRef.current) {
+      showToast(denied ? 'Camera’s off — type it or use a screenshot' : 'Allow the camera, then snap');
+      if (denied) setCapture({ phase: 'type', typeQ: '' });
+      return;
+    }
     if (native) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
-    runCapture({ source });
+    try {
+      const shot = await cameraRef.current.takePictureAsync({ quality: 0.8, base64: !native });
+      if (!shot) throw new Error('no photo');
+      const prepared = await preparePhoto(shot);
+      void runCapture({ source: 'photo', image: prepared.image, uri: prepared.uri });
+    } catch {
+      showToast(ready ? 'That photo didn’t take — try again' : 'Camera’s still starting — try again');
+    }
   };
 
-  // Scan: a real barcode when the camera is live; otherwise the prototype's
-  // simulated read after a beat, so the flow still works without a camera.
+  // ── Screenshot / camera roll ──
+  const fromRoll = async () => {
+    if (!idle) return;
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1, base64: !native });
+      const asset = res.canceled ? null : res.assets[0];
+      if (!asset) return;
+      const prepared = await preparePhoto({ uri: asset.uri, width: asset.width, height: asset.height, base64: asset.base64 });
+      void runCapture({ source: 'screenshot', image: prepared.image, uri: prepared.uri });
+    } catch {
+      showToast('Couldn’t open your photos');
+    }
+  };
+
+  // ── Scan ──
   const scanned = useRef(false);
   useEffect(() => {
-    scanned.current = false;
-    if (c.mode !== 'scan' || !idle || denied) return;
-    if (live && native) return;
-    const t = setTimeout(() => {
-      if (useApp.getState().capture.phase === 'idle' && useApp.getState().capture.mode === 'scan') runCapture({ source: 'barcode' });
-    }, 2200);
-    return () => clearTimeout(t);
-  }, [c.mode, idle, live, denied, runCapture]);
+    if (c.mode === 'scan' && idle) scanned.current = false;
+  }, [c.mode, idle]);
   const onBarcode = (r: BarcodeScanningResult) => {
-    if (scanned.current || useApp.getState().capture.phase !== 'idle') return;
+    const digits = r.data.replace(/\D/g, '');
+    if (scanned.current || useApp.getState().capture.phase !== 'idle' || digits.length < 6) return;
     scanned.current = true;
     if (native) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-    setCapture({ phase: 'snap' });
-    setTimeout(() => showMatch(matchBarcode(r.data), { viaScan: true }), 420);
+    void runCapture({ source: 'barcode', upc: digits });
+  };
+
+  // ── Say: hold the shutter, let go to search ──
+  const finalRef = useRef('');
+  useSpeechRecognitionEvent('result', (e) => {
+    const text = e.results[0]?.transcript ?? '';
+    finalRef.current = text;
+    setCapture({ transcript: text });
+  });
+  useSpeechRecognitionEvent('end', () => {
+    const st = useApp.getState().capture;
+    setCapture({ listening: false });
+    const said = finalRef.current.trim();
+    finalRef.current = '';
+    if (st.phase === 'idle' && st.mode === 'say' && said) void runCapture({ source: 'voice', query: said });
+  });
+  useSpeechRecognitionEvent('error', (e) => {
+    setCapture({ listening: false });
+    showToast(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'MeLikee needs the mic to hear you' : e.error === 'no-speech' ? 'Didn’t hear anything — hold and say it' : 'Couldn’t listen — try typing it');
+  });
+  const listen = async () => {
+    try {
+      if (!ExpoSpeechRecognitionModule.isRecognitionAvailable()) {
+        showToast('Voice isn’t available here — type it instead');
+        setCapture({ phase: 'type', typeQ: '' });
+        return;
+      }
+      const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!perm.granted) {
+        showToast('MeLikee needs the mic to hear you');
+        return;
+      }
+      finalRef.current = '';
+      setCapture({ listening: true, transcript: '' });
+      ExpoSpeechRecognitionModule.start({ lang: 'en-US', interimResults: true, continuous: false });
+    } catch {
+      setCapture({ listening: false });
+    }
+  };
+  const stopListening = () => {
+    if (useApp.getState().capture.listening) ExpoSpeechRecognitionModule.stop();
   };
 
   const setMode = (m: CaptureMode) => {
@@ -112,7 +178,7 @@ export function Camera() {
     }),
   );
 
-  // Holding the shutter is Say: switch on press-and-hold, capture on release.
+  // Holding the shutter is Say: switch on press-and-hold, search on release.
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holding = useRef(false);
   const onPressIn = () => {
@@ -121,27 +187,27 @@ export function Camera() {
       holding.current = true;
       if (native) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
       setCapture({ mode: 'say' });
-    }, 450);
+      void listen();
+    }, c.mode === 'say' ? 0 : 450);
   };
   const onPressOut = () => {
     if (holdTimer.current) clearTimeout(holdTimer.current);
-    if (holding.current) shutter('voice');
+    if (holding.current) stopListening();
   };
   const onShutter = () => {
     if (holding.current) {
       holding.current = false;
       return;
     }
-    shutter();
+    if (c.mode === 'say') showToast('Hold the shutter and say what you want');
+    else if (c.mode === 'snap') void snap();
   };
 
   const pasteClip = () => {
     const url = clip;
     setClip(null);
-    if (!url) return;
-    const m = matchLink(url);
-    if (m) showMatch(m);
-    else setCapture({ phase: 'badlink', link: url });
+    if (url) void runCapture({ source: 'link', url });
+    else setCapture({ phase: 'type', typeQ: '' });
   };
 
   return (
@@ -149,10 +215,12 @@ export function Camera() {
       <RadialGround inner={brand.camTop} outer={brand.camBottom} cy="35%" rx="70%" ry="65%" />
       {live && !denied ? (
         <CameraView
+          ref={cameraRef}
           style={StyleSheet.absoluteFill}
           facing="back"
+          onCameraReady={() => setReady(true)}
           enableTorch={torch && c.mode === 'scan'}
-          barcodeScannerSettings={{ barcodeTypes: ['upc_a', 'upc_e', 'ean13', 'ean8', 'code128'] }}
+          barcodeScannerSettings={{ barcodeTypes: [...BARCODES] }}
           onBarcodeScanned={c.mode === 'scan' && idle ? onBarcode : undefined}
         />
       ) : null}
@@ -189,16 +257,16 @@ export function Camera() {
         </Tap>
       ) : null}
 
-      {idle ? <IdleLayer mode={c.mode} firstRun={firstRun} denied={denied} onPaste={pasteClip} /> : null}
+      {idle ? <IdleLayer mode={c.mode} firstRun={firstRun} denied={denied} live={live} onPaste={pasteClip} onRoll={fromRoll} /> : null}
       {c.phase === 'snap' ? <Flash /> : null}
       {c.phase === 'scan' ? <Matching /> : null}
       {c.phase === 'found' || c.phase === 'fly' ? <FoundSheet /> : null}
       {c.phase === 'fly' ? <FlyBurst /> : null}
-      {c.phase === 'nomatch' || c.phase === 'badlink' ? <MissSheet /> : null}
+      {c.phase === 'nomatch' ? <MissSheet /> : null}
       {c.phase === 'alts' ? <Alternates /> : null}
       {c.phase === 'type' ? <TypeIt /> : null}
 
-      {c.phase === 'alts' || c.phase === 'type' ? (
+      {c.phase === 'alts' || c.phase === 'type' || c.phase === 'scan' ? (
         <Tap
           onPress={useApp.getState().resetCapture}
           accessibilityLabel="Cancel"
@@ -227,7 +295,7 @@ export function Camera() {
               ))}
             </View>
             <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 34 }}>
-              <Tap onPress={() => idle && runCapture({ source: 'screenshot', noMatch: false })} accessibilityLabel="Add from a screenshot">
+              <Tap onPress={fromRoll} accessibilityLabel="Add from a screenshot">
                 <LinearGradient colors={[palette.ph1, palette.ph2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 46, height: 46, borderRadius: 12, borderWidth: 2, borderColor: brand.camText, alignItems: 'center', justifyContent: 'center' }}>
                   <Photos color={brand.camText} />
                 </LinearGradient>
@@ -238,14 +306,14 @@ export function Camera() {
                 onPressOut={onPressOut}
                 accessibilityRole="button"
                 accessibilityLabel={c.mode === 'say' ? 'Hold and say what you want' : 'Snap'}
-                style={{ width: 82, height: 82, borderRadius: 41, borderWidth: 3.5, borderColor: 'rgba(246,242,255,0.92)', alignItems: 'center', justifyContent: 'center', opacity: c.mode === 'scan' ? 0.45 : 1 }}
+                style={{ width: 82, height: 82, borderRadius: 41, borderWidth: 3.5, borderColor: 'rgba(246,242,255,0.92)', alignItems: 'center', justifyContent: 'center', opacity: c.mode === 'scan' ? 0.45 : 1, transform: [{ scale: c.listening ? 1.08 : 1 }] }}
               >
                 <LinearGradient
                   colors={[brand.limeTop, brand.lime, brand.limeDeep]}
                   locations={[0, 0.55, 1]}
                   start={{ x: 0.3, y: 0.25 }}
                   end={{ x: 1, y: 1 }}
-                  style={{ width: 64, height: 64, borderRadius: 32, boxShadow: '0 0 26px rgba(200,245,66,0.5)' }}
+                  style={{ width: 64, height: 64, borderRadius: 32, boxShadow: `0 0 ${c.listening ? 40 : 26}px rgba(200,245,66,0.5)` }}
                 />
               </Pressable>
               <Tap onPress={closeCamera} accessibilityLabel="Close camera" style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(246,242,255,0.14)', alignItems: 'center', justifyContent: 'center' }}>
@@ -259,9 +327,10 @@ export function Camera() {
   );
 }
 
-function IdleLayer({ mode, firstRun, denied, onPaste }: { mode: CaptureMode; firstRun: boolean; denied: boolean; onPaste: () => void }) {
-  const runCapture = useApp((s) => s.runCapture);
+function IdleLayer({ mode, firstRun, denied, live, onPaste, onRoll }: { mode: CaptureMode; firstRun: boolean; denied: boolean; live: boolean; onPaste: () => void; onRoll: () => void }) {
   const showToast = useApp((s) => s.showToast);
+  const transcript = useApp((s) => s.capture.transcript);
+  const listening = useApp((s) => s.capture.listening);
   return (
     <>
       {mode === 'scan' && !denied ? (
@@ -272,7 +341,7 @@ function IdleLayer({ mode, firstRun, denied, onPaste }: { mode: CaptureMode; fir
             </Twinkle>
           </View>
           <T size={12.5} w={600} color={brand.camText} style={{ position: 'absolute', left: 0, right: 0, top: '49%', textAlign: 'center', marginTop: 16, textShadowColor: 'rgba(12,12,12,0.8)', textShadowRadius: 8 }}>
-            Hold steady on the barcode
+            {live ? 'Hold steady on the barcode' : 'Allow the camera to scan barcodes'}
           </T>
         </>
       ) : null}
@@ -285,7 +354,7 @@ function IdleLayer({ mode, firstRun, denied, onPaste }: { mode: CaptureMode; fir
           <T size={12} color={palette.muted} style={{ textAlign: 'center', lineHeight: 18 }}>
             No problem. Add from a screenshot or a link instead, or turn the camera on in Settings.
           </T>
-          <LimeButton label="Use a screenshot" size={13} pad={11} onPress={() => runCapture({ source: 'screenshot' })} />
+          <LimeButton label="Use a screenshot" size={13} pad={11} onPress={onRoll} />
           <AccentButton label="Paste a link" size={13} pad={11} onPress={onPaste} />
           <Tap
             onPress={() => {
@@ -301,7 +370,7 @@ function IdleLayer({ mode, firstRun, denied, onPaste }: { mode: CaptureMode; fir
         </View>
       ) : null}
 
-      {firstRun && !denied ? (
+      {firstRun && !denied && mode !== 'say' ? (
         <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: '26%', alignItems: 'center', gap: 6 }}>
           <T size={32} w={800} color={brand.camText} style={{ letterSpacing: -0.96, textShadowColor: palette.glow50, textShadowRadius: 24, textShadowOffset: { width: 0, height: 4 } }}>
             Ooh. Shiny.
@@ -318,15 +387,19 @@ function IdleLayer({ mode, firstRun, denied, onPaste }: { mode: CaptureMode; fir
 
       {mode === 'say' ? (
         <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: '52%', alignItems: 'center', gap: 8 }}>
-          <View style={{ flexDirection: 'row', gap: 4, alignItems: 'flex-end', height: 26 }}>
-            {[10, 22, 15, 24].map((h, i) => (
-              <Twinkle key={i} period={1000} delay={i * 150}>
-                <View style={{ width: 4, height: h, borderRadius: 2, backgroundColor: brand.lime }} />
-              </Twinkle>
-            ))}
+          <View style={{ flexDirection: 'row', gap: 4, alignItems: 'flex-end', height: 26, opacity: listening ? 1 : 0.4 }}>
+            {[10, 22, 15, 24].map((h, i) =>
+              listening ? (
+                <Twinkle key={i} period={1000} delay={i * 150}>
+                  <View style={{ width: 4, height: h, borderRadius: 2, backgroundColor: brand.lime }} />
+                </Twinkle>
+              ) : (
+                <View key={i} style={{ width: 4, height: h, borderRadius: 2, backgroundColor: brand.lime }} />
+              ),
+            )}
           </View>
-          <T size={13} w={600} color={palette.soft} style={{ maxWidth: 230, textAlign: 'center' }}>
-            {SAY_SAMPLE}
+          <T size={13} w={600} color={palette.soft} style={{ maxWidth: 260, textAlign: 'center' }}>
+            {transcript ? `“${transcript}”` : listening ? 'Listening…' : 'Hold the shutter and say what you want'}
           </T>
         </View>
       ) : null}
@@ -337,35 +410,30 @@ function IdleLayer({ mode, firstRun, denied, onPaste }: { mode: CaptureMode; fir
 function Matching() {
   const c = useApp((s) => s.capture);
   const [h, setH] = useState(800);
-  const label = c.fromRoll ? 'your screenshot' : c.mode === 'say' ? SAY_SAMPLE : 'your shot';
-  const note = c.fromRoll
-    ? 'reading your screenshot'
-    : c.match?.source === 'search'
-      ? 'searching stores'
-      : c.mode === 'scan'
-        ? 'exact match from the barcode'
-        : c.mode === 'say'
-          ? 'matching your words to products'
-          : 'matching product · finding stores';
+  const label = c.input?.source === 'voice' ? `“${c.input.query}”` : c.input?.source === 'link' ? hostOf(c.input.url) : c.input?.source === 'search' ? `“${c.input.query}”` : c.fromRoll ? 'your screenshot' : 'your shot';
   return (
     <View style={StyleSheet.absoluteFill} onLayout={(e) => setH(e.nativeEvent.layout.height)}>
       <LinearGradient colors={[brand.shotTop, brand.shotBottom]} start={{ x: 0.3, y: 0 }} end={{ x: 0.7, y: 1 }} style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-        <T size={11} color="#b8aec8">
-          {label}
-        </T>
+        {c.shotUri ? (
+          <PhotoBox uri={c.shotUri} fit="cover" label="" style={StyleSheet.absoluteFill} />
+        ) : (
+          <T size={11} color="#b8aec8" style={{ maxWidth: 260, textAlign: 'center' }}>
+            {label}
+          </T>
+        )}
       </LinearGradient>
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
         <Shimmer height={h}>
           <LinearGradient colors={['rgba(200,245,66,0)', 'rgba(200,245,66,0.28)', 'rgba(200,245,66,0)']} style={{ flex: 1 }} />
         </Shimmer>
       </View>
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 64, alignItems: 'center' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(20,16,31,0.75)', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 }}>
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 64, alignItems: 'center', paddingHorizontal: 24 }}>
+        <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(20,16,31,0.75)', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14, maxWidth: '100%' }}>
           <Spin>
             <Sparkle size={13} color={brand.lime} />
           </Spin>
-          <T size={12.5} w={600} color={brand.camText}>
-            {note}
+          <T size={12.5} w={600} color={brand.camText} numberOfLines={1} style={{ flexShrink: 1 }}>
+            {c.note}
           </T>
         </View>
       </View>
@@ -384,7 +452,7 @@ function FoundSheet() {
   const dest = useApp((s) => listById(s, s.lastList));
   const allLists = useApp((s) => s.lists);
   const lists = allLists.filter((l) => !l.archived);
-  const dupe = useApp((s) => (c.match ? s.items.find((i) => i.name === c.match!.name) : undefined));
+  const dupe = useApp((s) => (c.match ? s.items.find((i) => i.name === c.match!.name && !i.pending) : undefined));
   const dupeList = useApp((s) => (dupe ? listById(s, dupe.list).name : ''));
   const set = useApp((s) => s.setCapture);
   const reset = useApp((s) => s.resetCapture);
@@ -392,8 +460,8 @@ function FoundSheet() {
   const m = c.match;
   if (!m) return null;
   const exact = isExact(m);
-  const stores = [{ store: m.store, price: m.price, best: true }, ...otherStores(m.price, m.store).map((x) => ({ ...x, best: false }))];
-  const img = c.fromRoll ? 'from your screenshot' : m.source === 'barcode' ? 'catalog photo, from UPC' : m.source === 'voice' ? 'best match from your words' : m.source === 'link' ? 'from your link' : 'your photo, matched';
+  const stores = [{ store: m.store, price: m.price, best: true }, ...(m.others ?? []).map((x) => ({ ...x, best: false }))];
+  const hasAlts = c.alternates.length > 1;
 
   const chip = (label: React.ReactNode, onPress: () => void, on = false, key?: string) => (
     <Tap
@@ -432,13 +500,11 @@ function FoundSheet() {
                 <Close size={11} color={palette.muted} />
               </Tap>
             </View>
-            <PhotoBox label={img} style={{ height: 150, borderRadius: 16 }}>
-              {!exact ? (
-                <LinearGradient colors={[brand.shotTop, brand.shotBottom]} style={{ position: 'absolute', left: 10, bottom: 10, width: 54, height: 54, borderRadius: 10, borderWidth: 2, borderColor: palette.text, alignItems: 'center', justifyContent: 'center' }}>
-                  <T size={11} color="#b8aec8">
-                    you
-                  </T>
-                </LinearGradient>
+            <PhotoBox uri={m.image} label="no store photo" style={{ height: 150, borderRadius: 16 }}>
+              {!exact && c.shotUri ? (
+                <View style={{ position: 'absolute', left: 10, bottom: 10, width: 54, height: 54, borderRadius: 10, borderWidth: 2, borderColor: palette.text, overflow: 'hidden' }}>
+                  <PhotoBox uri={c.shotUri} fit="cover" label="you" style={{ flex: 1 }} />
+                </View>
               ) : null}
             </PhotoBox>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
@@ -449,18 +515,21 @@ function FoundSheet() {
                 {m.price}
               </T>
             </View>
-            <Tap onPress={() => set({ storesOpen: !c.storesOpen })} style={{ flexDirection: 'row', marginTop: -6 }}>
+            <Tap onPress={() => stores.length > 1 && set({ storesOpen: !c.storesOpen })} style={{ flexDirection: 'row', marginTop: -6 }}>
               <T size={12} color={palette.muted}>
-                Best price at <T size={12} w={700}>{m.store}</T>
-                <T size={12} w={700} color={palette.vio}>
-                  {' '}· {c.storesOpen ? 'hide stores' : `${stores.length - 1} other stores`}
-                </T>
+                {stores.length > 1 ? 'Best price at ' : 'At '}
+                <T size={12} w={700}>{m.store}</T>
+                {stores.length > 1 ? (
+                  <T size={12} w={700} color={palette.vio}>
+                    {' '}· {c.storesOpen ? 'hide stores' : `${stores.length - 1} other ${stores.length === 2 ? 'store' : 'stores'}`}
+                  </T>
+                ) : null}
               </T>
             </Tap>
             {c.storesOpen ? (
               <View style={{ backgroundColor: palette.inset, borderRadius: 12, paddingVertical: 2, paddingHorizontal: 12 }}>
                 {stores.map((s, i) => (
-                  <View key={s.store} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: i < stores.length - 1 ? 1 : 0, borderBottomColor: palette.vio22 }}>
+                  <View key={s.store + i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: i < stores.length - 1 ? 1 : 0, borderBottomColor: palette.vio22 }}>
                     <T size={12.5} w={600}>
                       {s.store}
                     </T>
@@ -478,30 +547,6 @@ function FoundSheet() {
                 </T>
               </View>
             ) : null}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <T size={11.5} w={600} color={palette.muted} style={{ width: 42 }}>
-                Color
-              </T>
-              {(
-                [
-                  ['Black', '#1b1b1f'],
-                  ['Silver', '#c9c9cf'],
-                  ['Midnight', '#2a3a6e'],
-                ] as const
-              ).map(([n, sw]) => (
-                <Tap
-                  key={n}
-                  onPress={() => set({ color: n })}
-                  accessibilityState={{ selected: c.color === n }}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 5, paddingLeft: 6, paddingRight: 11, borderRadius: 999, borderWidth: 1, borderColor: c.color === n ? palette.vio : palette.vio33, backgroundColor: c.color === n ? palette.vio22 : 'transparent' }}
-                >
-                  <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: sw, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }} />
-                  <T size={12} w={700}>
-                    {n}
-                  </T>
-                </Tap>
-              ))}
-            </View>
             <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
               {chip(
                 <T size={12} w={700} color={c.star ? brand.limeInk : palette.soft}>
@@ -555,7 +600,7 @@ function FoundSheet() {
               </View>
             ) : null}
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
-              <GhostButton label={exact ? 'Wrong product?' : 'Not it'} pad={13} onPress={() => set({ phase: 'alts' })} />
+              <GhostButton label={exact ? 'Wrong product?' : 'Not it'} pad={13} onPress={() => set(hasAlts ? { phase: 'alts' } : { phase: 'type', typeQ: '' })} />
               <LimeButton label={dupe ? 'Add again' : 'Want it'} size={14.5} flex onPress={wantIt} />
             </View>
           </ScrollView>
@@ -588,72 +633,82 @@ function MissSheet() {
   const c = useApp((s) => s.capture);
   const set = useApp((s) => s.setCapture);
   const reset = useApp((s) => s.resetCapture);
+  const runCapture = useApp((s) => s.runCapture);
   const savePending = useApp((s) => s.savePending);
   const showToast = useApp((s) => s.showToast);
-  const bad = c.phase === 'badlink';
+  const miss = c.miss;
+  if (!miss) return null;
+  const isLink = c.input?.source === 'link';
+  const isPhoto = c.input?.source === 'photo' || c.input?.source === 'screenshot';
+  // An error (not a "nothing found") can just be tried again with the same input.
+  const retry = miss.kind === 'error' && c.input ? () => void runCapture(c.input!) : reset;
+  const canSave = c.fixItem == null && !!c.input;
   return (
     <>
       <ShotDim />
       <Appear style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 5 }} distance={60} duration={300}>
         <View style={{ backgroundColor: palette.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 16, paddingHorizontal: 18, paddingBottom: 34, gap: 11, boxShadow: '0 -12px 40px rgba(0,0,0,0.55)' }}>
           <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-            <LinearGradient colors={[brand.shotTop, brand.shotBottom]} style={{ width: 58, height: 58, borderRadius: 12 }} />
+            {c.shotUri ? (
+              <PhotoBox uri={c.shotUri} fit="cover" label="" style={{ width: 58, height: 58, borderRadius: 12 }} />
+            ) : (
+              <LinearGradient colors={[brand.shotTop, brand.shotBottom]} style={{ width: 58, height: 58, borderRadius: 12 }} />
+            )}
             <View style={{ flex: 1 }}>
               <T size={17} w={800}>
-                {bad ? 'No product on that page' : 'Can’t tell what this is'}
+                {miss.title}
               </T>
               <T size={12} color={palette.muted} style={{ lineHeight: 17, marginTop: 2 }}>
-                {bad
-                  ? 'That link goes to a page, not a product. Save it and pick the product later, or type what you want.'
-                  : 'Too blurry, or a few things in frame. Try closer, type it, or save the photo and we’ll keep looking.'}
+                {miss.body}
               </T>
             </View>
           </View>
-          <ChipButton label="Try again" onPress={reset} />
-          <AccentButton label="Type it instead" width={1} onPress={() => set({ phase: 'type', typeQ: '' })} />
-          <LimeButton
-            label={bad ? 'Save link anyway' : 'Save photo, keep matching'}
-            size={13.5}
-            pad={12}
-            onPress={() => {
-              savePending(bad ? 'Saved link — pick the product' : 'Your photo — matching…', bad ? 'link saved' : 'photo saved');
-              showToast('Saved — we’ll keep matching it');
-            }}
-          />
+          <ChipButton label="Try again" onPress={retry} />
+          <AccentButton label="Type it instead" width={1} onPress={() => set({ phase: 'type', typeQ: c.input && 'query' in c.input ? c.input.query : '' })} />
+          {canSave ? (
+            <LimeButton
+              label={isLink ? 'Save link anyway' : isPhoto ? 'Save photo, keep matching' : 'Save it, keep matching'}
+              size={13.5}
+              pad={12}
+              onPress={() => {
+                savePending();
+                showToast('Saved — we’ll keep matching it');
+              }}
+            />
+          ) : null}
         </View>
       </Appear>
     </>
   );
 }
 
-/** "Which one is it?" — near matches, also used by "Wrong product?". */
+/** "Which one is it?" — near matches from the search, also used by "Wrong product?". */
 function Alternates() {
   const c = useApp((s) => s.capture);
-  const fixItem = useApp((s) => (s.capture.fixItem != null ? s.items.find((i) => i.id === s.capture.fixItem) : undefined));
   const set = useApp((s) => s.setCapture);
   const fixWith = useApp((s) => s.fixWith);
   const reset = useApp((s) => s.resetCapture);
   const savePending = useApp((s) => s.savePending);
   const showToast = useApp((s) => s.showToast);
-  const options = fixItem ? alternatesFor(fixItem) : c.alternates;
+  const fixing = c.fixItem != null;
   return (
     <Appear style={[StyleSheet.absoluteFill, { justifyContent: 'center', paddingHorizontal: 34, gap: 9, backgroundColor: 'rgba(10,8,16,0.55)' }]}>
       <T size={15} w={800} color={brand.camText} style={{ textAlign: 'center', marginBottom: 4 }}>
         Which one is it?
       </T>
-      {options.map((a, i) => (
+      {c.alternates.map((a, i) => (
         <Tap
-          key={a.name}
-          onPress={() => (fixItem ? fixWith(a) : set({ chosen: i, match: a, phase: 'found' }))}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: palette.card, borderWidth: 2, borderColor: !fixItem && c.match?.name === a.name ? brand.lime : palette.vio44, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12 }}
+          key={a.name + i}
+          onPress={() => (fixing ? fixWith(a) : set({ chosen: i, match: a, phase: 'found' }))}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: palette.card, borderWidth: 2, borderColor: !fixing && c.match?.name === a.name ? brand.lime : palette.vio44, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12 }}
         >
-          <PhotoBox label="photo" labelSize={8} style={{ width: 42, height: 42, borderRadius: 9 }} />
+          <PhotoBox uri={a.image} label="photo" labelSize={8} style={{ width: 42, height: 42, borderRadius: 9 }} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <T size={12.5} w={700} style={{ lineHeight: 16 }}>
+            <T size={12.5} w={700} style={{ lineHeight: 16 }} numberOfLines={2}>
               {a.name}
             </T>
-            <T size={11} color={palette.muted}>
-              {a.tag}
+            <T size={11} color={palette.muted} numberOfLines={1}>
+              {a.tag} · {a.store}
             </T>
           </View>
           <T size={12.5} w={700} color={palette.limeText}>
@@ -664,16 +719,16 @@ function Alternates() {
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
         <AccentButton label="Type it instead" size={12.5} pad={11} width={1} flex onPress={() => set({ phase: 'type', typeQ: '' })} />
         <ChipButton
-          label={fixItem ? 'Keep as is' : 'Save photo'}
+          label={fixing ? 'Keep as is' : c.input?.source === 'photo' || c.input?.source === 'screenshot' ? 'Save photo' : 'Save for later'}
           size={12.5}
           pad={11}
           flex
           onPress={() => {
-            if (fixItem) {
+            if (fixing) {
               reset();
               return;
             }
-            savePending('Your photo — matching…', 'photo saved');
+            savePending();
             showToast('Saved — we’ll keep matching it');
           }}
         />
@@ -685,14 +740,13 @@ function Alternates() {
 function TypeIt() {
   const c = useApp((s) => s.capture);
   const set = useApp((s) => s.setCapture);
-  const showMatch = useApp((s) => s.showMatch);
-  const fixWith = useApp((s) => s.fixWith);
+  const runCapture = useApp((s) => s.runCapture);
+  const openAlternates = useApp((s) => s.openAlternates);
   const q = c.typeQ.trim();
   const search = () => {
     if (!q) return;
-    const m = matchTyped(q);
-    if (c.fixItem != null) fixWith(m);
-    else showMatch(m, { viaScan: true });
+    if (c.fixItem != null) void openAlternates(c.fixItem, q);
+    else void runCapture({ source: 'search', query: q });
   };
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -702,7 +756,7 @@ function TypeIt() {
           What is it?
         </T>
         <T size={12} color={brand.camSoft} style={{ marginTop: -6 }}>
-          We’ll search with your photo attached.
+          Brand and name work best, like “Stanley tumbler 40oz pink”.
         </T>
         <TextInput
           value={c.typeQ}
