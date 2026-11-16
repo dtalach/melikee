@@ -6,6 +6,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState, type ReactNode } from 'react';
 import {
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -250,8 +251,13 @@ export function NavRow({ title, sub, onPress, left, border = palette.vio33, righ
   );
 }
 
-/** Stand-in for a product photo: the theme's placeholder gradient. */
-export function PhotoBox({ style, label = 'photo', labelSize = 11, children, vertical }: { style?: StyleProp<ViewStyle>; label?: string; labelSize?: number; children?: ReactNode; vertical?: boolean }) {
+/**
+ * A product photo: the real one when there's a `uri`, otherwise the theme's
+ * placeholder gradient (sample data, or a store listing with no picture).
+ */
+export function PhotoBox({ style, label = 'photo', labelSize = 11, children, vertical, uri, fit = 'contain' }: { style?: StyleProp<ViewStyle>; label?: string; labelSize?: number; children?: ReactNode; vertical?: boolean; uri?: string | null; fit?: 'contain' | 'cover' }) {
+  const [failed, setFailed] = useState(false);
+  const show = !!uri && !failed;
   return (
     <LinearGradient
       colors={[palette.ph1, palette.ph2]}
@@ -259,7 +265,13 @@ export function PhotoBox({ style, label = 'photo', labelSize = 11, children, ver
       end={vertical ? { x: 0, y: 1 } : { x: 1, y: 1 }}
       style={[{ alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, style]}
     >
-      {label ? (
+      {show ? (
+        // Store photos are usually product-on-white, so they sit on a white card.
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: fit === 'contain' ? '#fff' : 'transparent' }]}>
+          <Image source={{ uri: uri! }} onError={() => setFailed(true)} resizeMode={fit} style={StyleSheet.absoluteFill} accessibilityIgnoresInvertColors />
+        </View>
+      ) : null}
+      {label && !show ? (
         <T size={labelSize} color={palette.muted}>
           {label}
         </T>

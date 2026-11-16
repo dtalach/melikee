@@ -23,32 +23,48 @@ npm run check             # typecheck + lint
 npm run export            # static web build into dist/
 ```
 
-## What's real and what isn't
+## Product matching
 
-**Real:** all navigation and app state (saved on the device), the camera
-preview and barcode reading (`expo-camera`), clipboard links, the share sheet,
-haptics, and every rule in the spec that doesn't need a server: sharing levels
-and what they reveal, link reset/expiry, dibs secrecy, countdowns from today's
-date, the under-13 parent requirement, handle rules, the post-birthday sort,
-duplicate detection and pending shinies.
+Every capture is matched for real by `POST /api/match` (`api/match.ts` →
+`server/match.ts`), a Vercel function that calls Claude so the API key never
+ships in the app:
 
-**Stubbed:**
-- **Product matching.** No product API yet. Every capture path goes through
-  `src/lib/match.ts`, which returns scripted results; swapping in a real
-  lookup is a change to that file.
-- **Say** shows the listening state and matches a sample phrase; there's no
-  speech-to-text.
-- **Screenshot** (the camera-roll tile) runs the screenshot-matching flow
-  without opening the photo library.
-- **Friends, the Feed, notifications and other gifters' dibs** are sample data
-  (`src/store/seed.ts`). There's no backend, auth or sync.
+- **read** sends a photo or screenshot to Claude's vision, which reads the brand,
+  model number and colour into a name and a search query (a few seconds).
+- **find** has Claude search the web (and fetch the page, for a pasted link)
+  for current listings: name, price, store, buy link, product photo, other
+  stores, plus up to two near matches.
 
-**Not built:** the iOS share extension and the Instagram/TikTok/Safari demo
-shortcuts (they need a native extension target), and the offline banner.
+Snap, Scan (barcodes), Say (speech-to-text, then search), the photo library,
+pasted links, typed searches and trending all go through it. "Save photo, keep
+matching" runs a slower, more thorough search in the background and raises
+"We think we found it" if it lands.
+
+**Setup:** set `ANTHROPIC_API_KEY` in the Vercel project's environment
+variables (Production and Preview). `GET /api/match` reports
+`{ "configured": true }` once it's there. `MELIKEE_MODEL` overrides the model
+(default `claude-opus-5-5`).
+
+The web app calls its own `/api/match`. Native builds, and `expo start --web` on
+localhost, call the production deployment; point them elsewhere with
+`EXPO_PUBLIC_API_URL`.
+
+**Not yet:** prices aren't re-checked after a shiny is saved (so there's no
+real price history or price-drop alerts), the endpoint has no rate limiting or
+auth, and anyone who finds the URL can spend API credit.
+
+## What's still sample data
+
+Friends, the Feed, notifications other than "We think we found it", other
+gifters' dibs, and the six starter shinies (`src/store/seed.ts`). There's no
+backend for accounts, sync or sharing. Not built: the iOS share extension, the
+Instagram/TikTok/Safari demo shortcuts, and the offline banner.
 
 ## Layout
 
 ```
+api/match.ts           the Vercel function (thin: validation + routing)
+server/match.ts        Claude calls for read and find; never bundled into the app
 src/
   app/                 expo-router routes
     _layout.tsx        fonts, splash, store hydration
@@ -57,7 +73,7 @@ src/
   components/          Shell (screen switch), Dock, FilingTray, Toast, sheets/
   screens/             one file per screen in the prototype
   store/               zustand store, types, seed data
-  lib/                 dates (countdowns, age), match (stubbed matching)
+  lib/                 dates (countdowns, age), match + photo (calls /api/match)
   theme/tokens.ts      colors and fonts from the prototype's dark "ink" theme
   ui/                  primitives, icons, motion (the prototype's keyframes)
 ```

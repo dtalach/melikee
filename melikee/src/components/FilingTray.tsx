@@ -40,7 +40,7 @@ export function FilingTray({ onCamera }: { onCamera: boolean }) {
           boxShadow: '0 10px 30px rgba(0,0,0,0.55)',
         }}
       >
-        <PhotoBox label="" style={{ width: 40, height: 40, borderRadius: 10 }} />
+        <PhotoBox uri={item.image} label="" style={{ width: 40, height: 40, borderRadius: 10 }} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <T size={13} w={700} numberOfLines={1}>
             In {list.name} ✓

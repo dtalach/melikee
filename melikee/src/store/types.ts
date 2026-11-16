@@ -1,4 +1,5 @@
 import type { Month, MonthDay } from '@/lib/dates';
+import type { StoreOffer } from '@/lib/matchContract';
 
 /** Private · Friends · Friends + link — the one sharing scale from the spec. */
 export type Vis = 'me' | 'friends' | 'invite';
@@ -43,7 +44,17 @@ export type Item = {
   alert?: boolean;
   /** Saved photo/link/video still being matched. Gifters can't dib it. */
   pending?: boolean;
-  suggest?: { name: string; price: string; store: string } | null;
+  suggest?: { name: string; price: string; store: string; url?: string; image?: string; upc?: string; others?: StoreOffer[] } | null;
+  /** What to search for when matching a saved shiny later. */
+  query?: string;
+  /** The store's product page. */
+  url?: string;
+  /** A product photo (https), or the user's own shot for a pending shiny. */
+  image?: string;
+  /** Other stores carrying it, as seen when it was matched. */
+  others?: StoreOffer[];
+  /** When the price was last looked up. Absent on sample data. */
+  checkedAt?: number;
 };
 
 export type Friend = {

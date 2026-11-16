@@ -101,7 +101,7 @@ export function ListDetail({ id }: { id: string }) {
                 </T>
               </View>
             ) : null}
-            <PhotoBox style={{ height: 96 }} />
+            <PhotoBox uri={it.image} fit={it.pending ? 'cover' : 'contain'} style={{ height: 96 }} />
             <View style={{ paddingVertical: 9, paddingHorizontal: 11 }}>
               <T size={12} w={600} style={{ lineHeight: 16 }}>
                 {(it.star ? '★ ' : '') + it.name}
