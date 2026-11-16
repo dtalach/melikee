@@ -2,6 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import { ScrollView, View } from 'react-native';
 
 import { daysUntil, label } from '@/lib/dates';
+import { LinkStatus } from '@/components/LinkStatus';
 import { profileLink } from '@/lib/links';
 import { friendsWithAccess, listAccent, plural, shinies, useApp, visibleLists } from '@/store/useApp';
 import { brand, palette, ringSoon } from '@/theme/tokens';
@@ -43,7 +44,7 @@ export function Me() {
             </T>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-            <GhostButton label="Edit profile" size={12} pad={7} onPress={() => s.showToast('Edit name, handle, photo')} />
+            <GhostButton label="Edit profile" size={12} pad={7} onPress={() => s.openSheet({ type: 'handle' })} />
             <GhostButton label="Preview my page" size={12} pad={7} onPress={() => s.go({ name: 'gifter', listId: 'w' })} />
           </View>
         </View>
@@ -85,6 +86,9 @@ export function Me() {
             <T size={11} color={palette.muted} style={{ marginTop: 2 }}>
               Friends find you here. Family can call dibs without the app.
             </T>
+            <View style={{ marginTop: 3 }}>
+              <LinkStatus shared={shared.some((l) => l.vis === 'invite')} />
+            </View>
           </View>
           <Tap onPress={copy}>
             <LimeFill style={{ paddingVertical: 7, paddingHorizontal: 13 }}>

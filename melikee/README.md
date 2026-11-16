@@ -53,19 +53,41 @@ localhost, call the production deployment; point them elsewhere with
 real price history or price-drop alerts), the endpoint has no rate limiting or
 auth, and anyone who finds the URL can spend API credit.
 
-## Public links
+## Shared lists
 
-The app hands out `melikee.app/<handle>` (your page) and
-`melikee.app/<handle>/<list>?t=<token>` (one list). Only Friends + link lists
-open from a link; "Reset link" changes the token, so old copies stop working.
-There's no shared backend yet, so these pages show a list only on the device
-that owns it: someone else opening your link sees "expired" until lists are
-stored on a server.
+Your Friends + link lists are published to the server whenever they change
+(`src/components/usePublisher.ts` → `PUT /api/pages`), so links open on any
+phone:
+
+- `melikee.app/<handle>` opens My wants if it's shared, else your first
+  Friends + link list. `melikee.app/<handle>/<list>?t=<token>` opens one list.
+- Private and Friends-only lists are never sent. Friends-only sharing needs
+  friend accounts, which don't exist yet.
+- "Reset link", the link-expiry setting, and making a list private take effect
+  on the server: old links show "expired".
+- Gifters call dibs through `POST /api/dibs`. One claim per shiny (atomic);
+  other gifters see "{name} has it"; only the gifter who called it can undo it.
+  The owner's app never reads dibs, and opening your own link on your own
+  device shows the local preview.
+- The first device to publish a handle owns it (it holds a secret the server
+  checks). If your handle is taken, Me and the share sheet say so and offer
+  "Change handle".
+
+Storage is Upstash Redis via the Vercel Marketplace (`server/pages.ts`):
+`page:<handle>` holds the published lists, `dibs:<handle>:<list>` the claims.
+**Setup:** add Upstash for Redis to the Vercel project; it sets
+`KV_REST_API_URL` and `KV_REST_API_TOKEN`. Without them, links show
+"Sharing isn't switched on". For local testing, `MELIKEE_STORE=memory` uses an
+in-memory store.
+
+**Not yet:** accounts (the handle secret lives on one device, so a new phone
+starts a new page), "Something's coming" notifications, and the Friends tab's
+list of who holds your link (still sample data).
 
 ## What's still sample data
 
-Friends, the Feed, notifications other than "We think we found it", other
-gifters' dibs, and the six starter shinies (`src/store/seed.ts`). There's no
+Friends, the Feed, notifications other than "We think we found it", the
+Friends tab's link holders, and the six starter shinies (`src/store/seed.ts`). There's no
 backend for accounts, sync or sharing. Not built: the iOS share extension, the
 Instagram/TikTok/Safari demo shortcuts, and the offline banner.
 

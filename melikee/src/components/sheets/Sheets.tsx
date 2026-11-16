@@ -1,7 +1,7 @@
 import type { Sheet } from '@/store/types';
 import { useApp } from '@/store/useApp';
 import { SheetFrame } from '@/ui/primitives';
-import { BdaySheet, CleanupSheet, NotifSettingsSheet, ParentSheet, PrivacySheet } from './AccountSheets';
+import { BdaySheet, CleanupSheet, HandleSheet, NotifSettingsSheet, ParentSheet, PrivacySheet } from './AccountSheets';
 import { ConfirmSheet, FeedItemSheet, InviteSheet } from './PeopleSheets';
 import { ListSettingsSheet, NewListSheet, ShareSheet, VisSheet } from './ListSheets';
 
@@ -40,5 +40,7 @@ function Body({ sheet }: { sheet: Sheet }) {
       return <NotifSettingsSheet />;
     case 'privacy':
       return <PrivacySheet />;
+    case 'handle':
+      return <HandleSheet />;
   }
 }

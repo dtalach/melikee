@@ -29,9 +29,9 @@ export function token() {
 
 export function seedLists(): WishList[] {
   return [
-    { id: 'w', name: 'My wants', vis: 'friends', accent: brand.lime, linkToken: token(), linkExpiry: 'always' },
-    { id: 's16', name: 'Sweet 16', vis: 'invite', accent: brand.pink, isBirthday: true, linkToken: token(), linkExpiry: 'date' },
-    { id: 'sec', name: 'Secret stash', vis: 'me', accent: palette.vio, linkToken: token(), linkExpiry: 'always' },
+    { id: 'w', name: 'My wants', vis: 'friends', accent: brand.lime, linkToken: token(), linkSince: Date.now(), linkExpiry: 'always' },
+    { id: 's16', name: 'Sweet 16', vis: 'invite', accent: brand.pink, isBirthday: true, linkToken: token(), linkSince: Date.now(), linkExpiry: 'date' },
+    { id: 'sec', name: 'Secret stash', vis: 'me', accent: palette.vio, linkToken: token(), linkSince: Date.now(), linkExpiry: 'always' },
   ];
 }
 

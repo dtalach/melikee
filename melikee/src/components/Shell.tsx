@@ -26,6 +26,7 @@ import { Dock } from './Dock';
 import { FilingTray } from './FilingTray';
 import { Sheets } from './sheets/Sheets';
 import { Toast } from './Toast';
+import { usePublisher } from './usePublisher';
 
 const DOCKED: Route['name'][] = ['feed', 'lists', 'list', 'me', 'people', 'friendList', 'settings', 'notifs'];
 
@@ -34,6 +35,8 @@ export function Shell() {
   const route = useApp((s) => s.stack[s.stack.length - 1]);
   const sheet = useApp((s) => s.sheet);
   const insets = useSafeAreaInsets();
+  // Keeps your Friends + link lists live at melikee.app.
+  usePublisher();
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {

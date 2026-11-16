@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Share as NativeShare, TextInput, View } from 'react-native';
 
 import { DAYS, label, MONTHS, type Month } from '@/lib/dates';
+import { LinkStatus } from '@/components/LinkStatus';
 import { listLink } from '@/lib/links';
 import { friendsWithAccess, listById, listDays, useApp } from '@/store/useApp';
 import type { LinkExpiry, Vis } from '@/store/types';
@@ -61,6 +62,7 @@ export function ShareSheet({ listId }: { listId: string }) {
           </T>
         </View>
       </Tap>
+      <LinkStatus shared={list.vis === 'invite'} />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {['Text', 'WhatsApp', 'Email'].map((x) => (
           <GhostButton key={x} label={x} size={12.5} pad={11} flex onPress={send} />
@@ -98,7 +100,7 @@ export function ShareSheet({ listId }: { listId: string }) {
               Link works
             </T>
             {expiryOpts.map((o) => (
-              <OptionPill key={o} label={expiryLabel[o]} on={list.linkExpiry === o} onPress={() => s.updateList(list.id, { linkExpiry: o })} />
+              <OptionPill key={o} label={expiryLabel[o]} on={list.linkExpiry === o} onPress={() => s.updateList(list.id, { linkExpiry: o, linkSince: Date.now() })} />
             ))}
             <Tap
               onPress={() => {

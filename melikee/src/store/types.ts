@@ -20,6 +20,8 @@ export type WishList = {
   /** Changes on "Reset link"; old links stop working. */
   linkToken: string;
   linkExpiry: LinkExpiry;
+  /** When the current link was issued: "30 days" and "till the date" count from here. */
+  linkSince?: number;
 };
 
 export type MatchSource = 'barcode' | 'link' | 'catalog' | 'search' | 'photo' | 'voice' | 'screenshot';
@@ -179,6 +181,7 @@ export type Sheet =
   | { type: 'listSettings'; listId: string }
   | { type: 'vis'; listId: string }
   | { type: 'notifSettings' }
-  | { type: 'privacy' };
+  | { type: 'privacy' }
+  | { type: 'handle' };
 
 export type { Month, MonthDay };
