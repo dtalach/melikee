@@ -2,6 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import { ScrollView, View } from 'react-native';
 
 import { daysUntil, label } from '@/lib/dates';
+import { profileLink } from '@/lib/links';
 import { friendsWithAccess, listAccent, plural, shinies, useApp, visibleLists } from '@/store/useApp';
 import { brand, palette, ringSoon } from '@/theme/tokens';
 import { Chevron, Gear, Gift, Lock } from '@/ui/icons';
@@ -9,17 +10,15 @@ import { Appear } from '@/ui/motion';
 import { Avatar, Card, GhostButton, LimeFill, PhotoBox, SectionLabel, T, Tap } from '@/ui/primitives';
 import { QrStub } from './Friends';
 
-export const PROFILE_HOST = 'melikee.app';
-
 export function Me() {
   const s = useApp((st) => st);
   const lists = visibleLists(s);
   const shared = lists.filter((l) => l.vis !== 'me');
   const privCount = lists.length - shared.length;
   const days = daysUntil(s.profile.birthday);
-  const link = `${PROFILE_HOST}/${s.profile.handle}`;
+  const link = profileLink(s.profile.handle);
   const copy = () => {
-    Clipboard.setStringAsync(`https://${link}`).catch(() => undefined);
+    Clipboard.setStringAsync(link.url).catch(() => undefined);
     s.showToast('Link copied — send it anywhere');
   };
 
@@ -81,7 +80,7 @@ export function Me() {
           <QrStub size={50} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <T size={13} w={700}>
-              {link}
+              {link.display}
             </T>
             <T size={11} color={palette.muted} style={{ marginTop: 2 }}>
               Friends find you here. Family can call dibs without the app.

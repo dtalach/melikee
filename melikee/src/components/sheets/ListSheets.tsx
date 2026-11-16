@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { Share as NativeShare, TextInput, View } from 'react-native';
 
 import { DAYS, label, MONTHS, type Month } from '@/lib/dates';
-import { PROFILE_HOST } from '@/screens/Me';
-import { friendsWithAccess, listById, listDays, shareSlug, useApp } from '@/store/useApp';
+import { listLink } from '@/lib/links';
+import { friendsWithAccess, listById, listDays, useApp } from '@/store/useApp';
 import type { LinkExpiry, Vis } from '@/store/types';
 import { brand, font, listColors, palette } from '@/theme/tokens';
 import { Chevron, LinkIcon, Lock, People } from '@/ui/icons';
@@ -19,8 +19,7 @@ export function ShareSheet({ listId }: { listId: string }) {
   const list = listById(s, listId);
   const [copied, setCopied] = useState(false);
   const [more, setMore] = useState(false);
-  const url = `${PROFILE_HOST}/${s.profile.handle}/${shareSlug(list)}`;
-  const fullUrl = `https://${PROFILE_HOST}/g/${s.profile.handle}?l=${list.id}&t=${list.linkToken}`;
+  const { display: url, url: fullUrl } = listLink(s.profile.handle, list);
   const days = listDays(s, list);
 
   // Copying the link upgrades the list to Friends + link (spec).

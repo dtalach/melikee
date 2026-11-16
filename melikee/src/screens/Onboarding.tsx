@@ -7,13 +7,14 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ageOn, DAYS, MONTHS, type Month } from '@/lib/dates';
+import { RESERVED_HANDLES } from '@/lib/links';
 import { useApp } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
 import { Chevron, Sparkle } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
 import { AccentButton, Field, LimeButton, Radio, RadialGround, Select, T, Tap } from '@/ui/primitives';
 
-const TAKEN = new Set(['maya', 'melikee', 'admin']);
+const TAKEN = new Set(['maya', ...RESERVED_HANDLES]);
 const HANDLE = /^[a-z0-9_.]{3,20}$/;
 
 export function Onboarding() {
