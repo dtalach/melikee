@@ -11,12 +11,19 @@ import { Appear } from '@/ui/motion';
 import { Avatar, Card, GhostButton, LimeFill, PhotoBox, SectionLabel, T, Tap } from '@/ui/primitives';
 import { QrStub } from './Friends';
 
+/** "today", "tomorrow", "in 12 days". */
+function dayWord(n: number) {
+  return n === 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`;
+}
+
 export function Me() {
   const s = useApp((st) => st);
   const lists = visibleLists(s);
   const shared = lists.filter((l) => l.vis !== 'me');
   const privCount = lists.length - shared.length;
   const days = daysUntil(s.profile.birthday);
+  const xmas = s.lists.find((l) => l.id === 'xmas' && !l.archived);
+  const xmasDays = xmas?.date ? daysUntil(xmas.date) : null;
   const link = profileLink(s.profile.handle);
   const copy = () => {
     Clipboard.setStringAsync(link.url).catch(() => undefined);
@@ -37,11 +44,29 @@ export function Me() {
           <T size={12.5} w={600} color={palette.vio} style={{ marginTop: -5 }}>
             @{s.profile.handle}
           </T>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Gift color={brand.pink} />
-            <T size={12} w={600} color={palette.soft}>
-              Birthday {label(s.profile.birthday)} · in {days} days
-            </T>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+            <Tap
+              onPress={() => s.openSheet({ type: 'bday' })}
+              accessibilityLabel={s.profile.birthdaySet === false ? 'Add your birthday' : `Birthday ${label(s.profile.birthday)}, in ${days} days. Edit`}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: brand.pink66, borderRadius: 999, paddingVertical: 5, paddingHorizontal: 11 }}
+            >
+              <Gift color={brand.pink} />
+              <T size={12} w={600} color={palette.soft}>
+                {s.profile.birthdaySet === false ? 'Add your birthday' : `Birthday ${label(s.profile.birthday)} · ${dayWord(days)}`}
+              </T>
+            </Tap>
+            {xmas && xmasDays != null ? (
+              <Tap
+                onPress={() => s.go({ name: 'list', id: xmas.id })}
+                accessibilityLabel={`Christmas, in ${xmasDays} days`}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: listAccent(xmas), borderRadius: 999, paddingVertical: 5, paddingHorizontal: 11 }}
+              >
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: listAccent(xmas) }} />
+                <T size={12} w={600} color={palette.soft}>
+                  Christmas · {dayWord(xmasDays)}
+                </T>
+              </Tap>
+            ) : null}
           </View>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
             <GhostButton label="Edit profile" size={12} pad={7} onPress={() => s.openSheet({ type: 'handle' })} />

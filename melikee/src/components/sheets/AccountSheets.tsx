@@ -3,7 +3,7 @@ import { TextInput, View } from 'react-native';
 
 import { handleNote, useHandleCheck } from '@/components/useHandleCheck';
 
-import { DAYS, MONTHS, shortDate, type Month } from '@/lib/dates';
+import { DAYS, label, MONTHS, shortDate, type Month } from '@/lib/dates';
 import { cleanSizes, MAX_SIZE, SIZE_FIELDS, TOP_SIZES, type Sizes } from '@/lib/sizes';
 import { listById, useApp, visibleLists } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
@@ -35,7 +35,7 @@ export function BdaySheet() {
         size={13.5}
         pad={12}
         onPress={() => {
-          setProfile({ birthday: { ...p.birthday, month, day: parseInt(day, 10) }, remindGifters: remind, showCountdown: countdown });
+          setProfile({ birthday: { ...p.birthday, month, day: parseInt(day, 10) }, birthdaySet: true, remindGifters: remind, showCountdown: countdown });
           close();
           showToast(`Birthday set — ${month} ${day}`);
         }}
@@ -231,6 +231,9 @@ export function PrivacySheet() {
 export function HandleSheet() {
   const current = useApp((s) => s.profile.handle);
   const currentName = useApp((s) => s.profile.name);
+  const birthday = useApp((s) => s.profile.birthday);
+  const birthdaySet = useApp((s) => s.profile.birthdaySet);
+  const openSheet = useApp((s) => s.openSheet);
   const setProfile = useApp((s) => s.setProfile);
   const close = useApp((s) => s.closeSheet);
   const showToast = useApp((s) => s.showToast);
@@ -245,6 +248,18 @@ export function HandleSheet() {
     <>
       <SheetTitle sub="Gifters see your name on your links. Change your handle and links with the old one stop working.">Edit profile</SheetTitle>
       <Field value={name} onChangeText={setName} placeholder="Your first name (optional)" maxLength={40} autoCapitalize="words" accessibilityLabel="Name" />
+      <Tap
+        onPress={() => openSheet({ type: 'bday' })}
+        accessibilityLabel="Birthday"
+        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 12 }}
+      >
+        <T size={13} w={600} color={birthdaySet === false ? palette.muted : palette.text} style={{ flex: 1 }}>
+          {birthdaySet === false ? 'Add your birthday' : `Birthday · ${label(birthday)}`}
+        </T>
+        <T size={11.5} w={600} color={palette.vio}>
+          {birthdaySet === false ? 'Add' : 'Change'}
+        </T>
+      </Tap>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 12 }}>
         <T size={14} w={600} color={palette.muted}>
           @

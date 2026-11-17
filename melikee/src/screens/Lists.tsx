@@ -28,7 +28,7 @@ export function Lists() {
         ))}
         {noItems ? (
           <T size={12} color={palette.muted} style={{ textAlign: 'center', paddingVertical: 6, paddingHorizontal: 20, lineHeight: 18 }}>
-            You start with these three. Snap your first shiny and it lands in My wants — make more lists for birthdays, holidays, whatever.
+            You start with these four. Snap your first shiny and it lands in My wants — make more lists for anything else.
           </T>
         ) : null}
       </ScrollView>
@@ -57,9 +57,9 @@ function ListRow({ s, id, onOpen, onShare, onVis, onDate }: { s: AppState; id: s
             </T>
           </Tap>
           {days != null ? (
-            <Tap onPress={l.isBirthday ? onDate : undefined} style={{ backgroundColor: brand.pink, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
-              <T size={11} w={800} color={brand.white}>
-                {days} days
+            <Tap onPress={l.isBirthday ? onDate : undefined} accessibilityLabel={`${l.name} in ${days} days`} style={{ backgroundColor: l.isBirthday ? brand.pink : acc, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
+              <T size={11} w={800} color={l.isBirthday ? brand.white : brand.limeInk}>
+                {days === 0 ? 'today!' : days === 1 ? '1 day' : `${days} days`}
               </T>
             </Tap>
           ) : null}

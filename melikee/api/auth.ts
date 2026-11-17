@@ -54,7 +54,7 @@ export default async function handler(req: Req, res: Res) {
       if (out.kind === 'too_young') return fail(res, 403, 'too_young', 'MeLikee is for people 13 and up.');
       if (out.kind === 'needs_birthday') return fail(res, 404, 'needs_birthday', 'No account for that number yet. Sign up first.');
       const page = out.kind === 'restored' && out.handle ? await ownPage(out.handle, out.secret) : null;
-      return res.status(200).json({ ok: true, kind: out.kind, secret: out.secret, phoneLast2: phone.slice(-2), handle: out.kind === 'restored' ? out.handle : undefined, page });
+      return res.status(200).json({ ok: true, kind: out.kind, secret: out.secret, phoneLast2: phone.slice(-2), handle: out.kind === 'restored' ? out.handle : undefined, birth: out.kind === 'restored' ? out.birth : undefined, page });
     }
 
     return fail(res, 400, 'bad_request', 'action must be start or verify.');

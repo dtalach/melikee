@@ -1,6 +1,6 @@
 /**
- * What a new account starts with: the three lists from the design (My wants,
- * a birthday list, Secret stash), all empty, and nothing else. Friends, the
+ * What a new account starts with: four empty lists (My wants, Birthday,
+ * Christmas, Secret stash) and nothing else. Friends, the
  * Feed and notifications fill in from real activity; until then each screen
  * shows its empty state.
  *
@@ -8,25 +8,28 @@
  * earlier builds put on every new account, so `cleanSample` can take it off
  * accounts made before this change.
  */
-import { ageOn } from '@/lib/dates';
 import { brand, palette } from '@/theme/tokens';
 import type { Profile, WishList } from './types';
 
+/** Christmas list colour: a holly green that reads on the dark theme. */
+const CHRISTMAS = '#4fd18b';
+
 export function token() {
   return Math.random().toString(36).slice(2, 10);
-}
-
-/** "Sweet 16" for the 16th, else "Birthday". */
-export function birthdayListName(birthday: Profile['birthday']) {
-  return ageOn(birthday) + 1 === 16 ? 'Sweet 16' : 'Birthday';
 }
 
 export function startingLists(): WishList[] {
   return [
     { id: 'w', name: 'My wants', vis: 'friends', accent: brand.lime, linkToken: token(), linkSince: Date.now(), linkExpiry: 'always' },
     { id: 's16', name: 'Birthday', vis: 'invite', accent: brand.pink, isBirthday: true, linkToken: token(), linkSince: Date.now(), linkExpiry: 'date' },
+    christmasList(),
     { id: 'sec', name: 'Secret stash', vis: 'me', accent: palette.vio, linkToken: token(), linkSince: Date.now(), linkExpiry: 'always' },
   ];
+}
+
+/** Christmas: a dated list (Dec 25) shared by link, like the birthday list. */
+export function christmasList(): WishList {
+  return { id: 'xmas', name: 'Christmas', vis: 'invite', accent: CHRISTMAS, date: { month: 'Dec', day: 25 }, linkToken: token(), linkSince: Date.now(), linkExpiry: 'date' };
 }
 
 export function startingProfile(): Profile {
@@ -38,6 +41,7 @@ export function startingProfile(): Profile {
     showCountdown: true,
     parent: null,
     email: '',
+    birthdaySet: false,
   };
 }
 
