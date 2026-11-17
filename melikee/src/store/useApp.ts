@@ -11,6 +11,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { daysUntil, shortDate, type MonthDay } from '@/lib/dates';
 import { find, MISS, readPhoto, type Match, type Miss } from '@/lib/match';
+import type { VerifyResponse } from '@/lib/authContract';
 import type { ImagePayload } from '@/lib/matchContract';
 import {
   seedContacts,
@@ -148,6 +149,10 @@ type Content = {
   gifterId: string;
   /** The handle last published under, so a handle change removes the old page. */
   publishedHandle: string | null;
+  /** The verified number this account signs in with; only its last two digits are kept. */
+  phone: { last2: string; verifiedAt: number } | null;
+  /** Someone under 13 tried to sign up on this device. MeLikee is 13+ (like Snapchat), so it stays blocked. */
+  ageBlocked: boolean;
 };
 
 type Session = {
@@ -157,7 +162,7 @@ type Session = {
   capture: Capture;
   filing: { itemId: number; key: number } | null;
   /** Whether your shared lists are live at melikee.app. */
-  publishState: 'idle' | 'live' | 'taken' | 'off' | 'error';
+  publishState: 'idle' | 'live' | 'taken' | 'off' | 'error' | 'signed_out';
 };
 
 type Actions = {
@@ -218,6 +223,8 @@ type Actions = {
   // profile
   setProfile: (patch: Partial<Profile>) => void;
   finishOnboarding: (p: { handle: string; birthday: Profile['birthday']; parent: string; privateDefault: boolean }) => void;
+  /** After a correct code: store the device's new secret, and on a restore bring back the account's handle and shared lists. */
+  applySignIn: (r: Extract<VerifyResponse, { ok: true }>) => void;
   finishCleanup: (sorted: { got: number[]; kept: number[] }) => void;
 };
 
@@ -248,6 +255,8 @@ function freshContent(): Content {
     ownerSecret: secret(),
     gifterId: secret(),
     publishedHandle: null,
+    phone: null,
+    ageBlocked: false,
   };
 }
 
@@ -584,6 +593,48 @@ export const useApp = create<AppState>()(
           lists: privateDefault ? s.lists.map((l) => (l.id === 'w' ? { ...l, vis: 'me' } : l)) : s.lists,
           stack: [{ name: 'feed' }],
         })),
+      applySignIn: (r) => {
+        const s0 = get();
+        const patch: Partial<AppState> = { ownerSecret: r.secret, phone: { last2: r.phoneLast2, verifiedAt: Date.now() } };
+        if (r.kind === 'restored' && r.handle) {
+          patch.profile = { ...s0.profile, handle: r.handle, name: r.page?.name || s0.profile.name };
+          patch.publishedHandle = r.handle;
+        }
+        const shared = r.kind === 'restored' ? (r.page?.lists ?? []) : [];
+        if (shared.length) {
+          // Bring back the lists this account had shared: replace any local list with
+          // the same id, and give their shinies fresh ids so nothing collides.
+          let nextId = s0.nextId;
+          const ids = new Set(shared.map((l) => l.id));
+          const restoredItems: Item[] = shared.flatMap((l) =>
+            l.items.map((i) => ({
+              id: nextId++,
+              list: l.id,
+              name: i.name,
+              price: i.price,
+              store: i.store,
+              url: i.url,
+              image: i.image,
+              size: i.size,
+              note: i.note,
+              star: i.star,
+              pending: i.pending,
+              upc: '—',
+              added: 'restored',
+              createdAt: Date.now(),
+              alert: true,
+            })),
+          );
+          const restoredLists: WishList[] = shared.map((l) => {
+            const local = s0.lists.find((x) => x.id === l.id);
+            return { ...(local ?? { accent: l.id === 'w' ? '#c8f542' : '#ff5da2', linkExpiry: 'always' as const }), id: l.id, name: l.name, note: l.note, vis: 'invite' as const, linkToken: l.token, linkSince: local?.linkSince ?? Date.now() };
+          });
+          patch.lists = [...s0.lists.filter((l) => !ids.has(l.id)), ...restoredLists];
+          patch.items = [...restoredItems, ...s0.items.filter((i) => !ids.has(i.list))];
+          patch.nextId = nextId;
+        }
+        set(patch);
+      },
       finishCleanup: ({ got, kept }) =>
         set((st) => ({
           // "Got it" removes; "Still want" moves to My wants; unsorted stays.

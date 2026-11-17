@@ -28,7 +28,7 @@ export function usePublisher() {
 
     const run = async () => {
       const s = useApp.getState();
-      if (!s.onboarded) return;
+      if (!s.onboarded || !s.phone) return;
       const body = payload(s);
       const key = JSON.stringify(body);
       if (key === last || inFlight) return;
@@ -38,6 +38,9 @@ export function usePublisher() {
         if (res.ok) {
           last = key;
           useApp.setState({ publishState: 'live', publishedHandle: body.handle });
+        } else if (res.code === 'signed_out') {
+          // The server no longer recognises this device (signed in on another phone).
+          useApp.setState({ publishState: 'signed_out', phone: null });
         } else if (res.code === 'taken') {
           last = key; // don't hammer; a handle change makes a new key
           useApp.setState({ publishState: 'taken' });
@@ -59,7 +62,7 @@ export function usePublisher() {
 
     schedule(0);
     const unsub = useApp.subscribe((s, prev) => {
-      if (s.lists !== prev.lists || s.items !== prev.items || s.profile !== prev.profile || s.onboarded !== prev.onboarded) schedule();
+      if (s.lists !== prev.lists || s.items !== prev.items || s.profile !== prev.profile || s.onboarded !== prev.onboarded || s.phone !== prev.phone || s.ownerSecret !== prev.ownerSecret) schedule();
     });
     return () => {
       unsub();

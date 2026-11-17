@@ -24,6 +24,8 @@ export interface Store {
   /** Set only if the field is empty. True when this call set it. */
   hsetnx(key: string, field: string, value: unknown): Promise<boolean>;
   hdel(key: string, field: string): Promise<void>;
+  /** Add one; the key expires `ttlSec` after it's first created. Returns the new count. */
+  incr(key: string, ttlSec: number): Promise<number>;
 }
 
 class RedisStore implements Store {
@@ -45,6 +47,11 @@ class RedisStore implements Store {
   }
   async hdel(key: string, field: string) {
     await this.r.hdel(key, field);
+  }
+  async incr(key: string, ttlSec: number) {
+    const n = await this.r.incr(key);
+    if (n === 1) await this.r.expire(key, ttlSec);
+    return n;
   }
 }
 
@@ -74,6 +81,11 @@ class MemoryStore implements Store {
   }
   async hdel(key: string, field: string) {
     this.h.get(key)?.delete(field);
+  }
+  async incr(key: string) {
+    const n = ((this.kv.get(key) as number) ?? 0) + 1;
+    this.kv.set(key, n);
+    return n;
   }
 }
 
@@ -146,6 +158,8 @@ export async function publish(req: PublishRequest): Promise<'ok' | 'taken'> {
 
   const doc: PageDoc = { owner, name: req.profile.name.slice(0, 60), birthday: req.profile.birthday.slice(0, 20), lists: cleanLists(req.lists) ?? [], updatedAt: Date.now() };
   await s.set(pageKey(req.handle), doc);
+  // Which page this device publishes, so signing in on a new phone can move it.
+  await s.set(`owns:${owner}`, req.handle);
 
   // Lists that are no longer shared lose their dibs too.
   const live = new Set(doc.lists.map((l) => l.id));
@@ -159,6 +173,13 @@ export async function publish(req: PublishRequest): Promise<'ok' | 'taken'> {
     }
   }
   return 'ok';
+}
+
+/** The owner's published lists (no dibs: the wisher never sees them). For restoring on a new phone. */
+export async function ownPage(handle: string, secret: string) {
+  const doc = await getStore().get<PageDoc>(pageKey(handle));
+  if (!doc || doc.owner !== hash(secret)) return null;
+  return { name: doc.name, lists: doc.lists };
 }
 
 /** Is this handle owned by someone other than the holder of `secret`? */
