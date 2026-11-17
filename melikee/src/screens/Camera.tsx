@@ -20,7 +20,7 @@ import { preparePhoto } from '@/lib/photo';
 import { fillImage, listAccent, listById, useApp, type CaptureMode } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
 import { Close, Photos, Sparkle, Torch } from '@/ui/icons';
-import { Appear, Burst, Flash, SheetOut, Shimmer, Slap, Spin, Twinkle } from '@/ui/motion';
+import { Appear, Breathe, Burst, Flash, SheetOut, Shimmer, Slap, Spin, Twinkle } from '@/ui/motion';
 import { AccentButton, ChipButton, GhostButton, LimeButton, LimeFill, PhotoBox, RadialGround, T, Tap } from '@/ui/primitives';
 
 const MODES: CaptureMode[] = ['scan', 'snap', 'say'];
@@ -518,21 +518,34 @@ function FoundSheet() {
               <T size={18} w={800} style={{ flex: 1, lineHeight: 22 }}>
                 {m.name}
               </T>
-              <T size={18} w={800} color={palette.limeText}>
-                {m.price}
-              </T>
+              {m.searching ? null : (
+                <T size={18} w={800} color={palette.limeText}>
+                  {m.price}
+                </T>
+              )}
             </View>
-            <Tap onPress={() => stores.length > 1 && set({ storesOpen: !c.storesOpen })} style={{ flexDirection: 'row', marginTop: -6 }}>
-              <T size={12} color={palette.muted}>
-                {stores.length > 1 ? 'Best price at ' : 'At '}
-                <T size={12} w={700}>{m.store}</T>
-                {stores.length > 1 ? (
-                  <T size={12} w={700} color={palette.vio}>
-                    {' '}· {c.storesOpen ? 'hide stores' : `${stores.length - 1} other ${stores.length === 2 ? 'store' : 'stores'}`}
-                  </T>
-                ) : null}
-              </T>
-            </Tap>
+            {m.searching ? (
+              <View accessibilityLabel="Finding stores and prices" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -6 }}>
+                <Breathe>
+                  <Sparkle size={11} color={palette.vio} />
+                </Breathe>
+                <T size={12} color={palette.muted}>
+                  Finding stores and prices… you can save it now
+                </T>
+              </View>
+            ) : (
+              <Tap onPress={() => stores.length > 1 && set({ storesOpen: !c.storesOpen })} style={{ flexDirection: 'row', marginTop: -6 }}>
+                <T size={12} color={palette.muted}>
+                  {stores.length > 1 ? 'Best price at ' : 'At '}
+                  <T size={12} w={700}>{m.store}</T>
+                  {stores.length > 1 ? (
+                    <T size={12} w={700} color={palette.vio}>
+                      {' '}· {c.storesOpen ? 'hide stores' : `${stores.length - 1} other ${stores.length === 2 ? 'store' : 'stores'}`}
+                    </T>
+                  ) : null}
+                </T>
+              </Tap>
+            )}
             {c.storesOpen ? (
               <View style={{ backgroundColor: palette.inset, borderRadius: 12, paddingVertical: 2, paddingHorizontal: 12 }}>
                 {stores.map((s, i) => (
@@ -633,7 +646,7 @@ function FoundSheet() {
               </View>
             ) : null}
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
-              <GhostButton label={exact ? 'Wrong product?' : 'Not it'} pad={13} onPress={() => set(hasAlts ? { phase: 'alts' } : { phase: 'type', typeQ: '' })} />
+              <GhostButton label={exact ? 'Wrong product?' : 'Not it'} pad={13} onPress={() => set(hasAlts ? { phase: 'alts' } : { phase: 'type', typeQ: m.searching ? m.name : '' })} />
               <LimeButton label={dupe ? 'Add again' : 'Want it'} size={14.5} flex onPress={wantIt} />
             </View>
           </ScrollView>

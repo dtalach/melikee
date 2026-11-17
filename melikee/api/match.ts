@@ -4,6 +4,7 @@
  * whether ANTHROPIC_API_KEY is set on this deployment.
  */
 import type { MatchRequest } from '../src/lib/matchContract';
+import { cached, cacheKey, DAY } from '../server/cache';
 import { findImage } from '../server/image';
 import { describeError, findListings, isConfigured, readPhoto } from '../server/match';
 
@@ -40,9 +41,15 @@ export default async function handler(req: Req, res: Res) {
       return res.status(200).json({ ok: true, reading: await readPhoto(body!.image) });
     }
     if (body!.mode === 'image') {
-      return res.status(200).json({ ok: true, image: await findImage(body!.name, body!.urls, body!.variant) });
+      const { name, urls, variant } = body!;
+      const image = await cached(cacheKey('image', { name, urls, variant }), 7 * DAY, (v) => !!v, () => findImage(name, urls, variant));
+      return res.status(200).json({ ok: true, image });
     }
-    const out = await findListings(body!);
+    // Same search, same answer for a day. Thorough (background) searches aren't cached: they exist to look again.
+    const f = body!;
+    const out = f.thorough
+      ? await findListings(f)
+      : await cached(cacheKey('find', { s: f.source, q: f.query, h: f.hint, u: f.upc, l: f.url }), DAY, (v) => v.found, () => findListings(f));
     return res.status(200).json({ ok: true, ...out });
   } catch (error) {
     const e = describeError(error);
