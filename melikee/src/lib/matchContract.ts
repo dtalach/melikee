@@ -27,7 +27,13 @@ export type FindRequest = {
 };
 
 /** A product photo for a listing that came back without one. */
-export type ImageRequest = { mode: 'image'; name: string; urls: string[] };
+export type ImageRequest = {
+  mode: 'image';
+  name: string;
+  urls: string[];
+  /** The colour or style the photo should show. */
+  variant?: string;
+};
 
 export type MatchRequest = ReadRequest | FindRequest | ImageRequest;
 
@@ -49,6 +55,14 @@ export type Candidate = {
   url?: string;
   image?: string;
   upc?: string;
+  /** This listing's colour or style. */
+  color?: string;
+  /** Colours or styles the product comes in, as seen in results (includes `color`). */
+  variants?: string[];
+  /** What the variants are: "Color", "Storage", "Scent". */
+  optionLabel?: string;
+  /** Whether picking a variant should change the photo. */
+  optionChangesLook?: boolean;
   /** "best match, 92%" on the first; what's different on the rest. */
   tag: string;
   /** 0–100. */

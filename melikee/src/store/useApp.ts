@@ -94,6 +94,8 @@ export type Capture = {
   shotUri: string | null;
   /** A small copy of the shot, kept on the shiny when the store has no photo. */
   shotThumb: string | null;
+  /** The colour picked on the found sheet, when the product comes in several. */
+  variant: string | null;
   /** Say mode: live transcript while the shutter is held. */
   transcript: string;
   listening: boolean;
@@ -119,6 +121,7 @@ const idleCapture: Capture = {
   input: null,
   shotUri: null,
   shotThumb: null,
+  variant: null,
   transcript: '',
   listening: false,
 };
@@ -185,6 +188,8 @@ type Actions = {
   /** "Wrong product?": near matches for a saved shiny, or a typed search to replace it. */
   openAlternates: (itemId: number, query?: string) => Promise<void>;
   resetCapture: () => void;
+  /** Pick one of the product's colours on the found sheet; the photo follows. */
+  pickVariant: (v: string) => void;
   wantIt: () => void;
   savePending: () => void;
   fixWith: (m: Match) => void;
@@ -362,6 +367,7 @@ export const useApp = create<AppState>()(
             fromRoll: input.source === 'screenshot',
             shotUri: 'uri' in input ? (input.uri ?? null) : null,
             shotThumb: 'thumb' in input ? (input.thumb ?? null) : null,
+            variant: null,
             // A shutter press flashes first; everything else goes straight to matching.
             phase: input.source === 'photo' || input.source === 'barcode' ? 'snap' : 'scan',
             note: NOTES[input.source],
@@ -419,6 +425,20 @@ export const useApp = create<AppState>()(
           if (run === captureRun) set((s) => ({ capture: { ...s.capture, phase: 'nomatch', miss: MISS.error(e) } }));
         }
       },
+      pickVariant: (v) => {
+        const m = get().capture.match;
+        if (!m?.url) return;
+        // Storage, scent and the like look the same: just record the choice.
+        if (m.optionChangesLook === false) {
+          set((st) => ({ capture: { ...st.capture, variant: v } }));
+          return;
+        }
+        const own = v === m.color;
+        const cached = variantPhotos.get(photoKey(m.url, v));
+        set((st) => ({ capture: { ...st.capture, variant: v, match: st.capture.match ? { ...st.capture.match, image: cached ?? (own ? variantPhotos.get(photoKey(m.url!, m.color)) : undefined) } : null } }));
+        // A different colour than the listing: its store pages show the wrong one, so search only.
+        if (!cached) fillImage(m, v, own);
+      },
       wantIt: () => {
         const s = get();
         const m = s.capture.match;
@@ -445,7 +465,7 @@ export const useApp = create<AppState>()(
           checkedAt: Date.now(),
           added: `${how[m.source] ?? 'by camera'} · ${shortDate(Date.now())}`,
           star: s.capture.star,
-          size: s.capture.size.trim() || undefined,
+          size: withVariant(m, s.capture.variant, s.capture.size),
           alert: true,
         });
         set((st) => ({ firstRun: false, capture: { ...st.capture, phase: 'fly', match: m } }));
@@ -711,27 +731,49 @@ async function rematch(id: number, input: CaptureInput | null) {
  * the alternates, saved shinies and suggestions with the same link.
  */
 const imageLookups = new Set<string>();
-export function fillImage(m: { name: string; url?: string; image?: string; others?: StoreOffer[] }) {
-  if (m.image || !m.url || imageLookups.has(m.url)) return;
+/** Photos found per listing and colour, so flipping between colours is instant. */
+const variantPhotos = new Map<string, string>();
+const photoKey = (url: string, variant?: string | null) => `${url}|${(variant ?? '').toLowerCase()}`;
+
+/** The colour (if it isn't already in the name) and any size typed, for the shiny's "Size / color". */
+function withVariant(m: Match, picked: string | null, typed: string) {
+  const colour = picked ?? m.color;
+  const show = colour && !m.name.toLowerCase().includes(colour.toLowerCase()) ? colour : '';
+  return [show, typed.trim()].filter(Boolean).join(', ') || undefined;
+}
+
+export function fillImage(m: { name: string; url?: string; image?: string; color?: string; others?: StoreOffer[] }, variant?: string, useStorePages = true) {
+  if (!m.url) return;
   const url = m.url;
-  imageLookups.add(url);
+  const colour = variant ?? m.color;
+  if (m.image && !variant) {
+    variantPhotos.set(photoKey(url, colour), m.image);
+    return;
+  }
+  const key = photoKey(url, colour);
+  if (imageLookups.has(key)) return;
+  imageLookups.add(key);
   const tried = (i: Item) => (i.url === url && !i.image ? { ...i, imageTried: true } : i);
-  imageFor(m)
+  imageFor(m, colour, useStorePages)
     .then((image) => {
+      if (image) variantPhotos.set(key, image);
       useApp.setState((st) => {
         if (!image) return { items: st.items.map(tried) };
         const put = <T extends { url?: string; image?: string }>(x: T): T => (x.url === url && !x.image ? { ...x, image } : x);
+        const c = st.capture;
+        // The found sheet follows whichever colour is picked now.
+        const showing = c.match?.url === url && photoKey(url, c.variant ?? c.match.color) === key;
         return {
           items: st.items.map((i) => {
             const j = tried(put(i));
             return j.suggest ? { ...j, suggest: put(j.suggest) } : j;
           }),
-          capture: { ...st.capture, match: st.capture.match ? put(st.capture.match) : null, alternates: st.capture.alternates.map(put) },
+          capture: { ...c, match: showing && c.match ? { ...c.match, image } : c.match, alternates: c.alternates.map(put) },
         };
       });
     })
     .catch(() => undefined)
-    .finally(() => imageLookups.delete(url));
+    .finally(() => imageLookups.delete(key));
 }
 
 /** Once per launch: find photos for saved shinies that never got one (one at a time). */

@@ -40,7 +40,7 @@ export default async function handler(req: Req, res: Res) {
       return res.status(200).json({ ok: true, reading: await readPhoto(body!.image) });
     }
     if (body!.mode === 'image') {
-      return res.status(200).json({ ok: true, image: await findImage(body!.name, body!.urls) });
+      return res.status(200).json({ ok: true, image: await findImage(body!.name, body!.urls, body!.variant) });
     }
     const out = await findListings(body!);
     return res.status(200).json({ ok: true, ...out });
@@ -73,6 +73,7 @@ function validate(b: MatchRequest | null): { status: number; code: 'bad_request'
     if (!Array.isArray(b.urls) || b.urls.length > 5 || b.urls.some((u) => typeof u !== 'string' || !/^https?:\/\/\S+$/i.test(u))) {
       return { status: 400, code: 'bad_request', message: 'image needs up to five http(s) urls.' };
     }
+    if (b.variant != null && (typeof b.variant !== 'string' || b.variant.length > 60)) return { status: 400, code: 'bad_request', message: 'variant must be short text.' };
     return null;
   }
   return { status: 400, code: 'bad_request', message: 'mode must be read, find or image.' };

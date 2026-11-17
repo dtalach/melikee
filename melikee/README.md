@@ -35,6 +35,15 @@ ships in the app:
   for current listings: name, price, store, buy link, product photo, other
   stores, plus up to two near matches.
 
+**Photos and colours.** Search results rarely include a picture, so the app shows
+your own shot first and asks `/api/match` (`mode: image`, `server/image.ts`) for
+a store photo in the background: the store pages' share image, else a search
+whose result pages are read the same way. The colour read from your photo picks
+the listing. When the search sees the product's options, the found sheet offers
+one row of them, labelled by kind ("Color", "Storage", "Scent"); colours swap the
+photo, the rest just record the choice. The pick is saved in "Size / color", and
+clothing sizes are typed there (search results rarely list sizes reliably).
+
 Snap, Scan (barcodes), Say (speech-to-text, then search), the photo library,
 pasted links, typed searches and trending all go through it. "Save photo, keep
 matching" runs a slower, more thorough search in the background and raises
