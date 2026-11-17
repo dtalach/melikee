@@ -121,10 +121,12 @@ const ListingsSchema = z.object({
         url: z.string().describe('Link to the product page at that store. "" if none.'),
         image: z.string().describe('Direct https URL of a product photo from the results. "" if none.'),
         upc: z.string().describe('UPC/EAN if it appeared in the results. "" otherwise.'),
-        color: z.string().describe('The colour or style of this listing, e.g. "Silver", "Purple Dust". "" if the product has no such options.'),
+        color: z.string().describe('Which option this listing is, e.g. "Silver", "Purple Dust", "256GB". "" if the product has no options.'),
         variants: z
           .array(z.string())
-          .describe('Other colours or styles this exact product comes in, as named in the results, e.g. ["Black", "Silver"]. At most 8, including this one. [] if none were seen. Never search again just to fill this in.'),
+          .describe('The options this exact product comes in, as named in the results, e.g. ["Black", "Silver"]. One kind only: colour if it has colours, else whatever choice matters most (storage, capacity, scent). Never clothing or shoe sizes. At most 8, including this one. [] if none were seen. Never search again just to fill this in.'),
+        optionLabel: z.string().describe('What the options are, one or two words: "Color", "Storage", "Capacity", "Scent". "" if no options.'),
+        optionChangesLook: z.boolean().describe('True if the options look different in a photo (colours, patterns, finishes); false for storage, capacity, scent and the like.'),
         confidence: z.number().describe('0-100: how sure this is the item that was asked for.'),
         reason: z.string().describe('For alternatives: what is different, at most five lowercase words, e.g. "last year\'s model". "" for the first.'),
         others: z
@@ -210,6 +212,8 @@ function shape(list: z.infer<typeof ListingsSchema>['candidates'], upc?: string)
         upc: c.upc.trim() || upc || undefined,
         color: c.color.trim() || undefined,
         variants: [...new Set(c.variants.map((v) => v.trim()).filter((v) => v && v.length < 40))].slice(0, 8),
+        optionLabel: c.optionLabel.trim().slice(0, 20) || undefined,
+        optionChangesLook: c.optionChangesLook,
         tag: i === 0 ? `best match, ${confidence}%` : c.reason.trim() || 'another option',
         confidence,
         others: c.others

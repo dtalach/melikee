@@ -27,6 +27,10 @@ export type Match = {
   color?: string;
   /** Colours or styles it comes in, when the search saw them. */
   variants?: string[];
+  /** What the variants are: "Color", "Storage", "Scent". */
+  optionLabel?: string;
+  /** Whether picking a variant should change the photo. */
+  optionChangesLook?: boolean;
   others?: StoreOffer[];
 };
 
@@ -83,6 +87,8 @@ export async function find(req: Omit<FindRequest, 'mode'>, signal?: AbortSignal)
     upc: c.upc,
     color: c.color,
     variants: c.variants,
+    optionLabel: c.optionLabel,
+    optionChangesLook: c.optionChangesLook,
     others: c.others,
   }));
 }

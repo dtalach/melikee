@@ -59,6 +59,10 @@ export type Candidate = {
   color?: string;
   /** Colours or styles the product comes in, as seen in results (includes `color`). */
   variants?: string[];
+  /** What the variants are: "Color", "Storage", "Scent". */
+  optionLabel?: string;
+  /** Whether picking a variant should change the photo. */
+  optionChangesLook?: boolean;
   /** "best match, 92%" on the first; what's different on the rest. */
   tag: string;
   /** 0–100. */

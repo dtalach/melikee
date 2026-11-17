@@ -428,6 +428,11 @@ export const useApp = create<AppState>()(
       pickVariant: (v) => {
         const m = get().capture.match;
         if (!m?.url) return;
+        // Storage, scent and the like look the same: just record the choice.
+        if (m.optionChangesLook === false) {
+          set((st) => ({ capture: { ...st.capture, variant: v } }));
+          return;
+        }
         const own = v === m.color;
         const cached = variantPhotos.get(photoKey(m.url, v));
         set((st) => ({ capture: { ...st.capture, variant: v, match: st.capture.match ? { ...st.capture.match, image: cached ?? (own ? variantPhotos.get(photoKey(m.url!, m.color)) : undefined) } : null } }));

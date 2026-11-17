@@ -504,7 +504,7 @@ function FoundSheet() {
             <PhotoBox
               uri={m.image}
               // Your shot stands in only while it's the colour you photographed.
-              fallback={c.variant && c.variant !== m.color ? null : c.shotUri}
+              fallback={c.variant && c.variant !== m.color && m.optionChangesLook !== false ? null : c.shotUri}
               label="finding a photo…"
               style={{ height: 150, borderRadius: 16 }}
             >
@@ -581,7 +581,7 @@ function FoundSheet() {
             {(m.variants?.length ?? 0) > 1 ? (
               <View style={{ gap: 6 }}>
                 <T size={11} w={700} color={palette.muted} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
-                  Color
+                  {m.optionLabel || 'Color'}
                 </T>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
                   {m.variants!.map((v) => {
@@ -592,7 +592,7 @@ function FoundSheet() {
                         onPress={() => pickVariant(v)}
                         accessibilityRole="button"
                         accessibilityState={{ selected: on }}
-                        accessibilityLabel={`Color ${v}`}
+                        accessibilityLabel={`${m.optionLabel || 'Color'} ${v}`}
                         style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: on ? brand.lime : palette.chip }}
                       >
                         <T size={12} w={700} color={on ? brand.limeInk : palette.soft}>
