@@ -5,8 +5,8 @@
  *   1. Read the store pages directly for their share image (og:image,
  *      twitter:image, or the JSON-LD product image). Quick and free, but the
  *      big stores often answer bots with a captcha.
- *   2. If that finds nothing, ask Claude to fetch the pages (or search) and
- *      pick out the product photo.
+ *   2. If that finds nothing, have Claude search for the product and read
+ *      the result pages (manufacturer, other stores, reviews) the same way.
  *
  * Every URL is checked before it's returned: it has to answer as an image.
  */
@@ -93,53 +93,68 @@ export function imagesInHtml(html: string, base: string): string[] {
 }
 
 const PicksSchema = z.object({
-  images: z.array(z.string()).describe('Direct https URLs of photos of this exact product, best first, at most three. [] if none were seen.'),
+  images: z.array(z.string()).describe('Direct https URLs of photos of this exact product that you saw, best first, at most three. [] if none.'),
 });
 
-/** Claude fetches the store pages (or searches) and reads off the product photo URLs. */
-async function claudeImages(name: string, urls: string[]): Promise<string[]> {
-  const hosts = [...new Set(urls.map((u) => new URL(u).hostname))];
-  const tools: Parameters<ReturnType<typeof client>['beta']['messages']['stream']>[0]['tools'] = [{ type: 'web_search_20260209', name: 'web_search', max_uses: 2 }];
-  if (hosts.length) tools.push({ type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 2, allowed_domains: hosts });
-  const ask = `Find a photo of this product for a wishlist: ${name}
-${urls.length ? `Its store pages:\n${urls.join('\n')}\nFetch one and take the main product image URL from it (og:image, or the product gallery's first image).` : ''}
-If a page won't load, search for the product and use an image URL from the manufacturer's or a major retailer's listing.
-Return only URLs you actually saw in a page or result, pointing straight at an image file (jpg, png or webp), never a page.`;
+/**
+ * Claude searches for the product. Search results are text, so its own image
+ * picks are rare; the useful part is the result pages, which are read here for
+ * their share image (manufacturer and review sites rarely block servers).
+ */
+async function searchImages(name: string): Promise<{ images: string[]; pages: string[] }> {
+  const ask = `Search for this product so a wishlist app can show its photo: ${name}
+Prefer the manufacturer's own product page, then major retailers and well-known review sites. One or two searches.
+If a result shows a direct image URL (jpg, png or webp) of this exact product, list it; otherwise return [].`;
   const message = await client()
     .beta.messages.stream({
       ...BASE,
-      max_tokens: 3000,
-      tools,
+      max_tokens: 2000,
+      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 2 }],
       output_config: { effort: 'low', format: betaZodOutputFormat(PicksSchema) },
       messages: [{ role: 'user', content: ask }],
     })
     .finalMessage();
-  return (message.parsed_output?.images ?? []).map((u) => httpsUrl(u)).filter((u): u is string => !!u);
+  const pages: string[] = [];
+  for (const block of message.content) {
+    if (block.type !== 'web_search_tool_result' || !Array.isArray(block.content)) continue;
+    for (const r of block.content as { url?: string }[]) {
+      const u = httpsUrl(r.url);
+      if (u) pages.push(u);
+    }
+  }
+  const images = (message.parsed_output?.images ?? []).map((u) => httpsUrl(u)).filter((u): u is string => !!u);
+  return { images, pages: [...new Set(pages)] };
 }
 
-/** The first candidate that answers as an image; a maybe if none is certain. */
-async function firstGood(cands: string[]): Promise<string | null> {
-  if (!cands.length) return null;
-  const checks = await Promise.all(cands.slice(0, 6).map(checkImage));
-  const ok = cands.findIndex((_, i) => checks[i] === 'ok');
-  if (ok >= 0) return cands[ok];
-  const maybe = cands.findIndex((_, i) => checks[i] === 'unknown');
-  return maybe >= 0 ? cands[maybe] : null;
+async function checkAll(cands: string[]) {
+  const list = [...new Set(cands)].slice(0, 10);
+  const checks = await Promise.all(list.map(checkImage));
+  return list.map((url, i) => ({ url, check: checks[i] }));
 }
 
 export async function findImage(name: string, rawUrls: string[]): Promise<string | null> {
+  const started = Date.now();
   const urls = [...new Set(rawUrls.map((u) => httpsUrl(u)).filter((u): u is string => !!u))].slice(0, 3);
-  const scraped = (await Promise.all(urls.map(pageImage))).flat();
-  // Only a verified scrape counts here: a page that blocked us didn't give us anything.
-  const checks = await Promise.all(scraped.slice(0, 6).map(checkImage));
-  const sure = scraped.find((_, i) => checks[i] === 'ok');
-  if (sure) return sure;
-  try {
-    return await firstGood(await claudeImages(name, urls));
-  } catch (e) {
-    console.error('[image] claude failed', (e as Error)?.message);
-    return null;
+  // 1. The store pages themselves.
+  const fromStores = await checkAll((await Promise.all(urls.map(pageImage))).flat());
+  const sure = fromStores.find((c) => c.check === 'ok');
+  if (sure) {
+    console.log(`[image] store page ${Date.now() - started}ms`);
+    return sure.url;
   }
+  // 2. Search, then read the result pages.
+  let fromSearch: { url: string; check: ImageCheck }[] = [];
+  try {
+    const { images, pages } = await searchImages(name);
+    const scraped = (await Promise.all(pages.slice(0, 8).map(pageImage))).map((l) => l[0]).filter((u): u is string => !!u);
+    fromSearch = await checkAll([...images, ...scraped]);
+    console.log(`[image] search: ${pages.length} pages, ${images.length} picks, ${scraped.length} scraped, ok=${fromSearch.filter((c) => c.check === 'ok').length}`);
+  } catch (e) {
+    console.error('[image] search failed', (e as Error)?.message);
+  }
+  const pick = fromSearch.find((c) => c.check === 'ok') ?? [...fromStores, ...fromSearch].find((c) => c.check === 'unknown');
+  console.log(`[image] ${pick ? pick.check : 'none'} ${Date.now() - started}ms`);
+  return pick?.url ?? null;
 }
 
 /** Drops listing images that are plainly broken (404, not an image). */
