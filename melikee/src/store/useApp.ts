@@ -3,13 +3,16 @@
  *
  * Content (lists, shinies, friends, settings) persists on the device. Screen,
  * sheet, toast and the capture ritual are session state and start fresh on
- * every launch. There is no backend: friends' activity is sample data.
+ * every launch. Friends, requests and what friends share come from /api/friends
+ * (syncFriends) and are rebuilt on every sync.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { daysUntil, MONTHS, shortDate, type MonthDay } from '@/lib/dates';
+import { daysUntil, MONTHS, parseLabel, shortDate, type MonthDay } from '@/lib/dates';
+import { fetchSync, friendAction } from '@/lib/friends';
+import type { SyncResponse } from '@/lib/friendsContract';
 import { find, imageFor, MISS, readPhoto, type Match, type Miss } from '@/lib/match';
 import type { VerifyResponse } from '@/lib/authContract';
 import type { ImagePayload, StoreOffer } from '@/lib/matchContract';
@@ -126,8 +129,14 @@ type Content = {
   friendDibs: Record<string, boolean>;
   feed: FeedEntry[];
   contacts: Contact[];
+  /** Friend requests waiting for me, from the server. */
+  requests: FriendRequest[];
+  /** My requests waiting on them. */
   sent: SentInvite[];
-  request: FriendRequest | null;
+  /** Others can find me by my full phone number. */
+  findByPhone: boolean;
+  /** Feed entries I loved or added, kept across syncs (the Feed itself is rebuilt each time). */
+  feedLocal: Record<string, { heart?: boolean; wanted?: boolean }>;
   linkHolders: LinkHolder[];
   notifs: Notif[];
   notifSettings: NotifSettings;
@@ -196,18 +205,24 @@ type Actions = {
   deleteList: (id: string) => void;
   resetLink: (id?: string) => void;
 
-  // people
+  // people (all server-backed; see src/lib/friends.ts)
+  /** Refresh friends, requests and what friends share. Quiet on failure. */
+  syncFriends: () => Promise<void>;
+  /** Send a request (or accept theirs). Returns the new relation, or an error message. */
+  sendRequest: (uid: string, name: string) => Promise<string | null>;
+  acceptRequest: (uid: string) => Promise<void>;
+  declineRequest: (uid: string) => Promise<void>;
+  cancelInvite: (uid: string) => Promise<void>;
   toggleAccess: (friendId: string, listId: string) => void;
-  removeFriend: (id: string) => void;
-  requestContact: (id: string) => void;
-  cancelInvite: (id: string) => void;
-  setRequest: (r: FriendRequest | null) => void;
-  acceptRequest: () => void;
+  removeFriend: (uid: string) => Promise<void>;
+  blockFriend: (uid: string) => Promise<void>;
+  setFindByPhone: (on: boolean) => void;
 
   // feed + dibs
   heart: (id: string) => void;
   wantToo: (id: string) => void;
-  toggleFriendDibs: (itemId: string) => void;
+  /** Call or drop dibs on a friend's shiny. */
+  toggleFriendDibs: (listId: string, itemId: string) => Promise<void>;
   setGifterName: (name: string) => void;
   toggleGifterDibs: (itemId: number) => void;
 
@@ -239,8 +254,10 @@ function freshContent(): Content {
     friendDibs: {},
     feed: [],
     contacts: [],
+    requests: [],
     sent: [],
-    request: null,
+    findByPhone: true,
+    feedLocal: {},
     linkHolders: [],
     notifs: [],
     notifSettings: { drop: true, bday: true, too: true, coming: true, req: true },
@@ -591,37 +608,103 @@ export const useApp = create<AppState>()(
       resetLink: (id) =>
         set((s) => ({ lists: s.lists.map((l) => (!id || l.id === id ? { ...l, linkToken: token(), linkSince: Date.now() } : l)) })),
 
-      toggleAccess: (friendId, listId) =>
-        set((s) => ({
-          friends: s.friends.map((f) => (f.id === friendId ? { ...f, access: { ...f.access, [listId]: !f.access[listId] } } : f)),
-        })),
-      removeFriend: (id) => set((s) => ({ friends: s.friends.filter((f) => f.id !== id) })),
-      requestContact: (id) =>
-        set((s) => ({ contacts: s.contacts.map((c) => (c.id === id ? { ...c, requested: true } : c)) })),
-      cancelInvite: (id) => set((s) => ({ sent: s.sent.filter((x) => x.id !== id) })),
-      setRequest: (request) => set({ request }),
-      acceptRequest: () => {
-        const r = get().request;
-        if (!r) return;
-        set((s) => ({
-          friends: [...s.friends, { id: `p-${r.id}`, name: r.name, initial: r.initial, birthday: r.birthday, access: { ...r.access } }],
-          request: null,
-        }));
+      syncFriends: async () => {
+        const s0 = get();
+        if (!s0.phone) return;
+        const r = await fetchSync(s0.ownerSecret);
+        if (!r.ok) {
+          if (r.code === 'signed_out') set({ phone: null });
+          return;
+        }
+        set((s) => applyFriends(s, r));
+      },
+      sendRequest: async (uid, name) => {
+        const r = await friendAction(get().ownerSecret, { action: 'request', uid });
+        if (!r.ok) return r.message;
+        get().showToast(r.state === 'friends' ? `You and ${name} are friends` : `Request sent — ${name} has to accept`);
+        void get().syncFriends();
+        return null;
+      },
+      acceptRequest: async (uid) => {
+        const who = get().requests.find((x) => x.id === uid)?.name ?? 'them';
+        set((s) => ({ requests: s.requests.filter((x) => x.id !== uid) }));
+        const r = await friendAction(get().ownerSecret, { action: 'accept', uid });
+        get().showToast(r.ok ? `${who} added — they see your Friends lists` : r.message);
+        await get().syncFriends();
+      },
+      declineRequest: async (uid) => {
+        const who = get().requests.find((x) => x.id === uid)?.name ?? 'them';
+        set((s) => ({ requests: s.requests.filter((x) => x.id !== uid) }));
+        await friendAction(get().ownerSecret, { action: 'decline', uid });
+        get().showToast(`Declined — ${who} won’t be told`);
+      },
+      cancelInvite: async (uid) => {
+        set((s) => ({ sent: s.sent.filter((x) => x.id !== uid) }));
+        await friendAction(get().ownerSecret, { action: 'cancel', uid });
+        get().showToast('Request cancelled');
+      },
+      toggleAccess: (friendId, listId) => {
+        const f = get().friends.find((x) => x.id === friendId);
+        if (!f) return;
+        const on = f.access[listId] === false;
+        set((s) => ({ friends: s.friends.map((x) => (x.id === friendId ? { ...x, access: { ...x.access, [listId]: on } } : x)) }));
+        void friendAction(get().ownerSecret, { action: 'access', uid: friendId, list: listId, on }).then((r) => {
+          if (!r.ok) {
+            get().showToast(r.message);
+            void get().syncFriends();
+          }
+        });
+      },
+      removeFriend: async (uid) => {
+        set((s) => dropFriend(s, uid));
+        await friendAction(get().ownerSecret, { action: 'remove', uid });
+      },
+      blockFriend: async (uid) => {
+        set((s) => ({ ...dropFriend(s, uid), requests: s.requests.filter((x) => x.id !== uid), sent: s.sent.filter((x) => x.id !== uid) }));
+        await friendAction(get().ownerSecret, { action: 'block', uid });
+      },
+      setFindByPhone: (on) => {
+        set({ findByPhone: on });
+        void friendAction(get().ownerSecret, { action: 'settings', findByPhone: on }).then((r) => {
+          if (!r.ok) {
+            set({ findByPhone: !on });
+            get().showToast(r.message);
+          }
+        });
       },
 
-      heart: (id) => set((s) => ({ feed: s.feed.map((f) => (f.id === id ? { ...f, myHeart: !f.myHeart } : f)) })),
+      heart: (id) =>
+        set((s) => {
+          const on = !s.feed.find((f) => f.id === id)?.myHeart;
+          return { feed: s.feed.map((f) => (f.id === id ? { ...f, myHeart: on } : f)), feedLocal: { ...s.feedLocal, [id]: { ...s.feedLocal[id], heart: on } } };
+        }),
       wantToo: (id) => {
         const s = get();
         const f = s.feed.find((x) => x.id === id);
         if (!f || f.wanted) return;
         const who = s.friends.find((p) => p.id === f.friendId)?.name ?? 'a friend';
-        set((st) => ({ feed: st.feed.map((x) => (x.id === id ? { ...x, wanted: true } : x)), sheet: null }));
+        set((st) => ({ feed: st.feed.map((x) => (x.id === id ? { ...x, wanted: true } : x)), feedLocal: { ...st.feedLocal, [id]: { ...st.feedLocal[id], wanted: true } }, sheet: null }));
         get().addItem(
-          { list: 'w', name: f.name, price: f.price, store: f.store, upc: '—', added: `from ${who}'s wants · ${shortDate(Date.now())}`, alert: true },
+          { list: 'w', name: f.name, price: f.price, store: f.store, url: f.url, image: f.image, upc: '—', added: `from ${who}'s wants · ${shortDate(Date.now())}`, alert: true },
           { file: true },
         );
       },
-      toggleFriendDibs: (itemId) => set((s) => ({ friendDibs: { ...s.friendDibs, [itemId]: !s.friendDibs[itemId] } })),
+      toggleFriendDibs: async (listId, itemId) => {
+        const s = get();
+        const list = s.friendLists.find((l) => l.id === listId);
+        const item = list?.items.find((i) => i.id === itemId);
+        if (!list || !item || item.itemId == null || !list.listId) return;
+        const claim = !s.friendDibs[itemId];
+        set((st) => ({ friendDibs: { ...st.friendDibs, [itemId]: claim } }));
+        const r = await friendAction(s.ownerSecret, { action: 'dibs', uid: list.friendId, list: list.listId, itemId: item.itemId, claim });
+        if (!r.ok) {
+          set((st) => ({ friendDibs: { ...st.friendDibs, [itemId]: !claim } }));
+          get().showToast(r.message);
+        } else if (claim) {
+          get().showToast(`Dibs called — ${s.friends.find((f) => f.id === list.friendId)?.name ?? 'they'} will never know`);
+        }
+        void get().syncFriends();
+      },
       setGifterName: (gifterName) => set({ gifterName }),
       toggleGifterDibs: (itemId) => set((s) => ({ gifterDibs: { ...s.gifterDibs, [itemId]: !s.gifterDibs[itemId] } })),
 
@@ -683,7 +766,7 @@ export const useApp = create<AppState>()(
           );
           const restoredLists: WishList[] = shared.map((l) => {
             const local = s0.lists.find((x) => x.id === l.id);
-            return { ...(local ?? { accent: l.id === 'w' ? '#c8f542' : '#ff5da2', linkExpiry: 'always' as const }), id: l.id, name: l.name, note: l.note, vis: 'invite' as const, linkToken: l.token, linkSince: local?.linkSince ?? Date.now() };
+            return { ...(local ?? { accent: l.id === 'w' ? '#c8f542' : '#ff5da2', linkExpiry: 'always' as const }), id: l.id, name: l.name, note: l.note, vis: (l.friendsOnly ? 'friends' : 'invite') as Vis, linkToken: l.token, linkSince: local?.linkSince ?? Date.now() };
           });
           patch.lists = [...s0.lists.filter((l) => !ids.has(l.id)), ...restoredLists];
           patch.items = [...restoredItems, ...s0.items.filter((i) => !ids.has(i.list))];
@@ -718,7 +801,9 @@ export const useApp = create<AppState>()(
       migrate: (old, version) => {
         if (!old || version < 2) return freshContent() as unknown as AppState;
         // Fill anything missing from fresh defaults, so a partial store can't break the app.
-        const full = { ...freshContent(), ...(old as Partial<Content>) } as Content;
+        const full = { ...freshContent(), ...(old as Partial<Content>) } as Content & { request?: unknown };
+        // v2's single sample friend request; requests come from the server now.
+        delete full.request;
         const v3 = version === 2 ? cleanSample(full) : full;
         return addDefaultLists(v3) as unknown as AppState;
       },
@@ -749,7 +834,6 @@ export function cleanSample(c: Content): Content {
     feed: drop(c.feed, SAMPLE.feed),
     contacts: drop(c.contacts, SAMPLE.contacts),
     sent: drop(c.sent, SAMPLE.sent),
-    request: c.request?.id === SAMPLE.request ? null : c.request,
     linkHolders: drop(c.linkHolders, SAMPLE.linkHolders),
     notifs: drop(c.notifs, SAMPLE.notifs),
   };
@@ -803,6 +887,120 @@ async function rematch(id: number, input: CaptureInput | null) {
   } catch {
     // Stays pending; the item screen offers "Pick it myself".
   }
+}
+
+// ——— friends ———
+
+const FEED_DAYS = 60;
+const FEED_MAX = 50;
+const BDAY_NOTICE_DAYS = 14;
+
+/** Drop a friend and everything they shared, locally (the server is told separately). */
+function dropFriend(s: AppState): Partial<AppState>;
+function dropFriend(s: AppState, uid: string): Partial<AppState>;
+function dropFriend(s: AppState, uid?: string): Partial<AppState> {
+  return {
+    friends: s.friends.filter((f) => f.id !== uid),
+    friendLists: s.friendLists.filter((l) => l.friendId !== uid),
+    feed: s.feed.filter((f) => f.friendId !== uid),
+  };
+}
+
+const initialOf = (name: string) => (name.trim()[0] ?? '?').toUpperCase();
+
+/**
+ * Turn a server sync into the app's friends, their lists, the Feed, requests
+ * and invites; and raise notifications for what's new since the last sync:
+ * a request, an accepted request, a friend's birthday coming up.
+ */
+function applyFriends(s: AppState, r: SyncResponse): Partial<AppState> {
+  const now = Date.now();
+  const friends: Friend[] = r.friends.map((f) => ({
+    id: f.uid,
+    name: f.name,
+    handle: f.handle,
+    initial: initialOf(f.name),
+    birthday: parseLabel(f.birthday) ?? { month: 'Jan', day: 1 },
+    access: f.access,
+  }));
+  const friendDibs: Record<string, boolean> = {};
+  const friendLists: FriendList[] = r.friends.flatMap((f) =>
+    f.lists.map((l) => ({
+      id: `${f.uid}:${l.id}`,
+      friendId: f.uid,
+      listId: l.id,
+      name: l.name,
+      isBirthday: l.isBirthday,
+      date: l.date,
+      items: l.items.map((i) => {
+        const id = `${f.uid}:${l.id}:${i.id}`;
+        const d = l.dibs[String(i.id)];
+        if (d?.mine) friendDibs[id] = true;
+        return { id, itemId: i.id, name: i.name, price: i.price, store: i.store, url: i.url, image: i.image, star: i.star, pending: i.pending, taken: !!d && !d.mine, takenBy: d && !d.mine ? d.name : undefined };
+      }),
+    })),
+  );
+  const feed: FeedEntry[] = r.friends
+    .flatMap((f) =>
+      f.lists.flatMap((l) =>
+        l.items
+          .filter((i) => i.at && now - i.at < FEED_DAYS * 864e5 && !i.pending)
+          .map((i) => {
+            const id = `${f.uid}:${l.id}:${i.id}`;
+            const local = s.feedLocal[id];
+            return { id, friendId: f.uid, list: l.name, name: i.name, price: i.price, store: i.store, url: i.url, image: i.image, at: i.at!, hearts: 0, myHeart: !!local?.heart, wanted: !!local?.wanted };
+          }),
+      ),
+    )
+    .sort((a, b) => b.at - a.at)
+    .slice(0, FEED_MAX);
+  const requests: FriendRequest[] = r.incoming.map((p) => ({ id: p.uid, handle: p.handle, name: p.name, initial: initialOf(p.name), mutual: 0, birthday: parseLabel(p.birthday) ?? { month: 'Jan', day: 1 }, state: 'pending', access: {} }));
+  const sent: SentInvite[] = r.outgoing.map((p) => ({ id: p.uid, handle: p.handle, name: p.name, initial: initialOf(p.name), at: p.at }));
+
+  // What's new.
+  const have = new Set(s.notifs.map((n) => n.id));
+  const fresh: Notif[] = [];
+  if (s.notifSettings.req) {
+    for (const p of r.incoming) {
+      const id = `req-${p.uid}-${p.at}`;
+      if (!have.has(id)) fresh.push({ id, kind: 'req', title: `${p.name} wants to be friends`, sub: `@${p.handle} · tap to accept or decline`, at: p.at, read: false, to: { name: 'people' } });
+    }
+    const wasSent = new Set(s.sent.map((x) => x.id));
+    for (const f of r.friends) {
+      const id = `acc-${f.uid}-${f.since}`;
+      if (wasSent.has(f.uid) && !have.has(id)) fresh.push({ id, kind: 'req', title: `${f.name} accepted your request`, sub: 'their lists are in your Feed now', at: now, read: false, to: { name: 'people' } });
+    }
+  }
+  if (s.notifSettings.bday) {
+    for (const f of friends) {
+      const days = daysUntil(f.birthday);
+      const id = `bday-${f.id}-${new Date(now + days * 864e5).getFullYear()}`;
+      if (days <= BDAY_NOTICE_DAYS && !have.has(id)) {
+        const list = friendLists.find((l) => l.friendId === f.id && l.isBirthday) ?? friendLists.find((l) => l.friendId === f.id);
+        const open = list ? list.items.filter((i) => !i.taken && !friendDibs[i.id] && !i.pending).length : 0;
+        fresh.push({
+          id,
+          kind: 'bday',
+          title: days === 0 ? `It’s ${f.name}’s birthday today` : `${f.name}’s birthday is in ${days} day${days === 1 ? '' : 's'}`,
+          sub: list ? `${open} ${open === 1 ? 'shiny' : 'shinies'} still up for dibs` : 'say happy birthday',
+          at: now,
+          read: false,
+          to: list ? { name: 'friendList', id: list.id } : { name: 'people' },
+        });
+      }
+    }
+  }
+
+  return {
+    friends,
+    friendLists,
+    friendDibs,
+    feed,
+    requests,
+    sent,
+    findByPhone: r.me.findByPhone,
+    notifs: fresh.length ? [...fresh, ...s.notifs] : s.notifs,
+  };
 }
 
 /** Photo captures shown before their search finished, by capture run. */
@@ -951,7 +1149,8 @@ export function shinies(n: number) {
 }
 
 export function friendsWithAccess(s: AppState, listId: string) {
-  return s.friends.filter((f) => f.access[listId]);
+  // New friends see every Friends list; switching one off for someone records false.
+  return s.friends.filter((f) => f.access[listId] !== false);
 }
 
 /** "2 friends + link", "Private · only you" — the chip under a list title. */

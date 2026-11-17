@@ -3,6 +3,7 @@
  * row; a friend's birthday list gets a dibs card; then friends' recent adds,
  * then what's trending.
  */
+import { useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { ago, daysUntil, SOON_DAYS } from '@/lib/dates';
@@ -35,9 +36,13 @@ export function Feed() {
   // The soonest friend birthday with a list gets the dibs card.
   const bdayCard = people
     .filter((p) => p.days <= SOON_DAYS)
-    .map((p) => ({ p, list: friendLists.find((l) => l.friendId === p.id) }))
+    .map((p) => ({ p, list: friendLists.find((l) => l.friendId === p.id && l.isBirthday) ?? friendLists.find((l) => l.friendId === p.id) }))
     .find((x) => x.list);
-  const left = bdayCard?.list ? bdayCard.list.items.filter((i) => !i.taken && !friendDibs[i.id]).length : 0;
+  const left = bdayCard?.list ? bdayCard.list.items.filter((i) => !i.taken && !friendDibs[i.id] && !i.pending).length : 0;
+  const syncFriends = useApp((s) => s.syncFriends);
+  useEffect(() => {
+    void syncFriends();
+  }, [syncFriends]);
 
   return (
     <Appear style={{ flex: 1 }}>
@@ -118,7 +123,7 @@ export function Feed() {
                   </View>
                   <View style={{ flexDirection: 'row', gap: 6 }}>
                     {bdayCard.list.items.slice(0, 4).map((i) => (
-                      <PhotoBox key={i.id} label="" style={{ flex: 1, aspectRatio: 1, borderRadius: 10, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 5 }}>
+                      <PhotoBox key={i.id} uri={i.image} label="" style={{ flex: 1, aspectRatio: 1, borderRadius: 10, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 5 }}>
                         <T size={11} w={700}>
                           {i.price}
                         </T>
@@ -135,6 +140,11 @@ export function Feed() {
             ) : null}
 
             <View style={{ gap: 14, paddingHorizontal: 16 }}>
+              {feed.length === 0 ? (
+                <T size={12} color={palette.muted} style={{ textAlign: 'center', paddingVertical: 10, lineHeight: 18 }}>
+                  Nothing new from your friends yet. When they add shinies to lists they share with you, they show up here.
+                </T>
+              ) : null}
               {feed.map((f) => {
                 const who = byId[f.friendId];
                 if (!who) return null;
@@ -150,7 +160,7 @@ export function Feed() {
                           {ago(f.at)}
                         </T>
                       </View>
-                      <PhotoBox style={{ height: 170 }} />
+                      <PhotoBox uri={f.image} style={{ height: 170 }} />
                       <View style={{ paddingTop: 11, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
                         <T size={14} w={700} style={{ flex: 1 }}>
                           {f.name}
@@ -172,7 +182,7 @@ export function Feed() {
                       >
                         <Heart color={f.myHeart ? brand.pink : palette.soft} fill={f.myHeart ? brand.pink : 'none'} />
                         <T size={12} w={700} color={palette.soft}>
-                          {f.hearts + (f.myHeart ? 1 : 0)}
+                          {f.myHeart ? 'Loved' : 'Love'}
                         </T>
                       </Tap>
                       <WantButton wanted={f.wanted} onPress={() => wantToo(f.id)} />

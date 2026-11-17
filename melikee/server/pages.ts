@@ -26,6 +26,13 @@ export interface Store {
   /** Set only if the field is empty. True when this call set it. */
   hsetnx(key: string, field: string, value: unknown): Promise<boolean>;
   hdel(key: string, field: string): Promise<void>;
+  hget<T>(key: string, field: string): Promise<T | null>;
+  hset(key: string, field: string, value: unknown): Promise<void>;
+  /** Sorted set used as a lexicographic index (all scores 0). */
+  zadd(key: string, member: string): Promise<void>;
+  zrem(key: string, member: string): Promise<void>;
+  /** Members starting with `prefix`, in order, at most `limit`. */
+  zprefix(key: string, prefix: string, limit: number): Promise<string[]>;
   /** Add one; the key expires `ttlSec` after it's first created. Returns the new count. */
   incr(key: string, ttlSec: number): Promise<number>;
 }
@@ -50,6 +57,23 @@ class RedisStore implements Store {
   }
   async hdel(key: string, field: string) {
     await this.r.hdel(key, field);
+  }
+  async hget<T>(key: string, field: string) {
+    return ((await this.r.hget<T>(key, field)) ?? null) as T | null;
+  }
+  async hset(key: string, field: string, value: unknown) {
+    await this.r.hset(key, { [field]: value });
+  }
+  async zadd(key: string, member: string) {
+    await this.r.zadd(key, { score: 0, member });
+  }
+  async zrem(key: string, member: string) {
+    await this.r.zrem(key, member);
+  }
+  async zprefix(key: string, prefix: string, limit: number) {
+    const out = await this.r.zrange<unknown[]>(key, `[${prefix}`, `[${prefix}\xff`, { byLex: true, offset: 0, count: limit });
+    // Upstash parses "123" as a number; members are always strings here.
+    return out.map(String);
   }
   async incr(key: string, ttlSec: number) {
     const n = await this.r.incr(key);
@@ -85,6 +109,26 @@ class MemoryStore implements Store {
   async hdel(key: string, field: string) {
     this.h.get(key)?.delete(field);
   }
+  async hget<T>(key: string, field: string) {
+    return (this.h.get(key)?.get(field) as T) ?? null;
+  }
+  async hset(key: string, field: string, value: unknown) {
+    const m = this.h.get(key) ?? new Map();
+    this.h.set(key, m);
+    m.set(field, JSON.parse(JSON.stringify(value)));
+  }
+  private z = new Map<string, Set<string>>();
+  async zadd(key: string, member: string) {
+    const set = this.z.get(key) ?? new Set();
+    this.z.set(key, set);
+    set.add(member);
+  }
+  async zrem(key: string, member: string) {
+    this.z.get(key)?.delete(member);
+  }
+  async zprefix(key: string, prefix: string, limit: number) {
+    return [...(this.z.get(key) ?? [])].filter((m) => m.startsWith(prefix)).sort().slice(0, limit);
+  }
   async incr(key: string) {
     const n = ((this.kv.get(key) as number) ?? 0) + 1;
     this.kv.set(key, n);
@@ -104,13 +148,13 @@ export function getStore(): Store {
 
 // ── shapes ─────────────────────────────────────────────────────────────────
 
-type PageDoc = { owner: string; name: string; birthday: string; sizes?: Sizes; lists: PublicList[]; updatedAt: number };
-type DibsEntry = { name: string; gifter: string; at: number };
+export type PageDoc = { owner: string; name: string; birthday: string; sizes?: Sizes; lists: PublicList[]; updatedAt: number };
+export type DibsEntry = { name: string; gifter: string; at: number };
 
 const HANDLE = /^[a-z0-9_.]{3,20}$/;
-const pageKey = (h: string) => `page:${h}`;
-const dibsKey = (h: string, list: string) => `dibs:${h}:${list}`;
-const hash = (s: string) => createHash('sha256').update(s).digest('hex');
+export const pageKey = (h: string) => `page:${h}`;
+export const dibsKey = (h: string, list: string) => `dibs:${h}:${list}`;
+export const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 
 export function validHandle(h: unknown): h is string {
   return typeof h === 'string' && HANDLE.test(h);
@@ -131,6 +175,9 @@ export function cleanLists(lists: unknown): PublicList[] | null {
       note: str(l.note, 400),
       token: l.token.slice(0, 40),
       expiresAt: typeof l.expiresAt === 'number' ? l.expiresAt : null,
+      friendsOnly: l.friendsOnly === true || undefined,
+      isBirthday: l.isBirthday === true || undefined,
+      date: str(l.date, 10),
       items: (l.items as Record<string, unknown>[])
         .filter((i) => i && typeof i.id === 'number' && typeof i.name === 'string')
         .map((i) => ({
@@ -145,6 +192,7 @@ export function cleanLists(lists: unknown): PublicList[] | null {
           note: str(i.note, 200),
           star: i.star === true || undefined,
           pending: i.pending === true || undefined,
+          at: typeof i.at === 'number' ? i.at : undefined,
         })),
     });
   }
@@ -200,13 +248,14 @@ export async function isTaken(handle: string, secret?: string): Promise<boolean>
  */
 function resolve(doc: PageDoc, listSlug?: string, token?: string): PublicList | null {
   const now = Date.now();
-  const alive = (l: PublicList) => l.expiresAt == null || l.expiresAt > now;
+  // Friends lists never open from a link, whatever the token.
+  const alive = (l: PublicList) => !l.friendsOnly && (l.expiresAt == null || l.expiresAt > now);
   if (!listSlug) return [doc.lists.find((l) => l.id === 'w'), ...doc.lists].find((l) => l && alive(l)) ?? null;
   const l = doc.lists.find((x) => (x.slug === listSlug || x.id === listSlug) && x.token === token);
   return l && alive(l) ? l : null;
 }
 
-function view(entries: Record<string, DibsEntry>, gifter?: string): DibsView {
+export function view(entries: Record<string, DibsEntry>, gifter?: string): DibsView {
   const me = gifter ? hash(gifter) : '';
   return Object.fromEntries(Object.entries(entries).map(([id, e]) => [id, { name: e.name, mine: e.gifter === me }]));
 }

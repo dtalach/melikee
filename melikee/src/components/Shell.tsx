@@ -4,7 +4,7 @@
  */
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { BackHandler, View } from 'react-native';
+import { AppState, BackHandler, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Camera } from '@/screens/Camera';
@@ -39,6 +39,19 @@ export function Shell() {
   const insets = useSafeAreaInsets();
   // Keeps your Friends + link lists live at melikee.app.
   usePublisher();
+
+  // Friends, requests and what friends share: on open, every minute, and when the app comes back.
+  useEffect(() => {
+    if (!onboarded || !verified) return;
+    const sync = () => void useApp.getState().syncFriends();
+    sync();
+    const every = setInterval(sync, 60_000);
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && sync());
+    return () => {
+      clearInterval(every);
+      sub.remove();
+    };
+  }, [onboarded, verified]);
 
   // Shinies saved before photo lookup existed (or whose lookup failed) get one more try.
   useEffect(() => {

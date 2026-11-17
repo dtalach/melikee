@@ -130,6 +130,35 @@ code `000000` and sends nothing.
 **Not yet:** private and Friends-only lists don't move to a new phone (only
 shared ones do).
 
+## Friends
+
+Friends are real accounts on the server (`api/friends.ts` → `server/friends.ts`;
+the wire contract is `src/lib/friendsContract.ts`):
+
+- **Find:** Friends → Find your people searches by **@handle** (starts-with,
+  two characters or more) or by a **whole US/Canadian phone number**. Numbers
+  are matched by their HMAC, never stored or shown. "Let people find me by my
+  number" (Settings → Privacy defaults) is on by default.
+- **Requests:** send, accept, decline, cancel. Asking someone who already asked
+  you makes you friends. 40 requests per day per account; 120 searches an hour.
+- **What friends see:** every list set to Friends or Friends + link, minus any
+  you switch off for that friend (Friends → ⋯ → Can see). Friends lists are
+  published with the page but never open from a link; only accepted friends get
+  them.
+- **Feed and dibs:** friends' shinies from the last 60 days fill the Feed;
+  their birthday lists get the birthday card. Calling dibs in the app shares
+  one claim per shiny with gifters on links, and the wisher never sees it.
+- **Remove / block:** remove ends it on both sides; block also hides you from
+  each other's search and drops pending requests.
+- **Notifications:** a new request, an accepted request, and a friend's
+  birthday in the next 14 days. The app syncs on open, every minute, and when it
+  comes back to the foreground (no push notifications yet).
+
+Storage (Redis): `acct:<phoneKey>` gains `uid`, `handle`, `name`,
+`findByPhone`; `uid:<uid>` maps back to the account; `handles` (sorted set) and
+`huid:<handle>` power search; `fr:<uid>` is a hash of that account's side of
+each relationship.
+
 ## Starting content
 
 A new account starts with four empty lists, My wants, Birthday, Christmas
@@ -147,8 +176,7 @@ Christmas list is added (`addDefaultLists`). If the birthday is still the old
 placeholder (Oct 14), Me asks "Add your birthday". Anything the person added
 stays.
 
-Friend accounts don't exist yet, so Friends and the Feed stay empty for now; the
-Feed's "Trending this week" row is a fixed list of ideas (tapping one looks up
+The Feed's "Trending this week" row is a fixed list of ideas (tapping one looks up
 its real price). Not built: the iOS share extension, the Instagram/TikTok/Safari
 demo shortcuts, and the offline banner.
 
