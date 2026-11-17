@@ -103,8 +103,9 @@ with a texted 6-digit code via Twilio Verify (`api/auth.ts`, `server/auth.ts`):
 - Limits: 3 codes per number per 10 minutes and 10 per day, 10 codes per
   connection per hour, 10 wrong guesses per number per hour.
 
-**Setup:** in Vercel, set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and
-`TWILIO_VERIFY_SERVICE_SID`. For local testing, `MELIKEE_SMS=fake` accepts the
+**Setup:** in Vercel, set `TWILIO_VERIFY_SERVICE_SID` plus either a Twilio API
+key (`TWILIO_API_KEY_SID` + `TWILIO_API_KEY_SECRET`, preferred) or the account's
+`TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN`. For local testing, `MELIKEE_SMS=fake` accepts the
 code `000000` and sends nothing.
 
 **Not yet:** private and Friends-only lists don't move to a new phone (only

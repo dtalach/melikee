@@ -21,8 +21,20 @@ type Account = { phoneLast2: string; birth: Birth; secretHash: string; createdAt
 
 export const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 
+/**
+ * Twilio credentials: an API key (TWILIO_API_KEY_SID + TWILIO_API_KEY_SECRET,
+ * preferred: revocable on its own) or the account's Auth Token
+ * (TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN).
+ */
+function twilioAuth(): string | null {
+  const e = process.env;
+  if (e.TWILIO_API_KEY_SID && e.TWILIO_API_KEY_SECRET) return `${e.TWILIO_API_KEY_SID}:${e.TWILIO_API_KEY_SECRET}`;
+  if (e.TWILIO_ACCOUNT_SID && e.TWILIO_AUTH_TOKEN) return `${e.TWILIO_ACCOUNT_SID}:${e.TWILIO_AUTH_TOKEN}`;
+  return null;
+}
+
 export function smsConfigured() {
-  return process.env.MELIKEE_SMS === 'fake' || Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_VERIFY_SERVICE_SID);
+  return process.env.MELIKEE_SMS === 'fake' || Boolean(twilioAuth() && process.env.TWILIO_VERIFY_SERVICE_SID);
 }
 
 function phoneKey(e164: string) {
@@ -58,8 +70,7 @@ export async function allow(scope: string, id: string, max: number, windowSec: n
 // ── Twilio Verify ──────────────────────────────────────────────────────────
 
 async function twilio(path: string, form: Record<string, string>) {
-  const sid = process.env.TWILIO_ACCOUNT_SID!;
-  const auth = Buffer.from(`${sid}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+  const auth = Buffer.from(twilioAuth()!).toString('base64');
   const res = await fetch(`https://verify.twilio.com/v2/Services/${process.env.TWILIO_VERIFY_SERVICE_SID}/${path}`, {
     method: 'POST',
     headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
