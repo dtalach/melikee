@@ -1,7 +1,7 @@
 /**
  * Shared lists, server side.
  *
- *   page:<handle>             JSON: owner secret hash, name, birthday, published lists
+ *   page:<handle>             JSON: owner secret hash, name, birthday, sizes, published lists
  *   dibs:<handle>:<listId>    hash: itemId -> { name, gifter (hashed), at }
  *
  * The owner's device publishes with a secret only it holds; the first device
@@ -12,6 +12,7 @@
 import { createHash } from 'node:crypto';
 import { Redis } from '@upstash/redis';
 
+import { cleanSizes, type Sizes } from '../src/lib/sizes';
 import type { DibsRequest, DibsView, PageResponse, PublicList, PublishRequest } from '../src/lib/pagesContract';
 
 // ── storage ────────────────────────────────────────────────────────────────
@@ -101,7 +102,7 @@ export function getStore(): Store {
 
 // ── shapes ─────────────────────────────────────────────────────────────────
 
-type PageDoc = { owner: string; name: string; birthday: string; lists: PublicList[]; updatedAt: number };
+type PageDoc = { owner: string; name: string; birthday: string; sizes?: Sizes; lists: PublicList[]; updatedAt: number };
 type DibsEntry = { name: string; gifter: string; at: number };
 
 const HANDLE = /^[a-z0-9_.]{3,20}$/;
@@ -156,7 +157,7 @@ export async function publish(req: PublishRequest): Promise<'ok' | 'taken'> {
   const existing = await s.get<PageDoc>(pageKey(req.handle));
   if (existing && existing.owner !== owner) return 'taken';
 
-  const doc: PageDoc = { owner, name: req.profile.name.slice(0, 60), birthday: req.profile.birthday.slice(0, 20), lists: cleanLists(req.lists) ?? [], updatedAt: Date.now() };
+  const doc: PageDoc = { owner, name: req.profile.name.slice(0, 60), birthday: req.profile.birthday.slice(0, 20), sizes: cleanSizes(req.profile.sizes), lists: cleanLists(req.lists) ?? [], updatedAt: Date.now() };
   await s.set(pageKey(req.handle), doc);
   // Which page this device publishes, so signing in on a new phone can move it.
   await s.set(`owns:${owner}`, req.handle);
@@ -179,7 +180,7 @@ export async function publish(req: PublishRequest): Promise<'ok' | 'taken'> {
 export async function ownPage(handle: string, secret: string) {
   const doc = await getStore().get<PageDoc>(pageKey(handle));
   if (!doc || doc.owner !== hash(secret)) return null;
-  return { name: doc.name, lists: doc.lists };
+  return { name: doc.name, sizes: doc.sizes, lists: doc.lists };
 }
 
 /** Is this handle owned by someone other than the holder of `secret`? */
@@ -216,7 +217,7 @@ export async function readPage(handle: string, listSlug?: string, token?: string
   const dibs = await s.hgetall<DibsEntry>(dibsKey(handle, list.id));
   return {
     ok: true,
-    owner: { name: doc.name, birthday: doc.birthday },
+    owner: { name: doc.name, birthday: doc.birthday, sizes: doc.sizes },
     list: { id: list.id, name: list.name, note: list.note, isMain: list.id === 'w', items: list.items },
     dibs: view(dibs, gifter),
   };

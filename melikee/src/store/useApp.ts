@@ -625,7 +625,7 @@ export const useApp = create<AppState>()(
         const s0 = get();
         const patch: Partial<AppState> = { ownerSecret: r.secret, phone: { last2: r.phoneLast2, verifiedAt: Date.now() } };
         if (r.kind === 'restored' && r.handle) {
-          patch.profile = { ...s0.profile, handle: r.handle, name: r.page?.name || s0.profile.name };
+          patch.profile = { ...s0.profile, handle: r.handle, name: r.page?.name || s0.profile.name, sizes: r.page?.sizes ?? s0.profile.sizes };
           patch.publishedHandle = r.handle;
         }
         const shared = r.kind === 'restored' ? (r.page?.lists ?? []) : [];

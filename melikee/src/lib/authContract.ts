@@ -1,5 +1,6 @@
 /** Wire contract for POST /api/auth (phone sign-in). Types only. */
 import type { PublicList } from './pagesContract';
+import type { Sizes } from './sizes';
 
 export type StartRequest = { action: 'start'; phone: string };
 export type VerifyRequest = {
@@ -25,6 +26,6 @@ export type VerifyResponse =
       phoneLast2: string;
       /** On a restore: the account's handle and the lists it had shared. */
       handle?: string | null;
-      page?: { name: string; lists: PublicList[] } | null;
+      page?: { name: string; sizes?: Sizes; lists: PublicList[] } | null;
     }
   | AuthError;
