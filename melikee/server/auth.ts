@@ -100,7 +100,7 @@ export async function checkCode(e164: string, code: string): Promise<boolean> {
 
 export type VerifyResult =
   | { kind: 'created'; secret: string }
-  | { kind: 'restored'; secret: string; handle: string | null }
+  | { kind: 'restored'; secret: string; handle: string | null; birth: Birth }
   | { kind: 'needs_birthday' }
   | { kind: 'too_young' };
 
@@ -133,7 +133,7 @@ export async function signIn(e164: string, opts: { birth?: Birth; deviceSecret?:
   const handle = await movePage(existing.secretHash, secretHash);
   await s.set(`acct:${key}`, { ...existing, secretHash } satisfies Account);
   await s.set(`owner:${secretHash}`, key);
-  return { kind: 'restored', secret, handle };
+  return { kind: 'restored', secret, handle, birth: existing.birth };
 }
 
 /** Re-points a page from one device secret to another. Returns its handle. */

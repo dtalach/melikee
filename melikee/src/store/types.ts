@@ -154,6 +154,8 @@ export type Profile = {
   name: string;
   handle: string;
   birthday: MonthDay & { year: number };
+  /** False until the person has given their birthday (sign-up, restore, or the birthday sheet). */
+  birthdaySet?: boolean;
   remindGifters: boolean;
   showCountdown: boolean;
   parent: { on: boolean; approve: boolean; name: string; contact: string; since: number } | null;

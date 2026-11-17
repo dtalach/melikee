@@ -26,6 +26,8 @@ export type VerifyResponse =
       phoneLast2: string;
       /** On a restore: the account's handle and the lists it had shared. */
       handle?: string | null;
+      /** On a restore: the birthday the account signed up with (month 1–12). */
+      birth?: { year: number; month: number; day: number };
       page?: { name: string; sizes?: Sizes; lists: PublicList[] } | null;
     }
   | AuthError;

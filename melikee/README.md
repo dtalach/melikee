@@ -122,13 +122,20 @@ shared ones do).
 
 ## Starting content
 
-A new account starts with three empty lists (My wants, a birthday list named
-"Sweet 16" for a 16th birthday or else "Birthday", and Secret stash) and nothing
-else: the Feed, Friends, Lists and notifications show the design's empty states
-until there's real activity. Gifters see your name if you set one in Edit
-profile, else your handle. Accounts made by earlier builds, which seeded the
-prototype's demo cast (Maya and her friends), have it removed on their next
-open (`cleanSample` in `src/store/useApp.ts`); anything the person added stays.
+A new account starts with four empty lists, My wants, Birthday, Christmas
+(Dec 25) and Secret stash, and nothing else: the Feed, Friends, Lists and
+notifications show the design's empty states until there's real activity.
+Birthday and Christmas show a days countdown on Lists and on Me; tapping the
+birthday on Me (or Edit profile) changes it. Gifters see your name if you set one
+in Edit profile, else your handle. Signing in on a new phone brings back the
+birthday the account signed up with.
+
+Accounts made by earlier builds are brought up to date on their next open
+(`migrate` in `src/store/useApp.ts`): the prototype's demo cast (Maya and her
+friends) is removed (`cleanSample`), "Sweet 16" becomes "Birthday" and a
+Christmas list is added (`addDefaultLists`). If the birthday is still the old
+placeholder (Oct 14), Me asks "Add your birthday". Anything the person added
+stays.
 
 Friend accounts don't exist yet, so Friends and the Feed stay empty for now; the
 Feed's "Trending this week" row is a fixed list of ideas (tapping one looks up

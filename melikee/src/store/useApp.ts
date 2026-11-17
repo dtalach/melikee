@@ -9,11 +9,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { daysUntil, shortDate, type MonthDay } from '@/lib/dates';
+import { daysUntil, MONTHS, shortDate, type MonthDay } from '@/lib/dates';
 import { find, imageFor, MISS, readPhoto, type Match, type Miss } from '@/lib/match';
 import type { VerifyResponse } from '@/lib/authContract';
 import type { ImagePayload, StoreOffer } from '@/lib/matchContract';
-import { birthdayListName, SAMPLE, startingLists, startingProfile, token } from './seed';
+import { christmasList, SAMPLE, startingLists, startingProfile, token } from './seed';
 import type {
   Contact,
   FeedEntry,
@@ -600,6 +600,7 @@ export const useApp = create<AppState>()(
           profile: {
             ...s.profile,
             handle,
+            birthdaySet: true,
             // There's no name step: gifters see the handle until a name is set.
             name: s.profile.name || handle,
             birthday,
@@ -607,14 +608,17 @@ export const useApp = create<AppState>()(
               ? { on: true, approve: true, name: 'Parent', contact: parent.trim(), since: Date.now() }
               : null,
           },
-          lists: s.lists.map((l) => (l.id === 'w' && privateDefault ? { ...l, vis: 'me' } : l.isBirthday && l.name === 'Birthday' ? { ...l, name: birthdayListName(birthday) } : l)),
+          lists: privateDefault ? s.lists.map((l) => (l.id === 'w' ? { ...l, vis: 'me' } : l)) : s.lists,
           stack: [{ name: 'feed' }],
         })),
       applySignIn: (r) => {
         const s0 = get();
         const patch: Partial<AppState> = { ownerSecret: r.secret, phone: { last2: r.phoneLast2, verifiedAt: Date.now() } };
+        if (r.kind === 'restored' && r.birth && MONTHS[r.birth.month - 1]) {
+          patch.profile = { ...s0.profile, birthday: { month: MONTHS[r.birth.month - 1], day: r.birth.day, year: r.birth.year }, birthdaySet: true };
+        }
         if (r.kind === 'restored' && r.handle) {
-          patch.profile = { ...s0.profile, handle: r.handle, name: r.page?.name || s0.profile.name, sizes: r.page?.sizes ?? s0.profile.sizes };
+          patch.profile = { ...(patch.profile ?? s0.profile), handle: r.handle, name: r.page?.name || s0.profile.name, sizes: r.page?.sizes ?? s0.profile.sizes };
           patch.publishedHandle = r.handle;
         }
         const shared = r.kind === 'restored' ? (r.page?.lists ?? []) : [];
@@ -662,7 +666,7 @@ export const useApp = create<AppState>()(
     }),
     {
       name: 'melikee',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => {
         const { stack, sheet, toast, capture, filing, publishState, ...rest } = s;
@@ -675,8 +679,12 @@ export const useApp = create<AppState>()(
         return Object.fromEntries(Object.entries(rest).filter(([, v]) => typeof v !== 'function')) as Partial<AppState>;
       },
       // v2 → v3: same shape, minus the demo content earlier builds seeded.
-      // Anything older has a different shape; start over.
-      migrate: (old, version) => (version === 2 && old ? cleanSample(old as Content) : freshContent()) as unknown as AppState,
+      // v3 → v4: Birthday and Christmas lists. Anything older starts over.
+      migrate: (old, version) => {
+        if (!old || version < 2) return freshContent() as unknown as AppState;
+        const v3 = version === 2 ? cleanSample(old as Content) : (old as Content);
+        return addDefaultLists(v3) as unknown as AppState;
+      },
     },
   ),
 );
@@ -707,9 +715,23 @@ export function cleanSample(c: Content): Content {
     request: c.request?.id === SAMPLE.request ? null : c.request,
     linkHolders: drop(c.linkHolders, SAMPLE.linkHolders),
     notifs: drop(c.notifs, SAMPLE.notifs),
-    // "Sweet 16" was Maya's; anyone else's birthday list is just "Birthday".
-    lists: c.lists.map((l) => (l.isBirthday && l.name === 'Sweet 16' ? { ...l, name: birthdayListName(p.birthday) } : l)),
   };
+}
+
+/**
+ * v3 → v4: the birthday list is just "Birthday" (no more "Sweet 16"), and
+ * everyone gets a Christmas list. Whether the birthday was ever given isn't
+ * recorded before v4; the placeholder Oct 14 means it probably wasn't.
+ */
+export function addDefaultLists(c: Content): Content {
+  const lists = c.lists.map((l) => (l.isBirthday && l.name === 'Sweet 16' ? { ...l, name: 'Birthday' } : l));
+  const hasXmas = lists.some((l) => l.id === 'xmas' || (l.date?.month === 'Dec' && l.date.day === 25));
+  if (!hasXmas) {
+    const at = lists.findIndex((l) => l.isBirthday);
+    lists.splice(at >= 0 ? at + 1 : lists.length, 0, christmasList());
+  }
+  const b = c.profile.birthday;
+  return { ...c, lists, profile: { ...c.profile, birthdaySet: c.profile.birthdaySet ?? !(b.month === 'Oct' && b.day === 14) } };
 }
 
 /**
