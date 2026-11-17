@@ -360,7 +360,8 @@ export const useApp = create<AppState>()(
             note: NOTES[input.source],
           },
         }));
-        if (input.source === 'photo' || input.source === 'barcode') later(() => patch({ phase: 'scan' }), 420);
+        // After the shutter flash, show "reading…" — unless a fast answer already moved on.
+        if (input.source === 'photo' || input.source === 'barcode') later(() => live() && get().capture.phase === 'snap' && patch({ phase: 'scan' }), 420);
 
         try {
           let found: Match[];
@@ -369,10 +370,19 @@ export const useApp = create<AppState>()(
             const reading = await readPhoto(input.image);
             if (!live()) return;
             if (reading.problem !== 'none' || !reading.query) return miss(MISS.photo(reading.problem));
-            patch({ note: `found ${reading.name || 'it'} · finding stores` });
-            found = await find({ source: input.source, query: reading.query, hint: [reading.name, reading.detail].filter(Boolean).join(', ') });
+            // Show what it is now; stores and prices fill in when the search lands. "Want it" works meanwhile.
+            const readConfidence = reading.confidence === 'high' ? 0.95 : reading.confidence === 'medium' ? 0.8 : 0.6;
+            patch({ phase: 'found', match: { name: reading.name || reading.query, price: '', store: '', source: input.source, confidence: readConfidence, searching: true }, alternates: [] });
+            early.set(run, { itemId: null, query: reading.query });
+            try {
+              found = await find({ source: input.source, query: reading.query, hint: [reading.name, reading.detail].filter(Boolean).join(', ') });
+            } catch (e) {
+              if (landEarly(run, [], input)) return;
+              throw e;
+            }
             // The reading's own confidence caps how sure the match can claim to be.
-            if (found[0] && reading.confidence !== 'high') found[0] = { ...found[0], confidence: Math.min(found[0].confidence ?? 1, reading.confidence === 'medium' ? 0.8 : 0.6) };
+            if (found[0] && reading.confidence !== 'high') found[0] = { ...found[0], confidence: Math.min(found[0].confidence ?? 1, readConfidence) };
+            if (landEarly(run, found, input)) return;
           } else if (input.source === 'barcode') {
             found = await find({ source: 'barcode', upc: input.upc });
           } else if (input.source === 'link') {
@@ -430,6 +440,31 @@ export const useApp = create<AppState>()(
         const s = get();
         const m = s.capture.match;
         if (!m) return;
+        if (m.searching) {
+          // Saved before the search finished: file it now as "finding stores…"; the search result fills it in.
+          const pend = early.get(captureRun);
+          const id = get().addItem({
+            list: s.lastList,
+            name: m.name,
+            price: '—',
+            store: 'finding stores…',
+            upc: '—',
+            photo: s.capture.shotThumb ?? undefined,
+            added: `by camera · ${shortDate(Date.now())}`,
+            star: s.capture.star,
+            size: s.capture.size.trim() || undefined,
+            pending: true,
+            query: pend?.query,
+            alert: true,
+          });
+          if (pend) pend.itemId = id;
+          set((st) => ({ firstRun: false, capture: { ...st.capture, phase: 'fly', match: m } }));
+          later(() => {
+            set((st) => ({ capture: { ...idleCapture, mode: st.capture.mode, from: st.capture.from } }));
+            startFiling(id);
+          }, 480);
+          return;
+        }
         const how: Record<string, string> = {
           barcode: 'scanned',
           link: 'from a link',
@@ -682,7 +717,9 @@ export const useApp = create<AppState>()(
       // v3 → v4: Birthday and Christmas lists. Anything older starts over.
       migrate: (old, version) => {
         if (!old || version < 2) return freshContent() as unknown as AppState;
-        const v3 = version === 2 ? cleanSample(old as Content) : (old as Content);
+        // Fill anything missing from fresh defaults, so a partial store can't break the app.
+        const full = { ...freshContent(), ...(old as Partial<Content>) } as Content;
+        const v3 = version === 2 ? cleanSample(full) : full;
         return addDefaultLists(v3) as unknown as AppState;
       },
     },
@@ -766,6 +803,46 @@ async function rematch(id: number, input: CaptureInput | null) {
   } catch {
     // Stays pending; the item screen offers "Pick it myself".
   }
+}
+
+/** Photo captures shown before their search finished, by capture run. */
+const early = new Map<number, { itemId: number | null; query: string }>();
+
+/**
+ * The search for an early-shown photo capture has landed (or failed: `found`
+ * empty). If the shiny was already saved, fill it in and return true. If the
+ * found sheet is still waiting, return false and let the capture carry on.
+ * If the person moved on (typing, closed it), drop the result and return true.
+ */
+function landEarly(run: number, found: Match[], input: CaptureInput): boolean {
+  const pend = early.get(run);
+  if (!pend) return false;
+  early.delete(run);
+  if (pend.itemId != null) {
+    const id = pend.itemId;
+    const best = found[0];
+    if (best) {
+      useApp.getState().updateItem(id, {
+        name: best.name,
+        price: best.price,
+        store: best.store,
+        url: best.url,
+        image: best.image,
+        upc: best.upc ?? '—',
+        others: best.others,
+        checkedAt: Date.now(),
+        pending: false,
+      });
+      fillImage(best);
+    } else {
+      // Nothing yet: it stays "saved for later" and keeps looking, more thoroughly.
+      useApp.getState().updateItem(id, { store: 'saved for later' });
+      void rematch(id, input);
+    }
+    return true;
+  }
+  const c = useApp.getState().capture;
+  return !(run === captureRun && c.phase === 'found' && c.match?.searching);
 }
 
 /**

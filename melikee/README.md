@@ -29,8 +29,10 @@ Every capture is matched for real by `POST /api/match` (`api/match.ts` →
 `server/match.ts`), a Vercel function that calls Claude so the API key never
 ships in the app:
 
-- **read** sends a photo or screenshot to Claude's vision, which reads the brand,
-  model number and colour into a name and a search query (a few seconds).
+- **read** sends a photo or screenshot (1280px JPEG) to Claude's vision, which
+  reads the brand, model number and colour into a name and a search query. A
+  fast model reads first (`MELIKEE_READ_MODEL`, default `claude-haiku-5-5`); a
+  photo it isn't sure about, or can't read, goes to the main model.
 - **find** has Claude search the web (and fetch the page, for a pasted link)
   for current listings: name, price, store, buy link, product photo, other
   stores, plus up to two near matches.
@@ -43,6 +45,13 @@ the listing. When the search sees the product's options, the found sheet offers
 one row of them, labelled by kind ("Color", "Storage", "Scent"); colours swap the
 photo, the rest just record the choice. The pick is saved in "Size / color", and
 clothing sizes are typed there (search results rarely list sizes reliably).
+
+**Speed.** A photo capture shows the product as soon as it's read (about 1–2
+seconds) and fills in stores and prices when the search lands. "Want it" works
+straight away: the shiny is saved as "finding stores…" and filled in later (or
+left "saved for later" and searched again more thoroughly if nothing turns up).
+Searches and photo lookups are cached in the database for a day (`server/cache.ts`),
+so a product someone already looked up comes back instantly.
 
 Snap, Scan (barcodes), Say (speech-to-text, then search), the photo library,
 pasted links, typed searches and trending all go through it. "Save photo, keep

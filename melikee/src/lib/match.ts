@@ -32,6 +32,8 @@ export type Match = {
   /** Whether picking a variant should change the photo. */
   optionChangesLook?: boolean;
   others?: StoreOffer[];
+  /** Shown from the photo reading while stores and prices are still being searched. */
+  searching?: boolean;
 };
 
 /** The production deployment, used when there's no same-origin API. */

@@ -8,7 +8,7 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 import type { ImagePayload } from './matchContract';
 
-const LONG_EDGE = 1568;
+const LONG_EDGE = 1280;
 const QUALITY = 0.7;
 
 /** Your own shot, kept on the shiny when the store has no photo: small enough to persist. */

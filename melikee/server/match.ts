@@ -75,10 +75,35 @@ Never return a brand or a model number you cannot see or clearly recognise. An h
 
 If several different products fill the frame, set problem to "several things" and describe the most central one. If there's no product, or the photo is too dark or blurry to read, say so in problem and leave the other fields "".`;
 
+/**
+ * Reading uses a small, fast model first (about a second); a photo it can't
+ * read confidently, declines, or errors on is read again by the main model.
+ */
+const READ_MODEL = process.env.MELIKEE_READ_MODEL || 'claude-haiku-5-5';
+
 export async function readPhoto(image: ImagePayload): Promise<Reading> {
+  const started = Date.now();
+  if (READ_MODEL !== MODEL) {
+    try {
+      const fast = await readWith(image, READ_MODEL);
+      console.log(`[match] read fast ${Date.now() - started}ms confidence=${fast.confidence} problem=${fast.problem}`);
+      // Only a clean, confident read skips the second look; a problem (dark, blurry, no product) gets the main model's opinion.
+      if (fast.problem === 'none' && fast.query && fast.confidence !== 'low') return fast;
+    } catch (e) {
+      console.error(`[match] read fast failed after ${Date.now() - started}ms: ${(e as Error)?.message}`);
+    }
+  }
+  const sure = await readWith(image, MODEL);
+  console.log(`[match] read main total ${Date.now() - started}ms`);
+  return sure;
+}
+
+async function readWith(image: ImagePayload, model: string): Promise<Reading> {
+  // The main model gets server-side fallbacks; the small one has none (and needs none: it's retried above).
+  const opts = model === MODEL ? BASE : { model };
   const message = await client()
     .beta.messages.stream({
-      ...BASE,
+      ...opts,
       max_tokens: 4000,
       system: READ_SYSTEM,
       output_config: { effort: 'low', format: betaZodOutputFormat(ReadingSchema) },

@@ -19,7 +19,8 @@ import type { DibsRequest, DibsView, PageResponse, PublicList, PublishRequest } 
 
 export interface Store {
   get<T>(key: string): Promise<T | null>;
-  set(key: string, value: unknown): Promise<void>;
+  /** With `ttlSec`, the key expires that long after it's written. */
+  set(key: string, value: unknown, ttlSec?: number): Promise<void>;
   del(key: string): Promise<void>;
   hgetall<T>(key: string): Promise<Record<string, T>>;
   /** Set only if the field is empty. True when this call set it. */
@@ -34,8 +35,9 @@ class RedisStore implements Store {
   async get<T>(key: string) {
     return (await this.r.get<T>(key)) ?? null;
   }
-  async set(key: string, value: unknown) {
-    await this.r.set(key, value);
+  async set(key: string, value: unknown, ttlSec?: number) {
+    if (ttlSec) await this.r.set(key, value, { ex: ttlSec });
+    else await this.r.set(key, value);
   }
   async del(key: string) {
     await this.r.del(key);
