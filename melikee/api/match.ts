@@ -4,6 +4,7 @@
  * whether ANTHROPIC_API_KEY is set on this deployment.
  */
 import type { MatchRequest } from '../src/lib/matchContract';
+import { findImage } from '../server/image';
 import { describeError, findListings, isConfigured, readPhoto } from '../server/match';
 
 type Req = { method?: string; body?: unknown };
@@ -38,6 +39,9 @@ export default async function handler(req: Req, res: Res) {
     if (body!.mode === 'read') {
       return res.status(200).json({ ok: true, reading: await readPhoto(body!.image) });
     }
+    if (body!.mode === 'image') {
+      return res.status(200).json({ ok: true, image: await findImage(body!.name, body!.urls) });
+    }
     const out = await findListings(body!);
     return res.status(200).json({ ok: true, ...out });
   } catch (error) {
@@ -64,7 +68,14 @@ function validate(b: MatchRequest | null): { status: number; code: 'bad_request'
     if (b.hint != null && typeof b.hint !== 'string') return { status: 400, code: 'bad_request', message: 'hint must be text.' };
     return null;
   }
-  return { status: 400, code: 'bad_request', message: 'mode must be read or find.' };
+  if (b.mode === 'image') {
+    if (typeof b.name !== 'string' || !b.name.trim() || b.name.length > 300) return { status: 400, code: 'bad_request', message: 'image needs a name.' };
+    if (!Array.isArray(b.urls) || b.urls.length > 5 || b.urls.some((u) => typeof u !== 'string' || !/^https?:\/\/\S+$/i.test(u))) {
+      return { status: 400, code: 'bad_request', message: 'image needs up to five http(s) urls.' };
+    }
+    return null;
+  }
+  return { status: 400, code: 'bad_request', message: 'mode must be read, find or image.' };
 }
 
 function safeParse(s: string) {

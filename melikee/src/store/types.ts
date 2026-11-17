@@ -51,8 +51,12 @@ export type Item = {
   query?: string;
   /** The store's product page. */
   url?: string;
-  /** A product photo (https), or the user's own shot for a pending shiny. */
+  /** The store's product photo (https). */
   image?: string;
+  /** The user's own shot (a small JPEG data URI), shown when there's no store photo. Never published. */
+  photo?: string;
+  /** A product-photo lookup already ran for this shiny, so it isn't repeated. */
+  imageTried?: boolean;
   /** Other stores carrying it, as seen when it was matched. */
   others?: StoreOffer[];
   /** When the price was last looked up. Absent on sample data. */
