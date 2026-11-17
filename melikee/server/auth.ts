@@ -1,5 +1,6 @@
 /**
- * Phone sign-in, server side. A texted 6-digit code via Twilio Verify.
+ * Phone sign-in, server side. A texted code via Twilio Verify (4–10 digits:
+ * the length is a setting on the Verify service, read with `codeLength`).
  *
  *   acct:<phoneKey>      { phoneLast2, birth, secretHash, createdAt }
  *   owner:<secretHash>   phoneKey — which verified account a device secret belongs to
@@ -80,6 +81,30 @@ async function twilio(path: string, form: Record<string, string>) {
   return { http: res.status, ...json };
 }
 
+/**
+ * How many digits the Verify service's codes have (its Code Length setting,
+ * 4–10), so the app knows when a code is complete. Remembered for the life of
+ * the function instance; null if Twilio doesn't say.
+ */
+let knownLength: number | null = null;
+/** Fake mode's code is all zeros, 6 long unless MELIKEE_FAKE_CODE_LENGTH says otherwise. */
+const fakeLength = () => Number(process.env.MELIKEE_FAKE_CODE_LENGTH) || 6;
+export async function codeLength(): Promise<number | null> {
+  if (process.env.MELIKEE_SMS === 'fake') return fakeLength();
+  if (knownLength) return knownLength;
+  try {
+    const res = await fetch(`https://verify.twilio.com/v2/Services/${process.env.TWILIO_VERIFY_SERVICE_SID}`, {
+      headers: { Authorization: `Basic ${Buffer.from(twilioAuth()!).toString('base64')}` },
+    });
+    const json = (await res.json().catch(() => ({}))) as { code_length?: number };
+    const n = Number(json.code_length);
+    if (n >= 4 && n <= 10) knownLength = n;
+  } catch {
+    // The app copes without it: it waits for Continue.
+  }
+  return knownLength;
+}
+
 /** Text a code. Fake mode (local tests only) sends nothing; the code is 000000. */
 export async function sendCode(e164: string): Promise<'sent' | 'invalid' | 'failed'> {
   if (process.env.MELIKEE_SMS === 'fake') return 'sent';
@@ -91,7 +116,7 @@ export async function sendCode(e164: string): Promise<'sent' | 'invalid' | 'fail
 }
 
 export async function checkCode(e164: string, code: string): Promise<boolean> {
-  if (process.env.MELIKEE_SMS === 'fake') return code === '000000';
+  if (process.env.MELIKEE_SMS === 'fake') return code === '0'.repeat(fakeLength());
   const r = await twilio('VerificationCheck', { To: e164, Code: code });
   return r.http === 200 && r.status === 'approved';
 }

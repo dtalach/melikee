@@ -15,7 +15,8 @@ export type VerifyRequest = {
 
 export type AuthError = { ok: false; code: 'not_configured' | 'bad_phone' | 'bad_code' | 'rate_limited' | 'too_young' | 'needs_birthday' | 'send_failed' | 'bad_request' | 'upstream'; message: string };
 
-export type StartResponse = { ok: true; phoneLast2: string } | AuthError;
+/** `codeLength`: digits in the texted code (4–10), when Twilio says; null otherwise. */
+export type StartResponse = { ok: true; phoneLast2: string; codeLength?: number | null } | AuthError;
 
 export type VerifyResponse =
   | {

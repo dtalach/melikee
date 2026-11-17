@@ -110,7 +110,8 @@ account for anyone under 13. The parent step is optional, and only shown to
 13–17-year-olds.
 
 Every account is a **verified phone number** (US and Canada for now), signed in
-with a texted 6-digit code via Twilio Verify (`api/auth.ts`, `server/auth.ts`):
+with a texted code via Twilio Verify (4–10 digits, whatever the Verify service's
+Code Length is set to; the app asks) (`api/auth.ts`, `server/auth.ts`):
 
 - Only phone-verified devices can publish a page.
 - "I already have an account" → number → code restores your handle and shared

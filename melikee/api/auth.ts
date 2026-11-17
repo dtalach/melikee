@@ -8,7 +8,7 @@
  * gets 10 codes per hour; a number gets 10 wrong guesses per hour.
  */
 import type { StartRequest, VerifyRequest } from '../src/lib/authContract';
-import { allow, checkCode, normalizePhone, sendCode, signIn, smsConfigured } from '../server/auth';
+import { allow, checkCode, codeLength, normalizePhone, sendCode, signIn, smsConfigured } from '../server/auth';
 import { isConfigured as storeConfigured, ownPage } from '../server/pages';
 
 type Req = { method?: string; body?: unknown; headers?: Record<string, string | string[] | undefined> };
@@ -41,11 +41,11 @@ export default async function handler(req: Req, res: Res) {
       const sent = await sendCode(phone);
       if (sent === 'invalid') return fail(res, 400, 'bad_phone', 'That number can’t get texts. Use a mobile number.');
       if (sent === 'failed') return fail(res, 502, 'send_failed', 'Couldn’t send the text. Try again in a minute.');
-      return res.status(200).json({ ok: true, phoneLast2: phone.slice(-2) });
+      return res.status(200).json({ ok: true, phoneLast2: phone.slice(-2), codeLength: await codeLength() });
     }
 
     if (b.action === 'verify') {
-      if (typeof b.code !== 'string' || !/^\d{6}$/.test(b.code)) return fail(res, 400, 'bad_code', 'Enter the 6-digit code.');
+      if (typeof b.code !== 'string' || !/^\d{4,10}$/.test(b.code)) return fail(res, 400, 'bad_code', 'Enter the code we texted you.');
       if (!(await allow('guess', phone, 10, 3600))) return fail(res, 429, 'rate_limited', 'Too many tries. Wait a bit, then get a new code.');
       if (!(await checkCode(phone, b.code))) return fail(res, 400, 'bad_code', 'That code didn’t work. Check it, or get a new one.');
 
