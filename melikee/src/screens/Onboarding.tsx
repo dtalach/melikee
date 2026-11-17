@@ -25,6 +25,10 @@ type Step = 'welcome' | 'verifyIntro' | 'birthday' | 'phone' | 'code' | 'handle'
 
 const RESEND_SECONDS = 30;
 
+/** Twilio Verify codes are 4–10 digits, set on the Verify service. */
+const MIN_CODE = 4;
+const MAX_CODE = 10;
+
 export function Onboarding() {
   const insets = useSafeAreaInsets();
   const profile = useApp((s) => s.profile);
@@ -49,6 +53,8 @@ export function Onboarding() {
   const age = ageOn(birth);
 
   const [phone, setPhone] = useState('');
+  /** Digits in the texted code, as the server reports Twilio's setting. */
+  const [codeLen, setCodeLen] = useState<number | null>(null);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +104,7 @@ export function Onboarding() {
       setError(r.message);
       return;
     }
+    setCodeLen(r.codeLength ?? null);
     setCode('');
     setResendAt(Date.now() + RESEND_SECONDS * 1000);
     setNow(Date.now());
@@ -105,7 +112,7 @@ export function Onboarding() {
   };
 
   const check = async (value: string) => {
-    if (value.length !== 6 || busy) return;
+    if (value.length < MIN_CODE || busy) return;
     setBusy(true);
     setError(null);
     setNoAccount(false);
@@ -281,20 +288,21 @@ export function Onboarding() {
 
           {step === 'code' ? (
             <>
-              {title('Enter your code', `We texted a 6-digit code to ${phone}.`)}
+              {title('Enter your code', `We texted a ${codeLen ? `${codeLen}-digit ` : ''}code to ${phone}.`)}
               <TextInput
                 value={code}
                 onChangeText={(v) => {
-                  const c = v.replace(/\D/g, '').slice(0, 6);
+                  const c = v.replace(/\D/g, '').slice(0, MAX_CODE);
                   setCode(c);
-                  if (c.length === 6) void check(c);
+                  // Sends itself once it's the length Twilio uses; otherwise Continue does.
+                  if (codeLen && c.length === codeLen) void check(c);
                 }}
-                placeholder="••••••"
+                placeholder={'•'.repeat(codeLen ?? 6)}
                 placeholderTextColor={palette.muted}
                 keyboardType="number-pad"
                 autoComplete="one-time-code"
                 textContentType="oneTimeCode"
-                maxLength={6}
+                maxLength={MAX_CODE}
                 autoFocus
                 accessibilityLabel="Code"
                 style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 14, fontSize: 26, letterSpacing: 10, textAlign: 'center', fontFamily: font[700], color: palette.text }}
@@ -330,7 +338,7 @@ export function Onboarding() {
                 </Tap>
               </View>
               <View style={{ flex: 1 }} />
-              {nextBtn(busy ? 'Checking…' : 'Continue', () => void check(code), code.length !== 6)}
+              {nextBtn(busy ? 'Checking…' : 'Continue', () => void check(code), code.length < MIN_CODE)}
             </>
           ) : null}
 
