@@ -11,10 +11,33 @@ import type { ImagePayload } from './matchContract';
 const LONG_EDGE = 1568;
 const QUALITY = 0.7;
 
-export type Prepared = { uri: string; image?: ImagePayload };
+/** Your own shot, kept on the shiny when the store has no photo: small enough to persist. */
+const THUMB_EDGE = 360;
+const THUMB_QUALITY = 0.6;
+
+export type Prepared = { uri: string; image?: ImagePayload; thumb?: string };
+
+/** A small JPEG data URI of the photo. Never throws. */
+async function thumbnail(uri: string, w: number, h: number): Promise<string | undefined> {
+  try {
+    const ctx = ImageManipulator.manipulate(uri);
+    if (w >= h) ctx.resize({ width: Math.min(THUMB_EDGE, w) });
+    else ctx.resize({ height: Math.min(THUMB_EDGE, h) });
+    const rendered = await ctx.renderAsync();
+    const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: THUMB_QUALITY, base64: true });
+    return saved.base64 ? `data:image/jpeg;base64,${saved.base64}` : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** Never throws: a photo that can't be shrunk is still worth keeping. */
 export async function preparePhoto(p: { uri: string; width?: number; height?: number; base64?: string | null }): Promise<Prepared> {
+  const thumb = await thumbnail(p.uri, p.width || LONG_EDGE, p.height || LONG_EDGE);
+  return { ...(await forMatching(p)), thumb };
+}
+
+async function forMatching(p: { uri: string; width?: number; height?: number; base64?: string | null }): Promise<Prepared> {
   try {
     const w = p.width || LONG_EDGE;
     const h = p.height || LONG_EDGE;

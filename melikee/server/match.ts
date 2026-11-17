@@ -19,6 +19,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import * as z from 'zod';
 
+import { screenImages } from './image';
 import type { Candidate, FindRequest, ImagePayload, MatchErrorCode, Reading } from '../src/lib/matchContract';
 
 const MODEL = process.env.MELIKEE_MODEL || 'claude-opus-5-5';
@@ -34,7 +35,7 @@ export class MatchError extends Error {
 }
 
 let cached: Anthropic | null = null;
-function client() {
+export function client() {
   if (!cached) cached = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   return cached;
 }
@@ -48,7 +49,7 @@ export function isConfigured() {
  * another model inside the same call, so a classifier false positive on an
  * ordinary product photo doesn't become a failed capture.
  */
-const BASE = {
+export const BASE = {
   model: MODEL,
   betas: ['server-side-fallback-2026-07-01'],
   fallbacks: 'default' as const,
@@ -185,7 +186,7 @@ export async function findListings(req: FindRequest): Promise<{ found: boolean; 
     check(message.stop_reason, 'finding listings');
     const out = message.parsed_output;
     if (!out) throw new MatchError('upstream', 'The search came back empty.');
-    return { found: out.found && out.candidates.length > 0, candidates: shape(out.candidates, req.upc) };
+    return { found: out.found && out.candidates.length > 0, candidates: await screenImages(shape(out.candidates, req.upc)) };
   }
   throw new MatchError('upstream', 'The search kept pausing without finishing.');
 }

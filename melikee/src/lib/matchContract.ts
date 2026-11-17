@@ -5,6 +5,7 @@
  * Two steps, called separately so neither runs into the function time limit:
  *   read  — a photo in, what the product is called out (a few seconds).
  *   find  — a name, barcode, sentence or link in, real listings out.
+ *   image — a product photo for a listing that came back without one.
  */
 
 export type ImagePayload = { mediaType: 'image/jpeg' | 'image/png' | 'image/webp'; data: string };
@@ -25,7 +26,10 @@ export type FindRequest = {
   thorough?: boolean;
 };
 
-export type MatchRequest = ReadRequest | FindRequest;
+/** A product photo for a listing that came back without one. */
+export type ImageRequest = { mode: 'image'; name: string; urls: string[] };
+
+export type MatchRequest = ReadRequest | FindRequest | ImageRequest;
 
 export type Reading = {
   name: string;
@@ -56,4 +60,5 @@ export type MatchErrorCode = 'not_configured' | 'bad_request' | 'refused' | 'ups
 
 export type ReadResponse = { ok: true; reading: Reading };
 export type FindResponse = { ok: true; found: boolean; candidates: Candidate[] };
+export type ImageResponse = { ok: true; image: string | null };
 export type ErrorResponse = { ok: false; code: MatchErrorCode; message: string };

@@ -19,7 +19,7 @@ import { Me } from '@/screens/Me';
 import { Notifications } from '@/screens/Notifications';
 import { Onboarding } from '@/screens/Onboarding';
 import { Settings } from '@/screens/Settings';
-import { useApp } from '@/store/useApp';
+import { backfillImages, useApp } from '@/store/useApp';
 import type { Route } from '@/store/types';
 import { palette } from '@/theme/tokens';
 import { Dock } from './Dock';
@@ -39,6 +39,11 @@ export function Shell() {
   const insets = useSafeAreaInsets();
   // Keeps your Friends + link lists live at melikee.app.
   usePublisher();
+
+  // Shinies saved before photo lookup existed (or whose lookup failed) get one more try.
+  useEffect(() => {
+    if (onboarded && verified) void backfillImages();
+  }, [onboarded, verified]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {

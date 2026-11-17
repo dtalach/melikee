@@ -86,7 +86,7 @@ export function Camera() {
       const shot = await cameraRef.current.takePictureAsync({ quality: 0.8, base64: !native });
       if (!shot) throw new Error('no photo');
       const prepared = await preparePhoto(shot);
-      void runCapture({ source: 'photo', image: prepared.image, uri: prepared.uri });
+      void runCapture({ source: 'photo', image: prepared.image, uri: prepared.uri, thumb: prepared.thumb });
     } catch {
       showToast(ready ? 'That photo didn’t take — try again' : 'Camera’s still starting — try again');
     }
@@ -100,7 +100,7 @@ export function Camera() {
       const asset = res.canceled ? null : res.assets[0];
       if (!asset) return;
       const prepared = await preparePhoto({ uri: asset.uri, width: asset.width, height: asset.height, base64: asset.base64 });
-      void runCapture({ source: 'screenshot', image: prepared.image, uri: prepared.uri });
+      void runCapture({ source: 'screenshot', image: prepared.image, uri: prepared.uri, thumb: prepared.thumb });
     } catch {
       showToast('Couldn’t open your photos');
     }
@@ -500,8 +500,8 @@ function FoundSheet() {
                 <Close size={11} color={palette.muted} />
               </Tap>
             </View>
-            <PhotoBox uri={m.image} label="no store photo" style={{ height: 150, borderRadius: 16 }}>
-              {!exact && c.shotUri ? (
+            <PhotoBox uri={m.image} fallback={c.shotUri} label="finding a photo…" style={{ height: 150, borderRadius: 16 }}>
+              {!exact && c.shotUri && m.image ? (
                 <View style={{ position: 'absolute', left: 10, bottom: 10, width: 54, height: 54, borderRadius: 10, borderWidth: 2, borderColor: palette.text, overflow: 'hidden' }}>
                   <PhotoBox uri={c.shotUri} fit="cover" label="you" style={{ flex: 1 }} />
                 </View>

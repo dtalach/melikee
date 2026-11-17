@@ -252,12 +252,34 @@ export function NavRow({ title, sub, onPress, left, border = palette.vio33, righ
 }
 
 /**
- * A product photo: the real one when there's a `uri`, otherwise the theme's
- * placeholder gradient (sample data, or a store listing with no picture).
+ * A product photo: the store's picture when there's a `uri`, else (or if it
+ * won't load) the user's own shot in `fallback`, else the theme's placeholder
+ * gradient (sample data, or nothing to show yet).
  */
-export function PhotoBox({ style, label = 'photo', labelSize = 11, children, vertical, uri, fit = 'contain' }: { style?: StyleProp<ViewStyle>; label?: string; labelSize?: number; children?: ReactNode; vertical?: boolean; uri?: string | null; fit?: 'contain' | 'cover' }) {
-  const [failed, setFailed] = useState(false);
-  const show = !!uri && !failed;
+export function PhotoBox({
+  style,
+  label = 'photo',
+  labelSize = 11,
+  children,
+  vertical,
+  uri,
+  fallback,
+  fit = 'contain',
+}: {
+  style?: StyleProp<ViewStyle>;
+  label?: string;
+  labelSize?: number;
+  children?: ReactNode;
+  vertical?: boolean;
+  uri?: string | null;
+  fallback?: string | null;
+  fit?: 'contain' | 'cover';
+}) {
+  const [failed, setFailed] = useState<string[]>([]);
+  const ok = (u?: string | null): u is string => !!u && !failed.includes(u);
+  const src = ok(uri) ? uri : ok(fallback) ? fallback : null;
+  // Your own shot fills the frame; a store photo (usually product-on-white) sits on a white card.
+  const mode = src && src === uri ? fit : 'cover';
   return (
     <LinearGradient
       colors={[palette.ph1, palette.ph2]}
@@ -265,13 +287,12 @@ export function PhotoBox({ style, label = 'photo', labelSize = 11, children, ver
       end={vertical ? { x: 0, y: 1 } : { x: 1, y: 1 }}
       style={[{ alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, style]}
     >
-      {show ? (
-        // Store photos are usually product-on-white, so they sit on a white card.
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: fit === 'contain' ? '#fff' : 'transparent' }]}>
-          <Image source={{ uri: uri! }} onError={() => setFailed(true)} resizeMode={fit} style={StyleSheet.absoluteFill} accessibilityIgnoresInvertColors />
+      {src ? (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: mode === 'contain' ? '#fff' : 'transparent' }]}>
+          <Image key={src} source={{ uri: src }} onError={() => setFailed((f) => [...f, src])} resizeMode={mode} style={StyleSheet.absoluteFill} accessibilityIgnoresInvertColors />
         </View>
       ) : null}
-      {label && !show ? (
+      {label && !src ? (
         <T size={labelSize} color={palette.muted}>
           {label}
         </T>

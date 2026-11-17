@@ -55,9 +55,9 @@ export function ItemDetail({ id }: { id: number }) {
     <Appear style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
         <LinearGradient colors={[palette.ph2, palette.bg]} style={{ height: 200, alignItems: 'center', justifyContent: 'center' }}>
-          {item.image ? (
+          {item.image || item.photo ? (
             <>
-              <PhotoBox uri={item.image} label="" fit={item.pending ? 'cover' : 'contain'} style={StyleSheet.absoluteFill} />
+              <PhotoBox uri={item.image} fallback={item.photo} label="" fit={item.pending ? 'cover' : 'contain'} style={StyleSheet.absoluteFill} />
               <LinearGradient pointerEvents="none" colors={['rgba(18,18,18,0)', palette.bg]} locations={[0.35, 1]} style={StyleSheet.absoluteFill} />
             </>
           ) : (

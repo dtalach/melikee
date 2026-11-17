@@ -10,7 +10,7 @@
 import { Platform } from 'react-native';
 
 import type { MatchSource } from '@/store/types';
-import type { Candidate, ErrorResponse, FindRequest, FindResponse, ImagePayload, ReadResponse, Reading, StoreOffer } from './matchContract';
+import type { Candidate, ErrorResponse, FindRequest, FindResponse, ImagePayload, ImageResponse, ReadResponse, Reading, StoreOffer } from './matchContract';
 
 export type Match = {
   name: string;
@@ -79,6 +79,12 @@ export async function find(req: Omit<FindRequest, 'mode'>, signal?: AbortSignal)
     upc: c.upc,
     others: c.others,
   }));
+}
+
+/** A product photo for a listing that has none: from its store pages, or a search. */
+export async function imageFor(m: { name: string; url?: string; others?: StoreOffer[] }): Promise<string | null> {
+  const urls = [m.url, ...(m.others ?? []).map((o) => o.url)].filter((u): u is string => !!u && /^https?:\/\//.test(u)).slice(0, 3);
+  return (await post<ImageResponse>({ mode: 'image', name: m.name, urls })).image;
 }
 
 /** Why a capture found nothing, in the miss sheet's words. */

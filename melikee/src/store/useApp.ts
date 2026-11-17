@@ -10,9 +10,9 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { daysUntil, shortDate, type MonthDay } from '@/lib/dates';
-import { find, MISS, readPhoto, type Match, type Miss } from '@/lib/match';
+import { find, imageFor, MISS, readPhoto, type Match, type Miss } from '@/lib/match';
 import type { VerifyResponse } from '@/lib/authContract';
-import type { ImagePayload } from '@/lib/matchContract';
+import type { ImagePayload, StoreOffer } from '@/lib/matchContract';
 import {
   seedContacts,
   seedFeed,
@@ -52,7 +52,7 @@ export type CapturePhase = 'idle' | 'snap' | 'scan' | 'found' | 'fly' | 'nomatch
 
 /** What a capture starts from. Every path ends at /api/match. */
 export type CaptureInput =
-  | { source: 'photo' | 'screenshot'; image?: ImagePayload; uri?: string }
+  | { source: 'photo' | 'screenshot'; image?: ImagePayload; uri?: string; thumb?: string }
   | { source: 'barcode'; upc: string }
   | { source: 'voice' | 'search' | 'catalog'; query: string }
   | { source: 'link'; url: string };
@@ -92,6 +92,8 @@ export type Capture = {
   input: CaptureInput | null;
   /** The photo the user took, shown inset on the found sheet. */
   shotUri: string | null;
+  /** A small copy of the shot, kept on the shiny when the store has no photo. */
+  shotThumb: string | null;
   /** Say mode: live transcript while the shutter is held. */
   transcript: string;
   listening: boolean;
@@ -116,6 +118,7 @@ const idleCapture: Capture = {
   note: '',
   input: null,
   shotUri: null,
+  shotThumb: null,
   transcript: '',
   listening: false,
 };
@@ -358,6 +361,7 @@ export const useApp = create<AppState>()(
             input,
             fromRoll: input.source === 'screenshot',
             shotUri: 'uri' in input ? (input.uri ?? null) : null,
+            shotThumb: 'thumb' in input ? (input.thumb ?? null) : null,
             // A shutter press flashes first; everything else goes straight to matching.
             phase: input.source === 'photo' || input.source === 'barcode' ? 'snap' : 'scan',
             note: NOTES[input.source],
@@ -387,6 +391,7 @@ export const useApp = create<AppState>()(
           if (!live()) return;
           if (!found.length) return miss(MISS.nothing(input.source === 'barcode' ? 'that barcode' : 'that'));
           patch({ phase: 'found', match: found[0], alternates: found });
+          fillImage(found[0]);
         } catch (e) {
           miss(MISS.error(e));
         }
@@ -435,6 +440,7 @@ export const useApp = create<AppState>()(
           upc: m.upc ?? '—',
           url: m.url,
           image: m.image,
+          photo: s.capture.shotThumb ?? undefined,
           others: m.others,
           checkedAt: Date.now(),
           added: `${how[m.source] ?? 'by camera'} · ${shortDate(Date.now())}`,
@@ -469,7 +475,7 @@ export const useApp = create<AppState>()(
               pending: true,
               query,
               url: input?.source === 'link' ? input.url : undefined,
-              image: s.capture.shotUri ?? undefined,
+              photo: s.capture.shotThumb ?? undefined,
             },
             ...st.items,
           ],
@@ -490,12 +496,14 @@ export const useApp = create<AppState>()(
           store: m.store,
           url: m.url,
           image: m.image,
+          imageTried: false,
           upc: m.upc ?? '—',
           others: m.others,
           checkedAt: Date.now(),
           pending: false,
           suggest: null,
         });
+        fillImage(m);
         get().closeCamera();
         get().showToast(`Fixed — now ${m.name}`);
       },
@@ -691,8 +699,51 @@ async function rematch(id: number, input: CaptureInput | null) {
         ...st.notifs,
       ],
     }));
+    fillImage(best);
   } catch {
     // Stays pending; the item screen offers "Pick it myself".
+  }
+}
+
+/**
+ * Store listings often come back without a picture. Look one up in the
+ * background and put it wherever that listing is showing: the found sheet,
+ * the alternates, saved shinies and suggestions with the same link.
+ */
+const imageLookups = new Set<string>();
+export function fillImage(m: { name: string; url?: string; image?: string; others?: StoreOffer[] }) {
+  if (m.image || !m.url || imageLookups.has(m.url)) return;
+  const url = m.url;
+  imageLookups.add(url);
+  const tried = (i: Item) => (i.url === url && !i.image ? { ...i, imageTried: true } : i);
+  imageFor(m)
+    .then((image) => {
+      useApp.setState((st) => {
+        if (!image) return { items: st.items.map(tried) };
+        const put = <T extends { url?: string; image?: string }>(x: T): T => (x.url === url && !x.image ? { ...x, image } : x);
+        return {
+          items: st.items.map((i) => {
+            const j = tried(put(i));
+            return j.suggest ? { ...j, suggest: put(j.suggest) } : j;
+          }),
+          capture: { ...st.capture, match: st.capture.match ? put(st.capture.match) : null, alternates: st.capture.alternates.map(put) },
+        };
+      });
+    })
+    .catch(() => undefined)
+    .finally(() => imageLookups.delete(url));
+}
+
+/** Once per launch: find photos for saved shinies that never got one (one at a time). */
+let backfilled = false;
+export async function backfillImages() {
+  if (backfilled) return;
+  backfilled = true;
+  const todo = useApp.getState().items.filter((i) => !i.pending && !i.image && !i.imageTried && i.url);
+  for (const i of todo.slice(0, 10)) {
+    fillImage(i);
+    // Let each lookup finish before the next; they're slow and not urgent.
+    while (imageLookups.size) await new Promise((r) => setTimeout(r, 500));
   }
 }
 
