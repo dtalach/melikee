@@ -31,7 +31,7 @@ export function InviteSheet() {
             Nobody by that name yet — send them your link below.
           </T>
         ) : null}
-        {!needle ? <SectionLabel>PEOPLE YOU MAY KNOW</SectionLabel> : null}
+        {!needle && results.length ? <SectionLabel>PEOPLE YOU MAY KNOW</SectionLabel> : null}
         {results.map((c) => (
           <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Avatar initial={c.initial} size={38} ring={c.mutual ? ringSoon : palette.deep} gap={palette.chip} w={700} fontSize={13} />

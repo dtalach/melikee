@@ -230,16 +230,21 @@ export function PrivacySheet() {
 /** Change your handle. Your link moves with it; the old one stops working. */
 export function HandleSheet() {
   const current = useApp((s) => s.profile.handle);
+  const currentName = useApp((s) => s.profile.name);
   const setProfile = useApp((s) => s.setProfile);
   const close = useApp((s) => s.closeSheet);
   const showToast = useApp((s) => s.showToast);
   const [draft, setDraft] = useState(current);
+  const [name, setName] = useState(currentName === current ? '' : currentName);
   const h = draft.trim();
+  const n = name.trim() || h;
   const status = useHandleCheck(h);
-  const ok = h !== current && (status === 'free' || status === 'unknown');
+  const handleOk = h === current || status === 'free' || status === 'unknown';
+  const ok = handleOk && (h !== current || n !== currentName);
   return (
     <>
-      <SheetTitle sub="Your links move to the new handle. Links with the old one stop working.">Change your handle</SheetTitle>
+      <SheetTitle sub="Gifters see your name on your links. Change your handle and links with the old one stop working.">Edit profile</SheetTitle>
+      <Field value={name} onChangeText={setName} placeholder="Your first name (optional)" maxLength={40} autoCapitalize="words" accessibilityLabel="Name" />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 12 }}>
         <T size={14} w={600} color={palette.muted}>
           @
@@ -249,7 +254,6 @@ export function HandleSheet() {
           onChangeText={(v) => setDraft(v.toLowerCase().replace(/\s/g, ''))}
           autoCapitalize="none"
           autoCorrect={false}
-          autoFocus
           accessibilityLabel="Handle"
           style={{ flex: 1, fontSize: 14, fontFamily: font[600], color: palette.text, padding: 0 }}
         />
@@ -265,9 +269,9 @@ export function HandleSheet() {
         pad={12}
         disabled={!ok}
         onPress={() => {
-          setProfile({ handle: h });
+          setProfile({ handle: h, name: n });
           close();
-          showToast(`You’re @${h} now`);
+          showToast(h !== current ? `You’re @${h} now` : 'Saved');
         }}
       />
     </>

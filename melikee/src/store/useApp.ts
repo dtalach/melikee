@@ -13,20 +13,7 @@ import { daysUntil, shortDate, type MonthDay } from '@/lib/dates';
 import { find, imageFor, MISS, readPhoto, type Match, type Miss } from '@/lib/match';
 import type { VerifyResponse } from '@/lib/authContract';
 import type { ImagePayload, StoreOffer } from '@/lib/matchContract';
-import {
-  seedContacts,
-  seedFeed,
-  seedFriendLists,
-  seedFriends,
-  seedItems,
-  seedLinkHolders,
-  seedLists,
-  seedNotifs,
-  seedProfile,
-  seedRequest,
-  seedSent,
-  token,
-} from './seed';
+import { birthdayListName, SAMPLE, startingLists, startingProfile, token } from './seed';
 import type {
   Contact,
   FeedEntry,
@@ -242,20 +229,20 @@ function freshContent(): Content {
   return {
     onboarded: false,
     firstRun: true,
-    profile: seedProfile(),
-    lists: seedLists(),
-    items: seedItems(),
+    profile: startingProfile(),
+    lists: startingLists(),
+    items: [],
     nextId: 100,
     lastList: 'w',
-    friends: seedFriends(),
-    friendLists: seedFriendLists(),
+    friends: [],
+    friendLists: [],
     friendDibs: {},
-    feed: seedFeed(),
-    contacts: seedContacts(),
-    sent: seedSent(),
-    request: seedRequest(),
-    linkHolders: seedLinkHolders(),
-    notifs: seedNotifs(),
+    feed: [],
+    contacts: [],
+    sent: [],
+    request: null,
+    linkHolders: [],
+    notifs: [],
     notifSettings: { drop: true, bday: true, too: true, coming: true, req: true },
     gifterName: '',
     gifterDibs: {},
@@ -613,12 +600,14 @@ export const useApp = create<AppState>()(
           profile: {
             ...s.profile,
             handle,
+            // There's no name step: gifters see the handle until a name is set.
+            name: s.profile.name || handle,
             birthday,
             parent: parent.trim()
               ? { on: true, approve: true, name: 'Parent', contact: parent.trim(), since: Date.now() }
               : null,
           },
-          lists: privateDefault ? s.lists.map((l) => (l.id === 'w' ? { ...l, vis: 'me' } : l)) : s.lists,
+          lists: s.lists.map((l) => (l.id === 'w' && privateDefault ? { ...l, vis: 'me' } : l.isBirthday && l.name === 'Birthday' ? { ...l, name: birthdayListName(birthday) } : l)),
           stack: [{ name: 'feed' }],
         })),
       applySignIn: (r) => {
@@ -673,7 +662,7 @@ export const useApp = create<AppState>()(
     }),
     {
       name: 'melikee',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => {
         const { stack, sheet, toast, capture, filing, publishState, ...rest } = s;
@@ -685,11 +674,43 @@ export const useApp = create<AppState>()(
         void filing;
         return Object.fromEntries(Object.entries(rest).filter(([, v]) => typeof v !== 'function')) as Partial<AppState>;
       },
-      // A store from the earlier build has a different shape; start over.
-      migrate: () => freshContent() as unknown as AppState,
+      // v2 → v3: same shape, minus the demo content earlier builds seeded.
+      // Anything older has a different shape; start over.
+      migrate: (old, version) => (version === 2 && old ? cleanSample(old as Content) : freshContent()) as unknown as AppState,
     },
   ),
 );
+
+/**
+ * Takes the prototype's demo cast (Maya, Ava, Jordan…) off an account made by
+ * an earlier build, keeping everything the person added themselves.
+ */
+export function cleanSample(c: Content): Content {
+  const drop = <T extends { id: string }>(list: T[] | undefined, ids: string[]) => (list ?? []).filter((x) => !ids.includes(x.id));
+  const p = c.profile;
+  const sampleProfile = p.name === 'Maya';
+  return {
+    ...c,
+    profile: {
+      ...p,
+      name: sampleProfile ? p.handle : p.name,
+      parent: p.parent?.name === 'Jen (Mom)' ? null : p.parent,
+      email: p.email === 'maya@…' ? '' : p.email,
+    },
+    items: c.items.filter((i) => SAMPLE.items[i.id] !== i.name),
+    friends: drop(c.friends, SAMPLE.friends),
+    friendLists: drop(c.friendLists, SAMPLE.friendLists),
+    friendDibs: {},
+    feed: drop(c.feed, SAMPLE.feed),
+    contacts: drop(c.contacts, SAMPLE.contacts),
+    sent: drop(c.sent, SAMPLE.sent),
+    request: c.request?.id === SAMPLE.request ? null : c.request,
+    linkHolders: drop(c.linkHolders, SAMPLE.linkHolders),
+    notifs: drop(c.notifs, SAMPLE.notifs),
+    // "Sweet 16" was Maya's; anyone else's birthday list is just "Birthday".
+    lists: c.lists.map((l) => (l.isBirthday && l.name === 'Sweet 16' ? { ...l, name: birthdayListName(p.birthday) } : l)),
+  };
+}
 
 /**
  * Background matching for a saved shiny: one thorough search (more searches,

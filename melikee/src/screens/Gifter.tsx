@@ -21,7 +21,6 @@ import { cleanSizes, sizeParts, type Sizes } from '@/lib/sizes';
 import { label } from '@/lib/dates';
 import { callDibs, readPage } from '@/lib/pages';
 import type { DibsView, PublicItem } from '@/lib/pagesContract';
-import { otherGifters } from '@/store/seed';
 import { listById, useApp } from '@/store/useApp';
 import { brand, font, gift } from '@/theme/tokens';
 import { Sparkle } from '@/ui/icons';
@@ -333,7 +332,6 @@ export function GifterPage({ listId, preview, expired }: { listId: string; previ
   const dibs: DibsView = {};
   for (const i of items) {
     if (s.gifterDibs[i.id]) dibs[String(i.id)] = { name: s.gifterName, mine: true };
-    else if (otherGifters[i.id]) dibs[String(i.id)] = { name: otherGifters[i.id], mine: false };
   }
   return (
     <GifterView

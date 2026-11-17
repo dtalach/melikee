@@ -64,7 +64,6 @@ export function Onboarding() {
   const [handle, setHandle] = useState(profile.handle);
   const [parent, setParent] = useState(profile.parent?.contact ?? '');
   const [priv, setPriv] = useState(false);
-  const [contacts, setContacts] = useState(false);
   const h = handle.trim();
   const hStatus = useHandleCheck(h);
   const hOk = hStatus === 'free' || hStatus === 'unknown';
@@ -420,16 +419,7 @@ export function Onboarding() {
 
           {step === 'people' ? (
             <>
-              {title('Find your people', 'See who’s already on MeLikee. We only show people you know.')}
-              <AccentButton
-                label={contacts ? '4 friends found ✓' : 'Check my contacts'}
-                size={14}
-                pad={14}
-                onPress={() => {
-                  setContacts(true);
-                  showToast('Found 4 friends — Ava, Jordan, Sam, Mia');
-                }}
-              />
+              {title('Bring your people', 'Share your list link with friends and family — they can call dibs without the app. Find friends on MeLikee from the Friends tab.')}
               <View style={{ flex: 1 }} />
               {nextBtn('Start snapping', done)}
             </>

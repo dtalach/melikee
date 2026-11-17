@@ -189,7 +189,7 @@ export function Feed() {
             Trending this week
           </T>
           <T size={11} color={palette.muted}>
-            popular with your friends
+            tap one to add it
           </T>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}>
