@@ -7,6 +7,7 @@
  */
 import type { PublishRequest } from '../src/lib/pagesContract';
 import { isVerified } from '../server/auth';
+import { indexAccount } from '../server/friends';
 import { cleanLists, isConfigured, isTaken, publish, readPage, validHandle } from '../server/pages';
 
 type Req = { method?: string; body?: unknown; query?: Record<string, string | string[] | undefined> };
@@ -47,6 +48,8 @@ export default async function handler(req: Req, res: Res) {
       if (!(await isVerified(b.secret))) return res.status(401).json({ ok: false, code: 'signed_out', message: 'Verify your phone to share your lists.' });
       const out = await publish(b);
       if (out === 'taken') return res.status(409).json({ ok: false, code: 'taken', message: `@${b.handle} is taken.` });
+      // Keep the account findable by its current handle and name.
+      await indexAccount(b.secret, b.handle, b.profile.name).catch((e) => console.error('[pages] index', e));
       return res.status(200).json({ ok: true });
     }
 

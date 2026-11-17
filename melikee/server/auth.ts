@@ -18,7 +18,18 @@ import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { getStore } from './pages';
 
 export type Birth = { year: number; month: number; day: number };
-type Account = { phoneLast2: string; birth: Birth; secretHash: string; createdAt: number };
+export type Account = {
+  phoneLast2: string;
+  birth: Birth;
+  secretHash: string;
+  createdAt: number;
+  /** Stable id other people's friend records point at (handles can change). */
+  uid?: string;
+  handle?: string;
+  name?: string;
+  /** Others can find this account by its full phone number. Missing = on. */
+  findByPhone?: boolean;
+};
 
 export const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 
@@ -38,7 +49,7 @@ export function smsConfigured() {
   return process.env.MELIKEE_SMS === 'fake' || Boolean(twilioAuth() && process.env.TWILIO_VERIFY_SERVICE_SID);
 }
 
-function phoneKey(e164: string) {
+export function phoneKey(e164: string) {
   const pepper = process.env.MELIKEE_PHONE_PEPPER;
   if (!pepper) throw new Error('MELIKEE_PHONE_PEPPER is not set');
   return createHmac('sha256', pepper).update(e164).digest('hex');

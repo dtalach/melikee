@@ -22,7 +22,7 @@ export function Dock({ route }: { route: Route }) {
   const tab = useApp((s) => s.tab);
   const openCamera = useApp((s) => s.openCamera);
   const firstRun = useApp((s) => s.firstRun);
-  const friendsBadge = useApp((s) => !!s.request);
+  const friendsBadge = useApp((s) => s.requests.length > 0);
   const held = useRef(false);
   const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
 

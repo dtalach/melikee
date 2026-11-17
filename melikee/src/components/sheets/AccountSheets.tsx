@@ -223,6 +223,12 @@ export function PrivacySheet() {
         ))}
       </View>
       <ToggleRow title="Friends can see My wants" sub={main.vis === 'me' ? 'private until you share it' : 'friends you pick see what you add'} on={main.vis !== 'me'} onPress={() => s.setVis('w', main.vis === 'me' ? 'friends' : 'me')} />
+      <ToggleRow
+        title="Let people find me by my number"
+        sub={s.findByPhone ? 'someone who types your whole number can send a request · your number is never shown' : 'only your @handle finds you'}
+        on={s.findByPhone}
+        onPress={() => s.setFindByPhone(!s.findByPhone)}
+      />
     </>
   );
 }

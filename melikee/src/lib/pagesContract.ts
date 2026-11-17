@@ -2,9 +2,9 @@
  * Wire contract for shared lists: /api/pages and /api/dibs. Types only, shared
  * by the app and the server.
  *
- * Only Friends + link lists are ever published (spec: private lists never
- * appear on gifter pages). Friends-only lists need friend accounts, which
- * don't exist yet, so they stay on the device too.
+ * Friends and Friends + link lists are published; private lists never are.
+ * A public link only ever opens a Friends + link list; Friends lists are
+ * served only to accepted friends (/api/friends).
  */
 
 import type { Sizes } from './sizes';
@@ -21,6 +21,8 @@ export type PublicItem = {
   star?: boolean;
   /** Still being matched: gifters see "Still choosing" and can't call dibs. */
   pending?: boolean;
+  /** When it was added (epoch ms): orders friends' Feeds. */
+  at?: number;
 };
 
 export type PublicList = {
@@ -31,6 +33,12 @@ export type PublicList = {
   token: string;
   /** Epoch ms after which the link stops working; null = always. */
   expiresAt: number | null;
+  /** A Friends list: only accepted friends see it, never anyone with a link. */
+  friendsOnly?: boolean;
+  /** The owner's birthday list (its date is their birthday). */
+  isBirthday?: boolean;
+  /** A dated list's day, e.g. "Dec 25". */
+  date?: string;
   items: PublicItem[];
 };
 

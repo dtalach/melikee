@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 
@@ -33,7 +33,11 @@ export function Friends() {
   const [open, setOpen] = useState<string | null>(null);
   const shareable = visibleLists(s).filter((l) => l.vis !== 'me');
   const empty = s.friends.length === 0;
-  const r = s.request;
+  const syncFriends = s.syncFriends;
+  // Fresh requests and friends every time the tab opens.
+  useEffect(() => {
+    void syncFriends();
+  }, [syncFriends]);
 
   const people = s.friends
     .filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()))
@@ -49,11 +53,43 @@ export function Friends() {
               Friends
             </T>
             <T size={11} color={palette.muted}>
-              {empty ? 'You approve everyone — start with one' : `${s.friends.length} friends · ${s.sent.length} invited`}
+              {empty ? 'You approve everyone — start with one' : `${s.friends.length} ${s.friends.length === 1 ? 'friend' : 'friends'}${s.sent.length ? ` · ${s.sent.length} requested` : ''}`}
             </T>
           </View>
-          {!empty ? <LimePill label="+ Invite" size={11.5} onPress={() => s.openSheet({ type: 'invite' })} style={{ paddingVertical: 6, paddingHorizontal: 13 }} /> : null}
+           {!empty ? <LimePill label="+ Find" size={11.5} onPress={() => s.openSheet({ type: 'invite' })} style={{ paddingVertical: 6, paddingHorizontal: 13 }} /> : null}
         </View>
+
+        {s.requests.length ? (
+          <>
+            <SectionLabel style={{ marginTop: 4 }}>REQUESTS</SectionLabel>
+            {s.requests.map((r) => (
+              <Card key={r.id} border={palette.lime66} style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Avatar initial={r.initial} size={38} fill={palette.deep} w={700} fontSize={13} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <T size={13.5} w={700} numberOfLines={1}>
+                      {r.handle && r.name === r.handle ? '' : `${r.name} `}
+                      {r.handle ? (
+                        <T size={12} w={600} color={palette.vio}>
+                          @{r.handle}
+                        </T>
+                      ) : null}
+                    </T>
+                    <T size={11} color={palette.muted}>
+                      wants to be friends · they’ll see your Friends lists
+                    </T>
+                  </View>
+                  <LimePill label="Accept" size={11.5} onPress={() => void s.acceptRequest(r.id)} style={{ paddingVertical: 6, paddingHorizontal: 13 }} />
+                  <Tap onPress={() => void s.declineRequest(r.id)} accessibilityLabel={`Decline ${r.name}`} style={{ paddingVertical: 10, paddingHorizontal: 2 }}>
+                    <T size={11.5} w={700} color={palette.muted}>
+                      Decline
+                    </T>
+                  </Tap>
+                </View>
+              </Card>
+            ))}
+          </>
+        ) : null}
 
         {empty ? (
           <View style={{ flex: 1, marginHorizontal: -18, marginTop: 6 }}>
@@ -88,72 +124,18 @@ export function Friends() {
               <TextInput value={q} onChangeText={setQ} placeholder="Filter friends" placeholderTextColor={palette.muted} style={{ flex: 1, fontSize: 13, fontFamily: font[500], color: palette.text, padding: 0 }} />
             </View>
 
-            {r ? (
-              <>
-                <SectionLabel style={{ marginTop: 4 }}>REQUESTS</SectionLabel>
-                <Card border={palette.lime66} style={{ paddingVertical: 12, paddingHorizontal: 14, gap: 10 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Avatar initial={r.initial} size={38} fill={palette.deep} w={700} fontSize={13} />
-                    <View style={{ flex: 1 }}>
-                      <T size={13.5} w={700}>
-                        {r.name}
-                      </T>
-                      <T size={11} color={palette.muted}>
-                        wants to follow your lists · {r.mutual} mutual friends
-                      </T>
-                    </View>
-                    {r.state === 'pending' ? (
-                      <>
-                        <LimePill label="Accept" size={11.5} onPress={() => s.setRequest({ ...r, state: 'choosing' })} style={{ paddingVertical: 6, paddingHorizontal: 13 }} />
-                        <Tap
-                          onPress={() => {
-                            s.setRequest(null);
-                            s.showToast(`Declined — ${r.name} won’t be told`);
-                          }}
-                          style={{ paddingVertical: 10, paddingHorizontal: 2 }}
-                        >
-                          <T size={11.5} w={700} color={palette.muted}>
-                            Decline
-                          </T>
-                        </Tap>
-                      </>
-                    ) : null}
-                  </View>
-                  {r.state === 'choosing' ? (
-                    <Appear style={{ gap: 8 }} duration={200}>
-                      <SectionLabel>WHICH LISTS CAN {r.name.toUpperCase()} SEE?</SectionLabel>
-                      <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                        {shareable.map((l) => (
-                          <AccessChip key={l.id} label={l.name} on={!!r.access[l.id]} onPress={() => s.setRequest({ ...r, access: { ...r.access, [l.id]: !r.access[l.id] } })} />
-                        ))}
-                      </View>
-                      <Tap
-                        onPress={() => {
-                          s.acceptRequest();
-                          s.showToast(`${r.name} added`);
-                        }}
-                        style={{ alignSelf: 'flex-start', backgroundColor: palette.vio, paddingVertical: 7, paddingHorizontal: 16, borderRadius: 999 }}
-                      >
-                        <T size={12} w={800} color={palette.bg}>
-                          Add {r.name}
-                        </T>
-                      </Tap>
-                    </Appear>
-                  ) : null}
-                </Card>
-              </>
-            ) : null}
 
             <SectionLabel style={{ marginTop: 4 }}>FRIENDS · NEXT BIRTHDAY FIRST</SectionLabel>
             {people.map((p) => {
               const soon = p.days <= SOON_DAYS;
-              const seen = shareable.filter((l) => p.access[l.id]).map((l) => l.name);
+              const seen = shareable.filter((l) => p.access[l.id] !== false).map((l) => l.name);
               const isOpen = open === p.id;
-              const list = s.friendLists.find((l) => l.friendId === p.id);
+              const theirs = s.friendLists.filter((l) => l.friendId === p.id);
+              const list = theirs.find((l) => l.isBirthday && soon) ?? theirs.find((l) => l.items.length) ?? theirs[0];
               return (
                 <Card key={p.id} style={{ paddingVertical: 11, paddingLeft: 14, paddingRight: 12, gap: 10 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Tap onPress={() => (list ? s.go({ name: 'friendList', id: list.id }) : s.showToast(`${p.name}’s lists open here`))} style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Tap onPress={() => (list ? s.go({ name: 'friendList', id: list.id }) : s.showToast(`${p.name} hasn’t shared a list with you yet`))} style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                       <Avatar initial={p.initial} size={40} ring={soon ? ringSoon : null} gap={palette.card} w={700} fontSize={13} />
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <T size={13.5} w={700}>
@@ -167,6 +149,7 @@ export function Friends() {
                         </View>
                         <T size={11} color={palette.muted} numberOfLines={1}>
                           Sees: {seen.length ? seen.join(', ') : 'nothing yet'}
+                        {theirs.length ? ` · shares ${theirs.length} ${theirs.length === 1 ? 'list' : 'lists'}` : ''}
                         </T>
                       </View>
                     </Tap>
@@ -181,7 +164,7 @@ export function Friends() {
                       <SectionLabel>CAN SEE</SectionLabel>
                       <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                         {shareable.map((l) => (
-                          <AccessChip key={l.id} label={l.name} on={!!p.access[l.id]} onPress={() => s.toggleAccess(p.id, l.id)} />
+                          <AccessChip key={l.id} label={l.name} on={p.access[l.id] !== false} onPress={() => s.toggleAccess(p.id, l.id)} />
                         ))}
                       </View>
                       <View style={{ flexDirection: 'row', gap: 18, paddingTop: 2 }}>
@@ -241,7 +224,7 @@ export function Friends() {
 
             {s.sent.length ? (
               <>
-                <SectionLabel style={{ marginTop: 4 }}>INVITED — WAITING</SectionLabel>
+                <SectionLabel style={{ marginTop: 4 }}>REQUESTED — WAITING</SectionLabel>
                 {s.sent.map((p) => (
                   <View key={p.id} style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: palette.vio44, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Avatar initial={p.initial} size={32} fill={palette.inset} color={palette.muted} w={700} fontSize={12} />
@@ -250,14 +233,11 @@ export function Friends() {
                         {p.name}
                       </T>
                       <T size={11} color={palette.muted}>
-                        invite sent · {ago(p.at)} ago
+                        {p.handle ? `@${p.handle} · ` : ''}sent {ago(p.at)} ago
                       </T>
                     </View>
                     <Tap
-                      onPress={() => {
-                        s.cancelInvite(p.id);
-                        s.showToast('Invite cancelled');
-                      }}
+                      onPress={() => void s.cancelInvite(p.id)}
                       style={{ paddingVertical: 8 }}
                     >
                       <T size={12} w={700} color={palette.muted}>

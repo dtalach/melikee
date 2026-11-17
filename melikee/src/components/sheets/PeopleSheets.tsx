@@ -1,72 +1,116 @@
 import * as Clipboard from 'expo-clipboard';
-import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Linking, TextInput, View } from 'react-native';
 
+import type { SearchResult } from '@/lib/friendsContract';
+import { searchPeople } from '@/lib/friends';
 import { profileLink } from '@/lib/links';
 import { QrStub } from '@/screens/Friends';
 import { WantButton } from '@/screens/Feed';
 import { useApp } from '@/store/useApp';
-import { brand, font, palette, ringSoon } from '@/theme/tokens';
+import { brand, font, palette } from '@/theme/tokens';
 import { Search } from '@/ui/icons';
-import { AccentButton, Avatar, ChipButton, PhotoBox, SectionLabel, SheetTitle, T, Tap, ToggleRow } from '@/ui/primitives';
+import { AccentButton, Avatar, ChipButton, PhotoBox, SectionLabel, SheetTitle, T, Tap } from '@/ui/primitives';
 
 export function InviteSheet() {
   const s = useApp((st) => st);
   const [q, setQ] = useState('');
   const [copied, setCopied] = useState(false);
-  const needle = q.trim().toLowerCase();
-  const results = s.contacts.filter((c) => (needle ? `${c.name} ${c.handle}`.toLowerCase().includes(needle) : !c.searchOnly));
+  const [results, setResults] = useState<SearchResult[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const link = profileLink(s.profile.handle);
+  const secret = s.ownerSecret;
+  const needle = q.trim();
+  const searching = needle.replace(/^@/, '').length >= 2;
+
+  // Search as you type, a moment after the last keystroke.
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(async () => {
+      if (!searching) {
+        setResults(null);
+        return;
+      }
+      const r = await searchPeople(secret, needle);
+      if (live) setResults(r.ok ? r.results : []);
+    }, 300);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [needle, searching, secret]);
+
+  const act = async (p: SearchResult) => {
+    setBusy(p.uid);
+    if (p.state === 'incoming') {
+      await s.acceptRequest(p.uid);
+      setResults((rs) => rs?.map((x) => (x.uid === p.uid ? { ...x, state: 'friends' } : x)) ?? null);
+    } else {
+      const err = await s.sendRequest(p.uid, p.name);
+      if (err) s.showToast(err);
+      else setResults((rs) => rs?.map((x) => (x.uid === p.uid ? { ...x, state: 'outgoing' } : x)) ?? null);
+    }
+    setBusy(null);
+  };
 
   return (
     <>
       <SheetTitle>Find your people</SheetTitle>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 15 }}>
         <Search size={15} color={palette.muted} />
-        <TextInput value={q} onChangeText={setQ} placeholder="Search name or @handle" placeholderTextColor={palette.muted} autoCapitalize="none" style={{ flex: 1, fontSize: 13, fontFamily: font[600], color: palette.text, padding: 0 }} />
+        <TextInput
+          value={q}
+          onChangeText={setQ}
+          placeholder="@handle or phone number"
+          placeholderTextColor={palette.muted}
+          autoCapitalize="none"
+          autoCorrect={false}
+          accessibilityLabel="Search people"
+          style={{ flex: 1, fontSize: 13, fontFamily: font[600], color: palette.text, padding: 0 }}
+        />
       </View>
       <View style={{ gap: 8 }}>
-        {needle && results.length === 0 ? (
+        {!searching ? (
+          <T size={12} color={palette.muted} style={{ textAlign: 'center', padding: 4, lineHeight: 18 }}>
+            Type a friend’s @handle, or their whole phone number.
+          </T>
+        ) : results && results.length === 0 ? (
           <T size={12} color={palette.muted} style={{ textAlign: 'center', padding: 4 }}>
             Nobody by that name yet — send them your link below.
           </T>
         ) : null}
-        {!needle && results.length ? <SectionLabel>PEOPLE YOU MAY KNOW</SectionLabel> : null}
-        {results.map((c) => (
-          <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Avatar initial={c.initial} size={38} ring={c.mutual ? ringSoon : palette.deep} gap={palette.chip} w={700} fontSize={13} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <T size={13} w={700} numberOfLines={1} style={{ flexShrink: 1 }}>
-                  {c.name} <T size={13} w={600} color={palette.vio}>{c.handle}</T>
-                </T>
-                {c.follows ? (
-                  <View style={{ backgroundColor: palette.deep, paddingVertical: 2, paddingHorizontal: 7, borderRadius: 5 }}>
-                    <T size={9} w={800} color={palette.soft}>
-                      follows you
+        {searching && results
+          ? results.map((p) => {
+              const label = p.state === 'friends' ? 'Friends ✓' : p.state === 'outgoing' ? 'Requested ✓' : p.state === 'incoming' ? 'Accept' : 'Add';
+              const done = p.state === 'friends' || p.state === 'outgoing';
+              return (
+                <View key={p.uid} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Avatar initial={(p.name[0] ?? '?').toUpperCase()} size={38} ring={palette.deep} gap={palette.chip} w={700} fontSize={13} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <T size={13} w={700} numberOfLines={1}>
+                      {p.name === p.handle ? '' : `${p.name} `}
+                      <T size={13} w={600} color={palette.vio}>
+                        @{p.handle}
+                      </T>
+                    </T>
+                    <T size={11} color={palette.muted}>
+                      {p.state === 'incoming' ? 'wants to be friends' : p.state === 'friends' ? 'already friends' : 'on MeLikee'}
                     </T>
                   </View>
-                ) : null}
-              </View>
-              {/* Safety: mutual friends only — never school or location. */}
-              <T size={11} color={palette.muted}>
-                {c.mutual ? `${c.mutual} mutual friends` : c.context}
-              </T>
-            </View>
-            <Tap
-              disabled={c.requested}
-              onPress={() => {
-                s.requestContact(c.id);
-                s.showToast(`Request sent — ${c.name.split(' ')[0]} has to accept`);
-              }}
-              style={{ backgroundColor: c.requested ? palette.chip : brand.lime, borderWidth: 1, borderColor: palette.vio44, paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999 }}
-            >
-              <T size={11.5} w={800} color={c.requested ? palette.muted : brand.limeInk}>
-                {c.requested ? 'Requested ✓' : 'Add'}
-              </T>
-            </Tap>
-          </View>
-        ))}
+                  <Tap
+                    disabled={done || busy === p.uid}
+                    onPress={() => void act(p)}
+                    accessibilityLabel={`${label} ${p.handle}`}
+                    style={{ backgroundColor: done ? palette.chip : brand.lime, borderWidth: 1, borderColor: palette.vio44, paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999, opacity: busy === p.uid ? 0.6 : 1 }}
+                  >
+                    <T size={11.5} w={800} color={done ? palette.muted : brand.limeInk}>
+                      {label}
+                    </T>
+                  </Tap>
+                </View>
+              );
+            })
+          : null}
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View style={{ flex: 1, height: 1, backgroundColor: palette.vio33 }} />
@@ -112,7 +156,7 @@ export function FeedItemSheet({ id }: { id: string }) {
   if (!f) return null;
   return (
     <>
-      <PhotoBox style={{ height: 180, borderRadius: 14 }} />
+      <PhotoBox uri={f.image} style={{ height: 180, borderRadius: 14 }} />
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
         <T size={18} w={800} style={{ flex: 1 }}>
           {f.name}
@@ -122,11 +166,11 @@ export function FeedItemSheet({ id }: { id: string }) {
         </T>
       </View>
       <T size={12} color={palette.muted} style={{ marginTop: -6 }}>
-        {f.store} · on {who?.name ?? 'a friend'}’s {f.list} · price checked today
+        {f.store} · on {who?.name ?? 'a friend'}’s {f.list}
       </T>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <WantButton big wanted={f.wanted} onPress={() => wantToo(f.id)} />
-        <AccentButton label={`Open at ${f.store}`} flex onPress={() => showToast(`Opens ${f.store}`)} />
+        <AccentButton label={`Open at ${f.store}`} flex onPress={() => (f.url ? void Linking.openURL(f.url) : showToast('No store link for this one'))} />
       </View>
     </>
   );
@@ -135,9 +179,9 @@ export function FeedItemSheet({ id }: { id: string }) {
 export function ConfirmSheet({ action, friendId }: { action: 'remove' | 'block'; friendId: string }) {
   const friend = useApp((s) => s.friends.find((f) => f.id === friendId));
   const removeFriend = useApp((s) => s.removeFriend);
+  const blockFriend = useApp((s) => s.blockFriend);
   const close = useApp((s) => s.closeSheet);
   const showToast = useApp((s) => s.showToast);
-  const [report, setReport] = useState(true);
   if (!friend) return null;
   const block = action === 'block';
   const name = friend.name;
@@ -149,18 +193,13 @@ export function ConfirmSheet({ action, friendId }: { action: 'remove' | 'block';
       <T size={12.5} color={palette.muted} style={{ lineHeight: 19, marginTop: -4 }}>
         {block ? `${name} won’t be able to find you, see your lists, or send requests. They won’t be told.` : `${name} stops seeing your lists. You can add each other again later. They won’t be told.`}
       </T>
-      {block ? (
-        <View style={{ backgroundColor: palette.inset, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 13 }}>
-          <ToggleRow title="Also report to MeLikee" sub="a real person reviews it · they won't know it was you" on={report} onPress={() => setReport((r) => !r)} />
-        </View>
-      ) : null}
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <ChipButton label="Cancel" flex onPress={close} />
         <Tap
           onPress={() => {
-            removeFriend(friend.id);
+            void (block ? blockFriend(friend.id) : removeFriend(friend.id));
             close();
-            showToast(block ? `${name} blocked${report ? ' and reported' : ''}` : `${name} removed`);
+            showToast(block ? `${name} blocked` : `${name} removed`);
           }}
           style={{ flex: 1, paddingVertical: 12, borderRadius: 999, backgroundColor: brand.pink, alignItems: 'center' }}
         >

@@ -67,3 +67,11 @@ export function ago(ts: number, now = Date.now()) {
   if (days < 7) return `${days}d`;
   return `${Math.round(days / 7)}w`;
 }
+
+/** "Mar 4" → { month: 'Mar', day: 4 }; null if it isn't one. */
+export function parseLabel(s?: string | null): MonthDay | null {
+  const m = /^([A-Z][a-z]{2}) (\d{1,2})$/.exec((s ?? '').trim());
+  if (!m || !(MONTHS as readonly string[]).includes(m[1])) return null;
+  const day = Number(m[2]);
+  return day >= 1 && day <= 31 ? { month: m[1] as Month, day } : null;
+}

@@ -65,18 +65,29 @@ export type Item = {
 };
 
 export type Friend = {
+  /** Their account's stable id. */
   id: string;
   name: string;
+  handle?: string;
   initial: string;
   birthday: MonthDay;
-  /** Per-list access the user grants this friend. */
+  /** Which of my lists this friend sees: listId → false when switched off. Missing = on. */
   access: Record<string, boolean>;
 };
 
 /** One shiny on a friend's list, seen from the gifter's side. */
 export type FriendItem = {
+  /** `${friendId}:${listId}:${itemId}` */
   id: string;
+  /** The item's id on their list (what dibs are called on). */
+  itemId?: number;
   name: string;
+  url?: string;
+  image?: string;
+  /** They're still choosing: can't be dibbed yet. */
+  pending?: boolean;
+  /** Who has it, when someone else called dibs. */
+  takenBy?: string;
   price: string;
   store: string;
   star?: boolean;
@@ -88,9 +99,15 @@ export type FriendItem = {
 };
 
 export type FriendList = {
+  /** `${friendId}:${listId}` */
   id: string;
   friendId: string;
+  /** The list's id on their side. */
+  listId?: string;
   name: string;
+  isBirthday?: boolean;
+  /** A dated list's day, e.g. "Dec 25". */
+  date?: string;
   items: FriendItem[];
 };
 
@@ -105,6 +122,8 @@ export type FeedEntry = {
   hearts: number;
   myHeart: boolean;
   wanted: boolean;
+  url?: string;
+  image?: string;
 };
 
 export type Contact = {
@@ -121,12 +140,14 @@ export type Contact = {
   searchOnly?: boolean;
 };
 
-export type SentInvite = { id: string; name: string; initial: string; at: number };
+export type SentInvite = { id: string; name: string; handle?: string; initial: string; at: number };
 
 export type LinkHolder = { id: string; initial: string; name: string; listId: string; action: string; at: number };
 
 export type FriendRequest = {
+  /** Their account's stable id. */
   id: string;
+  handle?: string;
   name: string;
   initial: string;
   mutual: number;

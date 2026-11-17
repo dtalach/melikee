@@ -2,7 +2,7 @@
  * Shared lists, app side: publishing your Friends + link lists, reading
  * someone else's page, and calling dibs. See `server/pages.ts`.
  */
-import { MONTHS } from './dates';
+import { label, MONTHS } from './dates';
 import { slug } from './links';
 import { apiBase } from './match';
 import type { DibsRequest, DibsResponse, PageResponse, PublicList, PublishRequest, PublishResponse } from './pagesContract';
@@ -30,12 +30,15 @@ export function expiresAt(l: WishList, birthday: Profile['birthday']): number | 
   return null;
 }
 
-/** What gets published: only Friends + link lists, never private or Friends-only ones. */
+/** What gets published: Friends + link lists, and Friends lists (for friends only). Never private ones. */
 export function publicLists(lists: WishList[], items: Item[], birthday: Profile['birthday']): PublicList[] {
   return lists
-    .filter((l) => l.vis === 'invite' && !l.archived)
+    .filter((l) => (l.vis === 'invite' || l.vis === 'friends') && !l.archived)
     .map((l) => ({
       id: l.id,
+      friendsOnly: l.vis === 'friends' || undefined,
+      isBirthday: l.isBirthday || undefined,
+      date: l.date ? label(l.date) : undefined,
       slug: slug(l.name),
       name: l.name,
       note: l.note || undefined,
@@ -54,6 +57,7 @@ export function publicLists(lists: WishList[], items: Item[], birthday: Profile[
           note: i.note || undefined,
           star: i.star || undefined,
           pending: i.pending || undefined,
+          at: i.createdAt,
         })),
     }));
 }
