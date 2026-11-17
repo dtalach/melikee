@@ -23,6 +23,10 @@ export type Match = {
   url?: string;
   image?: string;
   upc?: string;
+  /** This listing's colour or style. */
+  color?: string;
+  /** Colours or styles it comes in, when the search saw them. */
+  variants?: string[];
   others?: StoreOffer[];
 };
 
@@ -77,14 +81,16 @@ export async function find(req: Omit<FindRequest, 'mode'>, signal?: AbortSignal)
     url: c.url,
     image: c.image,
     upc: c.upc,
+    color: c.color,
+    variants: c.variants,
     others: c.others,
   }));
 }
 
 /** A product photo for a listing that has none: from its store pages, or a search. */
-export async function imageFor(m: { name: string; url?: string; others?: StoreOffer[] }): Promise<string | null> {
-  const urls = [m.url, ...(m.others ?? []).map((o) => o.url)].filter((u): u is string => !!u && /^https?:\/\//.test(u)).slice(0, 3);
-  return (await post<ImageResponse>({ mode: 'image', name: m.name, urls })).image;
+export async function imageFor(m: { name: string; url?: string; others?: StoreOffer[] }, variant?: string, useStorePages = true): Promise<string | null> {
+  const urls = useStorePages ? [m.url, ...(m.others ?? []).map((o) => o.url)].filter((u): u is string => !!u && /^https?:\/\//.test(u)).slice(0, 3) : [];
+  return (await post<ImageResponse>({ mode: 'image', name: m.name, urls, variant })).image;
 }
 
 /** Why a capture found nothing, in the miss sheet's words. */

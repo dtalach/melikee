@@ -101,10 +101,10 @@ const PicksSchema = z.object({
  * picks are rare; the useful part is the result pages, which are read here for
  * their share image (manufacturer and review sites rarely block servers).
  */
-async function searchImages(name: string): Promise<{ images: string[]; pages: string[] }> {
-  const ask = `Search for this product so a wishlist app can show its photo: ${name}
-Prefer the manufacturer's own product page, then major retailers and well-known review sites. One or two searches.
-If a result shows a direct image URL (jpg, png or webp) of this exact product, list it; otherwise return [].`;
+async function searchImages(name: string, variant?: string): Promise<{ images: string[]; pages: string[] }> {
+  const ask = `Search for this product so a wishlist app can show its photo: ${name}${variant ? `, in ${variant}` : ''}
+Prefer the manufacturer's own product page${variant ? ` for the ${variant} version` : ''}, then major retailers and well-known review sites. One or two searches.
+If a result shows a direct image URL (jpg, png or webp) of this exact product${variant ? ` in ${variant}` : ''}, list it; otherwise return [].`;
   const message = await client()
     .beta.messages.stream({
       ...BASE,
@@ -132,7 +132,20 @@ async function checkAll(cands: string[]) {
   return list.map((url, i) => ({ url, check: checks[i] }));
 }
 
-export async function findImage(name: string, rawUrls: string[]): Promise<string | null> {
+/** Words of a colour name worth looking for in a URL: "Purple Dust" → ["purple", "dust"]. */
+function variantWords(variant?: string) {
+  return (variant ?? '').toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
+}
+
+/** Pages and images whose URLs name the colour come first. */
+function byVariant<T>(list: T[], url: (t: T) => string, variant?: string): T[] {
+  const words = variantWords(variant);
+  if (!words.length) return list;
+  const hits = (t: T) => words.filter((w) => url(t).toLowerCase().includes(w)).length;
+  return list.map((t, i) => ({ t, i, h: hits(t) })).sort((a, b) => b.h - a.h || a.i - b.i).map((x) => x.t);
+}
+
+export async function findImage(name: string, rawUrls: string[], variant?: string): Promise<string | null> {
   const started = Date.now();
   const urls = [...new Set(rawUrls.map((u) => httpsUrl(u)).filter((u): u is string => !!u))].slice(0, 3);
   // 1. The store pages themselves.
@@ -145,9 +158,12 @@ export async function findImage(name: string, rawUrls: string[]): Promise<string
   // 2. Search, then read the result pages.
   let fromSearch: { url: string; check: ImageCheck }[] = [];
   try {
-    const { images, pages } = await searchImages(name);
-    const scraped = (await Promise.all(pages.slice(0, 8).map(pageImage))).map((l) => l[0]).filter((u): u is string => !!u);
-    fromSearch = await checkAll([...images, ...scraped]);
+    const found = await searchImages(name, variant);
+    const pages = byVariant(found.pages, (u) => u, variant);
+    const scraped = (await Promise.all(pages.slice(0, 8).map(async (p) => ({ page: p, img: (await pageImage(p))[0] }))))
+      .filter((x): x is { page: string; img: string } => !!x.img);
+    const images = found.images;
+    fromSearch = await checkAll([...images, ...byVariant(scraped, (x) => x.page + ' ' + x.img, variant).map((x) => x.img)]);
     console.log(`[image] search: ${pages.length} pages, ${images.length} picks, ${scraped.length} scraped, ok=${fromSearch.filter((c) => c.check === 'ok').length}`);
   } catch (e) {
     console.error('[image] search failed', (e as Error)?.message);

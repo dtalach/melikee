@@ -17,7 +17,7 @@ import { Linking, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Tex
 
 import { hostOf, isExact, matchBadge } from '@/lib/match';
 import { preparePhoto } from '@/lib/photo';
-import { listAccent, listById, useApp, type CaptureMode } from '@/store/useApp';
+import { fillImage, listAccent, listById, useApp, type CaptureMode } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
 import { Close, Photos, Sparkle, Torch } from '@/ui/icons';
 import { Appear, Burst, Flash, SheetOut, Shimmer, Slap, Spin, Twinkle } from '@/ui/motion';
@@ -455,6 +455,7 @@ function FoundSheet() {
   const dupe = useApp((s) => (c.match ? s.items.find((i) => i.name === c.match!.name && !i.pending) : undefined));
   const dupeList = useApp((s) => (dupe ? listById(s, dupe.list).name : ''));
   const set = useApp((s) => s.setCapture);
+  const pickVariant = useApp((s) => s.pickVariant);
   const reset = useApp((s) => s.resetCapture);
   const wantIt = useApp((s) => s.wantIt);
   const m = c.match;
@@ -500,7 +501,13 @@ function FoundSheet() {
                 <Close size={11} color={palette.muted} />
               </Tap>
             </View>
-            <PhotoBox uri={m.image} fallback={c.shotUri} label="finding a photo…" style={{ height: 150, borderRadius: 16 }}>
+            <PhotoBox
+              uri={m.image}
+              // Your shot stands in only while it's the colour you photographed.
+              fallback={c.variant && c.variant !== m.color ? null : c.shotUri}
+              label="finding a photo…"
+              style={{ height: 150, borderRadius: 16 }}
+            >
               {!exact && c.shotUri && m.image ? (
                 <View style={{ position: 'absolute', left: 10, bottom: 10, width: 54, height: 54, borderRadius: 10, borderWidth: 2, borderColor: palette.text, overflow: 'hidden' }}>
                   <PhotoBox uri={c.shotUri} fit="cover" label="you" style={{ flex: 1 }} />
@@ -571,11 +578,37 @@ function FoundSheet() {
                 () => set({ destOpen: !c.destOpen }),
               )}
             </View>
+            {(m.variants?.length ?? 0) > 1 ? (
+              <View style={{ gap: 6 }}>
+                <T size={11} w={700} color={palette.muted} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
+                  Color
+                </T>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                  {m.variants!.map((v) => {
+                    const on = (c.variant ?? m.color) === v;
+                    return (
+                      <Tap
+                        key={v}
+                        onPress={() => pickVariant(v)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: on }}
+                        accessibilityLabel={`Color ${v}`}
+                        style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: on ? brand.lime : palette.chip }}
+                      >
+                        <T size={12} w={700} color={on ? brand.limeInk : palette.soft}>
+                          {v}
+                        </T>
+                      </Tap>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            ) : null}
             {c.sizeEditing ? (
               <TextInput
                 value={c.size}
                 onChangeText={(v) => set({ size: v })}
-                placeholder="Size, color — e.g. M, black"
+                placeholder={(m.variants?.length ?? 0) > 1 ? 'Size — e.g. M, 9.5' : 'Size, color — e.g. M, black'}
                 placeholderTextColor={palette.muted}
                 autoFocus
                 style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12, fontSize: 13, fontFamily: font[500], color: palette.text }}
@@ -699,7 +732,7 @@ function Alternates() {
       {c.alternates.map((a, i) => (
         <Tap
           key={a.name + i}
-          onPress={() => (fixing ? fixWith(a) : set({ chosen: i, match: a, phase: 'found' }))}
+          onPress={() => (fixing ? fixWith(a) : (set({ chosen: i, match: a, variant: null, phase: 'found' }), fillImage(a)))}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: palette.card, borderWidth: 2, borderColor: !fixing && c.match?.name === a.name ? brand.lime : palette.vio44, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12 }}
         >
           <PhotoBox uri={a.image} label="photo" labelSize={8} style={{ width: 42, height: 42, borderRadius: 9 }} />
