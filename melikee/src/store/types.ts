@@ -1,5 +1,6 @@
 import type { Month, MonthDay } from '@/lib/dates';
 import type { StoreOffer } from '@/lib/matchContract';
+import type { Sizes } from '@/lib/sizes';
 
 /** Private · Friends · Friends + link — the one sharing scale from the spec. */
 export type Vis = 'me' | 'friends' | 'invite';
@@ -157,6 +158,8 @@ export type Profile = {
   showCountdown: boolean;
   parent: { on: boolean; approve: boolean; name: string; contact: string; since: number } | null;
   email: string;
+  /** Shown to gifters on your shared links. */
+  sizes?: Sizes;
 };
 
 export type Route =
@@ -186,6 +189,7 @@ export type Sheet =
   | { type: 'vis'; listId: string }
   | { type: 'notifSettings' }
   | { type: 'privacy' }
-  | { type: 'handle' };
+  | { type: 'handle' }
+  | { type: 'sizes' };
 
 export type { Month, MonthDay };

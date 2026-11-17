@@ -7,6 +7,8 @@
  * don't exist yet, so they stay on the device too.
  */
 
+import type { Sizes } from './sizes';
+
 export type PublicItem = {
   id: number;
   name: string;
@@ -38,7 +40,7 @@ export type PublishRequest = {
   secret: string;
   /** When the handle changed, the old page is removed. */
   previousHandle?: string;
-  profile: { name: string; birthday: string };
+  profile: { name: string; birthday: string; sizes?: Sizes };
   lists: PublicList[];
 };
 
@@ -50,7 +52,7 @@ export type DibsView = Record<string, { name: string; mine: boolean }>;
 export type PageResponse =
   | {
       ok: true;
-      owner: { name: string; birthday: string };
+      owner: { name: string; birthday: string; sizes?: Sizes };
       list: { id: string; name: string; note?: string; isMain: boolean; items: PublicItem[] };
       dibs: DibsView;
     }

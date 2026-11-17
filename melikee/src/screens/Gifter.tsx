@@ -17,6 +17,7 @@ import { ActivityIndicator, Image, Linking, ScrollView, TextInput, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Toast } from '@/components/Toast';
+import { cleanSizes, sizeParts, type Sizes } from '@/lib/sizes';
 import { label } from '@/lib/dates';
 import { callDibs, readPage } from '@/lib/pages';
 import type { DibsView, PublicItem } from '@/lib/pagesContract';
@@ -34,6 +35,7 @@ type ViewProps = {
   preview?: boolean;
   owner: string;
   birthday: string;
+  sizes?: Sizes;
   listName: string;
   isMain: boolean;
   note?: string;
@@ -150,6 +152,25 @@ export function GifterView(p: ViewProps) {
             <T size={11} color={gift.meta}>
               {p.birthday ? `birthday ${p.birthday} · ` : ''}prices checked when added
             </T>
+            {sizeParts(p.sizes).length ? (
+              <View
+                accessibilityLabel={`${owner}’s sizes: ${sizeParts(p.sizes).join(', ')}`}
+                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: gift.bandLine, borderRadius: 14, paddingVertical: 9, paddingHorizontal: 14, maxWidth: 320, alignItems: 'center', gap: 6 }}
+              >
+                <T size={11} w={800} color={gift.meta} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
+                  {owner}’s sizes
+                </T>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>
+                  {sizeParts(p.sizes).map((part) => (
+                    <View key={part} style={{ backgroundColor: gift.thumb, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 }}>
+                      <T size={12} w={700} color={gift.body}>
+                        {part}
+                      </T>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
             {p.gifterName ? (
               <T size={11} w={600} color={gift.body}>
                 Calling dibs as <T size={11} w={800} color={gift.body}>{p.gifterName}</T> ·{' '}
@@ -320,6 +341,7 @@ export function GifterPage({ listId, preview, expired }: { listId: string; previ
       preview={preview}
       owner={s.profile.name}
       birthday={label(s.profile.birthday)}
+      sizes={cleanSizes(s.profile.sizes)}
       listName={list.name}
       isMain={list.id === 'w'}
       note={list.note}
@@ -387,6 +409,7 @@ export function RemoteGifter({ handle, list, t }: { handle: string; list?: strin
         state={state}
         owner={page?.owner.name ?? ''}
         birthday={page?.owner.birthday ?? ''}
+        sizes={page?.owner.sizes}
         listName={page?.list.name ?? ''}
         isMain={!!page?.list.isMain}
         note={page?.list.note}

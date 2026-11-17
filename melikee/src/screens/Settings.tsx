@@ -5,6 +5,7 @@ import { useApp } from '@/store/useApp';
 import { brand, palette } from '@/theme/tokens';
 import { Gift, Shield } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
+import { sizeParts } from '@/lib/sizes';
 import { BackHeader, NavRow, SectionLabel, T, Tap } from '@/ui/primitives';
 import { useBirthdayCleanup } from './useBirthdayCleanup';
 
@@ -46,6 +47,16 @@ export function Settings() {
           right={
             <T size={11.5} w={600} color={palette.vio}>
               Edit
+            </T>
+          }
+        />
+        <NavRow
+          onPress={() => s.openSheet({ type: 'sizes' })}
+          title="Your sizes"
+          sub={sizeParts(p.sizes).join(' · ') || 'add them so gifters get the right fit'}
+          right={
+            <T size={11.5} w={600} color={palette.vio}>
+              {p.sizes ? 'Edit' : 'Add'}
             </T>
           }
         />

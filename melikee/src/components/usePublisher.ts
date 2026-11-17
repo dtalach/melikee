@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 
 import { label } from '@/lib/dates';
 import { publicLists, publish } from '@/lib/pages';
+import { cleanSizes } from '@/lib/sizes';
 import { useApp, type AppState } from '@/store/useApp';
 
 const DEBOUNCE_MS = 1500;
@@ -15,7 +16,7 @@ const RETRY_MS = 30_000;
 function payload(s: AppState) {
   return {
     handle: s.profile.handle,
-    profile: { name: s.profile.name, birthday: label(s.profile.birthday) },
+    profile: { name: s.profile.name, birthday: label(s.profile.birthday), sizes: cleanSizes(s.profile.sizes) },
     lists: publicLists(s.lists, s.items, s.profile.birthday),
   };
 }

@@ -4,9 +4,10 @@ import { TextInput, View } from 'react-native';
 import { handleNote, useHandleCheck } from '@/components/useHandleCheck';
 
 import { DAYS, MONTHS, shortDate, type Month } from '@/lib/dates';
+import { cleanSizes, MAX_SIZE, SIZE_FIELDS, TOP_SIZES, type Sizes } from '@/lib/sizes';
 import { listById, useApp, visibleLists } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
-import { AccentButton, LimeButton, PhotoBox, Select, SheetTitle, T, Tap, ToggleRow } from '@/ui/primitives';
+import { AccentButton, Field, LimeButton, PhotoBox, Select, SheetTitle, T, Tap, ToggleRow } from '@/ui/primitives';
 
 export function BdaySheet() {
   const p = useApp((s) => s.profile);
@@ -267,6 +268,62 @@ export function HandleSheet() {
           setProfile({ handle: h });
           close();
           showToast(`You’re @${h} now`);
+        }}
+      />
+    </>
+  );
+}
+
+export function SizesSheet() {
+  const saved = useApp((s) => s.profile.sizes);
+  const setProfile = useApp((s) => s.setProfile);
+  const close = useApp((s) => s.closeSheet);
+  const showToast = useApp((s) => s.showToast);
+  const [sizes, setSizes] = useState<Sizes>(saved ?? {});
+  const put = (key: keyof Sizes, v: string) => setSizes((x) => ({ ...x, [key]: v }));
+  return (
+    <>
+      <SheetTitle>Your sizes</SheetTitle>
+      <T size={12} color={palette.muted} style={{ lineHeight: 18, marginTop: -6 }}>
+        Shown at the top of your shared links, so gifters get the right fit. Leave any blank.
+      </T>
+      {SIZE_FIELDS.map((f) => (
+        <View key={f.key} style={{ gap: 6 }}>
+          <T size={11} w={700} color={palette.muted} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
+            {f.label}
+          </T>
+          {f.key === 'tops' ? (
+            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+              {TOP_SIZES.map((t) => {
+                const on = sizes.tops === t;
+                return (
+                  <Tap
+                    key={t}
+                    onPress={() => put('tops', on ? '' : t)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Tops ${t}`}
+                    style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: on ? brand.lime : palette.chip }}
+                  >
+                    <T size={12} w={700} color={on ? brand.limeInk : palette.soft}>
+                      {t}
+                    </T>
+                  </Tap>
+                );
+              })}
+            </View>
+          ) : (
+            <Field value={sizes[f.key] ?? ''} onChangeText={(v) => put(f.key, v)} placeholder={f.placeholder} maxLength={MAX_SIZE} accessibilityLabel={f.label} />
+          )}
+        </View>
+      ))}
+      <LimeButton
+        label="Save"
+        size={13.5}
+        pad={12}
+        onPress={() => {
+          setProfile({ sizes: cleanSizes(sizes) });
+          close();
+          showToast('Sizes saved — gifters will see them');
         }}
       />
     </>
