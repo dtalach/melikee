@@ -120,12 +120,20 @@ code `000000` and sends nothing.
 **Not yet:** private and Friends-only lists don't move to a new phone (only
 shared ones do).
 
-## What's still sample data
+## Starting content
 
-Friends, the Feed, notifications other than "We think we found it", the
-Friends tab's link holders, and the six starter shinies (`src/store/seed.ts`). There's no
-backend for accounts, sync or sharing. Not built: the iOS share extension, the
-Instagram/TikTok/Safari demo shortcuts, and the offline banner.
+A new account starts with three empty lists (My wants, a birthday list named
+"Sweet 16" for a 16th birthday or else "Birthday", and Secret stash) and nothing
+else: the Feed, Friends, Lists and notifications show the design's empty states
+until there's real activity. Gifters see your name if you set one in Edit
+profile, else your handle. Accounts made by earlier builds, which seeded the
+prototype's demo cast (Maya and her friends), have it removed on their next
+open (`cleanSample` in `src/store/useApp.ts`); anything the person added stays.
+
+Friend accounts don't exist yet, so Friends and the Feed stay empty for now; the
+Feed's "Trending this week" row is a fixed list of ideas (tapping one looks up
+its real price). Not built: the iOS share extension, the Instagram/TikTok/Safari
+demo shortcuts, and the offline banner.
 
 ## Layout
 

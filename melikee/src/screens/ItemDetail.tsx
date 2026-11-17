@@ -2,7 +2,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ago } from '@/lib/dates';
-import { alsoWant } from '@/store/seed';
 import { listById, useApp, visWord } from '@/store/useApp';
 import { brand, palette } from '@/theme/tokens';
 import { Chevron, Share, Sparkle, TrendLine } from '@/ui/icons';
@@ -49,7 +48,6 @@ export function ItemDetail({ id }: { id: number }) {
     if (url) Linking.openURL(url).catch(() => showToast(`Couldn’t open ${store}`));
     else showToast(`No link saved for ${store}`);
   };
-  const also = alsoWant[item.id];
 
   return (
     <Appear style={{ flex: 1 }}>
@@ -185,17 +183,6 @@ export function ItemDetail({ id }: { id: number }) {
             </>
           )}
 
-          {also ? (
-            <Tap onPress={() => showToast('Opens who else wants it — tap a friend to see their list')} style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-              <View style={{ flexDirection: 'row' }}>
-                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: brand.pink, borderWidth: 2, borderColor: palette.bg }} />
-                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: palette.vio, borderWidth: 2, borderColor: palette.bg, marginLeft: -8 }} />
-              </View>
-              <T size={12} w={600} color={palette.soft}>
-                {also}
-              </T>
-            </Tap>
-          ) : null}
 
           <Card style={{ paddingTop: 2, paddingBottom: 4, paddingHorizontal: 14 }}>
             <Tap onPress={() => updateItem(item.id, { star: !item.star })} accessibilityRole="switch" accessibilityState={{ checked: !!item.star }} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: palette.vio22 }}>
