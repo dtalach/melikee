@@ -32,6 +32,8 @@ const DOCKED: Route['name'][] = ['feed', 'lists', 'list', 'me', 'people', 'frien
 
 export function Shell() {
   const onboarded = useApp((s) => s.onboarded);
+  // Every account is a verified phone; anyone without one is asked once.
+  const verified = useApp((s) => !!s.phone);
   const route = useApp((s) => s.stack[s.stack.length - 1]);
   const sheet = useApp((s) => s.sheet);
   const insets = useSafeAreaInsets();
@@ -60,7 +62,7 @@ export function Shell() {
     return () => sub.remove();
   }, []);
 
-  if (!onboarded || route.name === 'onboarding') {
+  if (!onboarded || !verified) {
     return (
       <View style={{ flex: 1 }}>
         <Onboarding />

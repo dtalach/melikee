@@ -42,7 +42,7 @@ export type PublishRequest = {
   lists: PublicList[];
 };
 
-export type PublishResponse = { ok: true } | { ok: false; code: 'taken' | 'bad_request' | 'not_configured' | 'upstream'; message: string };
+export type PublishResponse = { ok: true } | { ok: false; code: 'taken' | 'signed_out' | 'bad_request' | 'not_configured' | 'upstream'; message: string };
 
 /** One claim as other gifters see it: who has it, and whether it's yours. */
 export type DibsView = Record<string, { name: string; mine: boolean }>;

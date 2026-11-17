@@ -84,6 +84,32 @@ in-memory store.
 starts a new page), "Something's coming" notifications, and the Friends tab's
 list of who holds your link (still sample data).
 
+## Sign-in and age
+
+MeLikee is **13+ only**. An under-13 birthday at sign-up shows "MeLikee is for
+13 and up", the device stays blocked, and the server also refuses to create an
+account for anyone under 13. The parent step is optional, and only shown to
+13–17-year-olds.
+
+Every account is a **verified phone number** (US and Canada for now), signed in
+with a texted 6-digit code via Twilio Verify (`api/auth.ts`, `server/auth.ts`):
+
+- Only phone-verified devices can publish a page.
+- "I already have an account" → number → code restores your handle and shared
+  lists on a new phone, and signs the old phone out.
+- Numbers are never stored: the database keeps an HMAC of the number keyed with
+  `MELIKEE_PHONE_PEPPER` (never change it, or existing accounts stop matching);
+  the device keeps only the last two digits.
+- Limits: 3 codes per number per 10 minutes and 10 per day, 10 codes per
+  connection per hour, 10 wrong guesses per number per hour.
+
+**Setup:** in Vercel, set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and
+`TWILIO_VERIFY_SERVICE_SID`. For local testing, `MELIKEE_SMS=fake` accepts the
+code `000000` and sends nothing.
+
+**Not yet:** private and Friends-only lists don't move to a new phone (only
+shared ones do).
+
 ## What's still sample data
 
 Friends, the Feed, notifications other than "We think we found it", the

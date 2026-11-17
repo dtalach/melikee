@@ -62,7 +62,7 @@ export function Settings() {
         <SectionLabel style={{ marginTop: 6 }}>PRIVACY &amp; ACCOUNT</SectionLabel>
         <NavRow onPress={() => s.openSheet({ type: 'notifSettings' })} title="Notifications" sub="price drops · friends’ birthdays · when someone wants yours too" />
         <NavRow onPress={() => s.openSheet({ type: 'privacy' })} title="Privacy defaults" sub={`new shinies go to ${s.lists.find((l) => l.id === s.lastList)?.name ?? 'My wants'} · ${s.lists.find((l) => l.id === 'w')?.vis === 'me' ? 'only you can see' : 'friends can see'}`} />
-        <NavRow onPress={() => s.go({ name: 'onboarding' })} title="Account" sub={`@${p.handle} · ${p.email}`} />
+        <NavRow onPress={() => s.openSheet({ type: 'handle' })} title="Account" sub={`@${p.handle}${s.phone ? ` · phone ending in ${s.phone.last2}` : ''}`} />
 
         {archived.length ? (
           <>

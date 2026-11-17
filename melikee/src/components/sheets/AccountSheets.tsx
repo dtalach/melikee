@@ -55,7 +55,7 @@ export function ParentSheet() {
     <>
       <SheetTitle>Parent view</SheetTitle>
       <T size={12} color={palette.muted} style={{ lineHeight: 18, marginTop: -6 }}>
-        Required under 13. Optional after that, and you’ll always see what they can see.
+        Optional. A parent sees your shared lists and friends — never your private lists or who called dibs. You’ll always see what they can see.
       </T>
       {parent ? (
         <>

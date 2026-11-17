@@ -6,6 +6,7 @@
  *   PUT  PublishRequest              the owner's device publishes its shared lists
  */
 import type { PublishRequest } from '../src/lib/pagesContract';
+import { isVerified } from '../server/auth';
 import { cleanLists, isConfigured, isTaken, publish, readPage, validHandle } from '../server/pages';
 
 type Req = { method?: string; body?: unknown; query?: Record<string, string | string[] | undefined> };
@@ -42,6 +43,8 @@ export default async function handler(req: Req, res: Res) {
       if (!b || !validHandle(b.handle) || typeof b.secret !== 'string' || b.secret.length < 16 || !b.profile || typeof b.profile.name !== 'string' || cleanLists(b.lists) == null) {
         return res.status(400).json({ ok: false, code: 'bad_request', message: 'Malformed publish request.' });
       }
+      // Only signed-in (phone-verified) devices can put a page online.
+      if (!(await isVerified(b.secret))) return res.status(401).json({ ok: false, code: 'signed_out', message: 'Verify your phone to share your lists.' });
       const out = await publish(b);
       if (out === 'taken') return res.status(409).json({ ok: false, code: 'taken', message: `@${b.handle} is taken.` });
       return res.status(200).json({ ok: true });
