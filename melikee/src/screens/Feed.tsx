@@ -2,7 +2,7 @@
  * The Feed (Home → Friends), in the light style: a white page, thin
  * oversized type and plenty of air. Friends with a birthday coming lead the
  * row; the soonest birthday list gets the black countdown card, and in the
- * run-up to Christmas a second one counts down to Dec 25; then friends'
+ * run-up to Christmas a gift-wrapped one counts down to Dec 25; then friends'
  * latest wants, big photo first; then what's trending.
  */
 import { useEffect } from 'react';
@@ -11,7 +11,6 @@ import Svg, { Path } from 'react-native-svg';
 
 import { ago, daysUntil, SOON_DAYS } from '@/lib/dates';
 import { trending } from '@/store/seed';
-import type { FriendList } from '@/store/types';
 import { useApp } from '@/store/useApp';
 import { brand, palette, paper } from '@/theme/tokens';
 import { Appear } from '@/ui/motion';
@@ -28,7 +27,58 @@ function Label({ children, color = paper.muted }: { children: string; color?: st
 
 /** The Christmas card shows from this many days out (about mid-October) until the day. */
 const XMAS_WINDOW = 70;
-const XMAS_DOT = '#4fd18b';
+const RIBBON = '#d3263a';
+const RIBBON_DARK = '#a51b2c';
+
+/**
+ * The Christmas countdown, wrapped like a present: the black card is the box,
+ * a red ribbon crosses it near the top right and a bow sits on the knot.
+ * The same for everyone: days to go, and a way to your own list.
+ */
+function XmasBox({ days, onList, spaced }: { days: number; onList?: () => void; spaced: boolean }) {
+  const RX = 64; // the vertical ribbon's distance from the right edge
+  const RY = 30; // the horizontal ribbon's distance from the top
+  const band = 12;
+  return (
+    <Tap onPress={onList} disabled={!onList} accessibilityLabel={`Christmas: ${days === 0 ? 'today' : `${days} ${days === 1 ? 'day' : 'days'} to go`}${onList ? '. Open your Christmas list' : ''}`} style={{ marginHorizontal: 24, marginTop: spaced ? 14 : 0, backgroundColor: paper.card, borderRadius: 22, overflow: 'hidden' }}>
+      {/* Ribbon: one band across, one down, each with a darker edge. */}
+      <View style={{ position: 'absolute', left: 0, right: 0, top: RY - band / 2, height: band, backgroundColor: RIBBON, borderTopWidth: 1, borderBottomWidth: 1, borderColor: RIBBON_DARK }} />
+      <View style={{ position: 'absolute', top: 0, bottom: 0, right: RX - band / 2, width: band, backgroundColor: RIBBON, borderLeftWidth: 1, borderRightWidth: 1, borderColor: RIBBON_DARK }} />
+      <View pointerEvents="none" style={{ position: 'absolute', top: RY - 28, right: RX - 39 }}>
+        <Bow />
+      </View>
+      <View style={{ paddingTop: RY + band / 2 + 18, paddingLeft: 24, paddingRight: RX + 24, paddingBottom: 20, gap: 2 }}>
+        <Label color={paper.cardMuted}>Christmas</Label>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+          <T size={60} w={200} color={paper.cardText} style={{ letterSpacing: -2.5, lineHeight: 66 }}>
+            {String(days)}
+          </T>
+          <T size={17} w={400} color={paper.cardText}>
+            {days === 1 ? 'day to go' : days === 0 ? 'today!' : 'days to go'}
+          </T>
+        </View>
+        {onList ? (
+          <T size={14} w={500} color={paper.cardText} style={{ marginTop: 4 }}>
+            Your Christmas list →
+          </T>
+        ) : null}
+      </View>
+    </Tap>
+  );
+}
+
+/** A two-loop bow with tails, drawn to sit on the ribbon's knot. */
+function Bow() {
+  return (
+    <Svg width={78} height={62} viewBox="0 0 60 48">
+      <Path d="M27 22 C 16 6, 2 8, 6 20 C 9 29, 20 27, 27 22 Z" fill={RIBBON} stroke={RIBBON_DARK} strokeWidth={1.2} />
+      <Path d="M33 22 C 44 6, 58 8, 54 20 C 51 29, 40 27, 33 22 Z" fill={RIBBON} stroke={RIBBON_DARK} strokeWidth={1.2} />
+      <Path d="M28 25 L 20 44 L 25 41 L 28 46 L 30 27 Z" fill={RIBBON} stroke={RIBBON_DARK} strokeWidth={1} />
+      <Path d="M32 25 L 40 44 L 35 41 L 32 46 L 30 27 Z" fill={RIBBON} stroke={RIBBON_DARK} strokeWidth={1} />
+      <Path d="M25 18 h10 a3 3 0 0 1 3 3 v3 a3 3 0 0 1 -3 3 h-10 a3 3 0 0 1 -3 -3 v-3 a3 3 0 0 1 3 -3 z" fill={RIBBON_DARK} />
+    </Svg>
+  );
+}
 
 function Circle({ initial, ring, label, strong, onPress, a11y }: { initial: string; ring: string; label: string; strong?: boolean; onPress: () => void; a11y: string }) {
   return (
@@ -72,13 +122,9 @@ export function Feed() {
   // The soonest friend birthday with a list gets the countdown card.
   const bday = people.filter((p) => p.days <= SOON_DAYS).map((p) => ({ p, list: listOf(p.id) })).find((x) => x.list);
   const left = bday?.list ? bday.list.items.filter((i) => !i.taken && !friendDibs[i.id] && !i.pending).length : 0;
-  const open = (items: FriendList['items']) => items.filter((i) => !i.taken && !friendDibs[i.id] && !i.pending).length;
 
   // Christmas gets its own countdown card in the run-up (see XMAS_WINDOW).
   const xmasDays = daysUntil({ month: 'Dec', day: 25 });
-  const xmasLists = friendLists.filter((l) => (l.listId === 'xmas' || l.date === 'Dec 25') && byId[l.friendId]);
-  const xmasTotal = xmasLists.reduce((n, l) => n + l.items.length, 0);
-  const xmasOpen = xmasLists.reduce((n, l) => n + open(l.items), 0);
   const myXmas = useApp((st) => st.lists.find((l) => l.id === 'xmas' && !l.archived));
 
   return (
@@ -176,63 +222,7 @@ export function Feed() {
               </Tap>
             ) : null}
 
-            {xmasDays <= XMAS_WINDOW ? (
-              <View accessibilityLabel={`Christmas: ${xmasDays} days to go`} style={{ marginHorizontal: 24, marginTop: bday?.list ? 14 : 0, backgroundColor: paper.card, borderRadius: 28, padding: 26, gap: 6 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={{ flex: 1 }}>
-                    <Label color={paper.cardMuted}>Christmas</Label>
-                  </View>
-                  <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: XMAS_DOT }} />
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 12, marginTop: 6 }}>
-                  <T size={88} w={200} color={paper.cardText} style={{ letterSpacing: -4, lineHeight: 96 }}>
-                    {String(xmasDays)}
-                  </T>
-                  <T size={18} w={400} color={paper.cardText}>
-                    {xmasDays === 1 ? 'day to go' : xmasDays === 0 ? 'today!' : 'days to go'}
-                  </T>
-                </View>
-                {xmasLists.length ? (
-                  <>
-                    <T size={15} w={400} color={paper.cardMuted} style={{ marginTop: 10 }}>
-                      {xmasTotal
-                        ? `${xmasOpen} of ${xmasTotal} still up for dibs on ${xmasLists.length === 1 ? '1 friend’s list' : `${xmasLists.length} friends’ lists`}`
-                        : `Nothing on ${xmasLists.length === 1 ? 'their list' : 'their lists'} yet — check back soon`}
-                    </T>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }} contentContainerStyle={{ gap: 10 }}>
-                      {xmasLists.map((l) => {
-                        const who = byId[l.friendId]!;
-                        return (
-                          <Tap key={l.id} onPress={() => go({ name: 'friendList', id: l.id })} accessibilityLabel={`${who.name}’s Christmas list`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingLeft: 6, paddingRight: 14, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' }}>
-                            <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}>
-                              <T size={13} w={500} color={paper.cardText}>
-                                {who.initial}
-                              </T>
-                            </View>
-                            <T size={14} w={500} color={paper.cardText}>
-                              {who.name}
-                            </T>
-                          </Tap>
-                        );
-                      })}
-                    </ScrollView>
-                  </>
-                ) : (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 10 }}>
-                    <T size={15} w={400} color={paper.cardMuted} style={{ flex: 1 }}>
-                      No friends’ Christmas lists yet
-                    </T>
-                    {myXmas ? (
-                      <Tap onPress={() => go({ name: 'list', id: myXmas.id })} accessibilityLabel="Your Christmas list">
-                        <T size={15} w={500} color={paper.cardText}>
-                          Fill yours →
-                        </T>
-                      </Tap>
-                    ) : null}
-                  </View>
-                )}
-              </View>
-            ) : null}
+            {xmasDays <= XMAS_WINDOW ? <XmasBox days={xmasDays} onList={myXmas ? () => go({ name: 'list', id: myXmas.id }) : undefined} spaced={!!bday?.list} /> : null}
 
             <View style={{ paddingTop: 44, paddingHorizontal: 24, gap: 18 }}>
               <Label>Latest from friends</Label>
