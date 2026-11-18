@@ -72,6 +72,8 @@ export type Capture = {
   destOpen: boolean;
   sizeEditing: boolean;
   typeQ: string;
+  /** The text box was filled in by dictation: searching treats it as said, not typed. */
+  typeHeard: boolean;
   /** What the camera returns to on ✕. */
   from: Route | null;
   /** Why the last capture found nothing — the miss sheet's words. */
@@ -105,6 +107,7 @@ const idleCapture: Capture = {
   destOpen: false,
   sizeEditing: false,
   typeQ: '',
+  typeHeard: false,
   from: null,
   miss: null,
   note: '',
@@ -368,6 +371,7 @@ export const useApp = create<AppState>()(
             match: null,
             alternates: [],
             input,
+            typeHeard: false,
             fromRoll: input.source === 'screenshot',
             shotUri: 'uri' in input ? (input.uri ?? null) : null,
             shotThumb: 'thumb' in input ? (input.thumb ?? null) : null,

@@ -131,7 +131,8 @@ export function Camera() {
     setCapture({ listening: false });
     const said = finalRef.current.trim();
     finalRef.current = '';
-    if (st.phase === 'idle' && st.mode === 'say' && said) void runCapture({ source: 'voice', query: said });
+    // What you said lands in the text box, so a misheard word is one tap to fix before searching.
+    if (st.phase === 'idle' && st.mode === 'say' && said) setCapture({ phase: 'type', typeQ: said, typeHeard: true });
   });
   useSpeechRecognitionEvent('error', (e) => {
     setCapture({ listening: false });
@@ -331,6 +332,7 @@ function IdleLayer({ mode, firstRun, denied, live, onPaste, onRoll }: { mode: Ca
   const showToast = useApp((s) => s.showToast);
   const transcript = useApp((s) => s.capture.transcript);
   const listening = useApp((s) => s.capture.listening);
+  const setCapture = useApp((s) => s.setCapture);
   return (
     <>
       {mode === 'scan' && !denied ? (
@@ -386,7 +388,7 @@ function IdleLayer({ mode, firstRun, denied, live, onPaste, onRoll }: { mode: Ca
       ) : null}
 
       {mode === 'say' ? (
-        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: '52%', alignItems: 'center', gap: 8 }}>
+        <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, top: '52%', alignItems: 'center', gap: 8 }}>
           <View style={{ flexDirection: 'row', gap: 4, alignItems: 'flex-end', height: 26, opacity: listening ? 1 : 0.4 }}>
             {[10, 22, 15, 24].map((h, i) =>
               listening ? (
@@ -401,6 +403,17 @@ function IdleLayer({ mode, firstRun, denied, live, onPaste, onRoll }: { mode: Ca
           <T size={13} w={600} color={palette.soft} style={{ maxWidth: 260, textAlign: 'center' }}>
             {transcript ? `“${transcript}”` : listening ? 'Listening…' : 'Hold the shutter and say what you want'}
           </T>
+          {!listening ? (
+            <Tap
+              onPress={() => setCapture({ phase: 'type', typeQ: '', typeHeard: false })}
+              accessibilityLabel="Type it instead"
+              style={{ marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(246,242,255,0.35)', backgroundColor: 'rgba(12,12,12,0.45)', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16 }}
+            >
+              <T size={12.5} w={700} color={brand.camText}>
+                or type it
+              </T>
+            </Tap>
+          ) : null}
         </View>
       ) : null}
     </>
@@ -792,21 +805,23 @@ function TypeIt() {
   const search = () => {
     if (!q) return;
     if (c.fixItem != null) void openAlternates(c.fixItem, q);
-    else void runCapture({ source: 'search', query: q });
+    // Said and (maybe) fixed: still read as speech, which is looser than a typed search.
+    else void runCapture({ source: c.typeHeard ? 'voice' : 'search', query: q });
   };
   return (
     <View style={StyleSheet.absoluteFill}>
       <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(10,8,16,0.85)' }]} />
       <Appear style={{ position: 'absolute', left: 24, right: 24, top: '26%', zIndex: 5, gap: 12 }}>
         <T size={18} w={800} color={brand.camText}>
-          What is it?
+          {c.typeHeard ? 'Is this right?' : 'What is it?'}
         </T>
         <T size={12} color={brand.camSoft} style={{ marginTop: -6 }}>
-          Brand and name work best, like “Stanley tumbler 40oz pink”.
+          {c.typeHeard ? 'Here’s what we heard. Fix anything we got wrong, then search.' : 'Brand and name work best, like “Stanley tumbler 40oz pink”. Or tap the mic on your keyboard to say it.'}
         </T>
         <TextInput
           value={c.typeQ}
           onChangeText={(v) => set({ typeQ: v })}
+          accessibilityLabel="What is it?"
           onSubmitEditing={search}
           placeholder="e.g. Stanley tumbler, pink"
           placeholderTextColor={palette.muted}
