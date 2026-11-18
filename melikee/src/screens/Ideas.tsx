@@ -10,10 +10,10 @@ import { ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } f
 
 import type { Budget } from '@/lib/ideasContract';
 import { IDEAS_STALE_MS, useApp, type IdeaCard } from '@/store/useApp';
-import { brand, palette } from '@/theme/tokens';
-import { Close, Sparkle } from '@/ui/icons';
+import { palette } from '@/theme/tokens';
+import { Close } from '@/ui/icons';
 import { Appear, Pulse } from '@/ui/motion';
-import { PhotoBox, T, Tap } from '@/ui/primitives';
+import { PhotoBox, T, Tap, TextLink } from '@/ui/primitives';
 
 const BUDGETS: [Budget, string][] = [
   ['any', 'Any price'],
@@ -45,30 +45,25 @@ export function Ideas() {
 
   return (
     <Appear style={{ flex: 1 }}>
-      <ScrollView onScroll={onScroll} scrollEventThrottle={200} contentContainerStyle={{ paddingTop: 6, paddingHorizontal: 16, paddingBottom: 120, gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 2 }}>
-          <T size={12} color={palette.muted} style={{ flex: 1, lineHeight: 17 }}>
-            {ideas.themes.length ? (
-              <>
-                Because you’re into <T size={12} w={700} color={palette.soft}>{ideas.themes.map((t) => t.name.toLowerCase()).join(' · ')}</T>
-              </>
-            ) : (
-              'Picked from your lists and what you search'
-            )}
+      <ScrollView onScroll={onScroll} scrollEventThrottle={200} contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 22, paddingBottom: 120, gap: 16 }}>
+        <View style={{ gap: 4 }}>
+          <T size={38} w={300} style={{ letterSpacing: -1.2 }}>
+            For you
           </T>
-          <Tap onPress={() => void loadIdeas()} disabled={loading} accessibilityLabel="New ideas" style={{ borderWidth: 1, borderColor: palette.vio44, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12, opacity: loading ? 0.5 : 1 }}>
-            <T size={12} w={700}>
-              New ideas
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <T size={14} color={palette.muted} style={{ flex: 1, lineHeight: 20 }}>
+              {ideas.themes.length ? `because you’re into ${ideas.themes.map((t) => t.name.toLowerCase()).join(' · ')}` : 'picked from your lists and what you search'}
             </T>
-          </Tap>
+            <TextLink label="New ideas" onPress={() => void loadIdeas()} disabled={loading} />
+          </View>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 18 }}>
           {BUDGETS.map(([b, label]) => {
             const on = ideas.budget === b;
             return (
-              <Tap key={b} onPress={() => !on && setBudget(b)} accessibilityRole="button" accessibilityState={{ selected: on }} style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: on ? brand.lime : palette.chip }}>
-                <T size={12} w={700} color={on ? brand.limeInk : palette.soft}>
+              <Tap key={b} onPress={() => !on && setBudget(b)} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: on }} style={{ minHeight: 36, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: on ? palette.text : 'transparent' }}>
+                <T size={12} w={on ? 500 : 400} color={on ? palette.text : palette.muted} style={{ letterSpacing: 1.4, textTransform: 'uppercase' }}>
                   {label}
                 </T>
               </Tap>
@@ -77,7 +72,7 @@ export function Ideas() {
         </ScrollView>
 
         {!hasWants && !cards.length && !loading ? (
-          <T size={12} color={palette.muted} style={{ textAlign: 'center', paddingVertical: 6 }}>
+          <T size={13} color={palette.muted} style={{ paddingVertical: 6 }}>
             Add a few wants and these get a lot sharper.
           </T>
         ) : null}
@@ -94,15 +89,11 @@ export function Ideas() {
             <T size={12.5} color={palette.muted} style={{ textAlign: 'center' }}>
               {error}
             </T>
-            <Tap onPress={() => void loadIdeas(cards.length > 0)}>
-              <T size={12.5} w={700} color={palette.vio}>
-                Try again
-              </T>
-            </Tap>
+            <TextLink label="Try again" onPress={() => void loadIdeas(cards.length > 0)} />
           </View>
         ) : null}
 
-        <T size={11} color={palette.muted} style={{ textAlign: 'center', paddingTop: 8, paddingHorizontal: 20, lineHeight: 16 }}>
+        <T size={12} color={palette.muted} style={{ paddingTop: 8, lineHeight: 18 }}>
           Ideas come from your lists, sizes and what you search on MeLikee. Nothing from other apps or sites.
         </T>
       </ScrollView>
@@ -115,32 +106,28 @@ function IdeaTile({ c }: { c: IdeaCard }) {
   const dismiss = useApp((s) => s.dismissIdea);
   const wanted = c.state === 'wanted';
   return (
-    <View style={{ width: '48%', gap: 7 }}>
-      <View style={{ borderRadius: 16, overflow: 'hidden' }}>
-        <PhotoBox uri={c.image} label="finding a photo…" labelSize={10} style={{ aspectRatio: 1 }} />
-        <Tap onPress={() => dismiss(c.id)} accessibilityLabel={`Not for me: ${c.name}`} style={{ position: 'absolute', top: 7, right: 7, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(12,12,12,0.62)', alignItems: 'center', justifyContent: 'center' }}>
-          <Close size={11} color={brand.white} />
+    <View style={{ width: '48%', gap: 8 }}>
+      <View style={{ borderRadius: 6, overflow: 'hidden' }}>
+        <PhotoBox uri={c.image} label="finding a photo…" labelSize={10} light style={{ aspectRatio: 1 }} />
+        <Tap onPress={() => dismiss(c.id)} accessibilityLabel={`Not for me: ${c.name}`} style={{ position: 'absolute', top: 4, right: 4, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' }}>
+            <Close size={9} strokeWidth={1.4} color={palette.text} />
+          </View>
         </Tap>
       </View>
-      <View style={{ gap: 3, paddingHorizontal: 2 }}>
-        <T size={13} w={700} numberOfLines={2} style={{ lineHeight: 17 }}>
+      <View style={{ gap: 3 }}>
+        <T size={14} numberOfLines={2} style={{ lineHeight: 19 }}>
           {c.name}
         </T>
-        <T size={11.5} color={palette.muted} numberOfLines={2} style={{ lineHeight: 15 }}>
-          <T size={11.5} w={800} color={palette.limeText}>
+        <T size={13} color={palette.muted} numberOfLines={2} style={{ lineHeight: 18 }}>
+          <T size={13} w={500} color={palette.text}>
             ~{c.price.replace(/^~/, '')}
           </T>{' '}
           · {c.why}
         </T>
       </View>
-      <Tap
-        onPress={() => want(c.id)}
-        disabled={wanted}
-        accessibilityLabel={wanted ? `${c.name} is in My wants` : `Want ${c.name}`}
-        style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: wanted ? palette.chip : brand.lime }}
-      >
-        {wanted ? null : <Sparkle size={10} color={brand.limeInk} />}
-        <T size={12} w={800} color={wanted ? palette.muted : brand.limeInk}>
+      <Tap onPress={() => want(c.id)} disabled={wanted} accessibilityLabel={wanted ? `${c.name} is in My wants` : `Want ${c.name}`} style={{ alignSelf: 'flex-start', minHeight: 32, justifyContent: 'center' }}>
+        <T size={13} w={500} color={wanted ? palette.muted : palette.text} style={wanted ? undefined : { textDecorationLine: 'underline' }}>
           {wanted ? 'In My wants ✓' : 'Want it'}
         </T>
       </Tap>
@@ -152,9 +139,9 @@ function SkeletonTile() {
   return (
     <View style={{ width: '48%' }}>
       <Pulse style={{ gap: 7 }}>
-        <View style={{ aspectRatio: 1, borderRadius: 16, backgroundColor: palette.card }} />
-        <View style={{ height: 12, width: '80%', borderRadius: 6, backgroundColor: palette.card }} />
-        <View style={{ height: 10, width: '55%', borderRadius: 5, backgroundColor: palette.card }} />
+        <View style={{ aspectRatio: 1, borderRadius: 6, backgroundColor: palette.inset }} />
+        <View style={{ height: 12, width: '80%', borderRadius: 3, backgroundColor: palette.inset }} />
+        <View style={{ height: 10, width: '55%', borderRadius: 3, backgroundColor: palette.inset }} />
       </Pulse>
     </View>
   );
