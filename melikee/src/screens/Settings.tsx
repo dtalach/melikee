@@ -79,7 +79,7 @@ export function Settings() {
           <>
             <SectionLabel style={{ marginTop: 6 }}>ARCHIVED LISTS</SectionLabel>
             {archived.map((l) => (
-              <View key={l.id} style={{ backgroundColor: palette.card, borderWidth: 1, borderColor: palette.vio33, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' }}>
+              <View key={l.id} style={{ backgroundColor: palette.card, borderWidth: 1, borderColor: palette.vio33, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' }}>
                 <T size={13} w={700} style={{ flex: 1 }}>
                   {l.name}
                 </T>

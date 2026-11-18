@@ -7,7 +7,7 @@ import { listById, useApp, visibleLists } from '@/store/useApp';
 import { brand, font, palette, ringSoon } from '@/theme/tokens';
 import { Gift, Search } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
-import { AccessChip, Avatar, Card, LimePill, SectionLabel, T, Tap } from '@/ui/primitives';
+import { AccessChip, Avatar, Card, LimePill, SectionLabel, T, Tap, noOutline } from '@/ui/primitives';
 import { EmptyGlow } from './shared';
 
 /** The checkerboard stand-in for a QR code, as drawn in the prototype. */
@@ -46,13 +46,13 @@ export function Friends() {
 
   return (
     <Appear style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={[{ paddingTop: 16, paddingHorizontal: 18, paddingBottom: 110, gap: 10 }, empty && { flexGrow: 1, paddingBottom: 0 }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={{ flex: 1 }}>
-            <T size={20} w={800}>
+      <ScrollView contentContainerStyle={[{ paddingTop: 16, paddingHorizontal: 22, paddingBottom: 110, gap: 14 }, empty && { flexGrow: 1, paddingBottom: 0 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <T size={38} w={300} style={{ letterSpacing: -1.2 }}>
               Friends
             </T>
-            <T size={11} color={palette.muted}>
+            <T size={14} color={palette.muted}>
               {empty ? 'You approve everyone — start with one' : `${s.friends.length} ${s.friends.length === 1 ? 'friend' : 'friends'}${s.sent.length ? ` · ${s.sent.length} requested` : ''}`}
             </T>
           </View>
@@ -121,7 +121,7 @@ export function Friends() {
           <>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio33, borderRadius: 999, paddingVertical: 9, paddingHorizontal: 14 }}>
               <Search color={palette.muted} />
-              <TextInput value={q} onChangeText={setQ} placeholder="Filter friends" placeholderTextColor={palette.muted} style={{ flex: 1, fontSize: 13, fontFamily: font[500], color: palette.text, padding: 0 }} />
+              <TextInput value={q} onChangeText={setQ} placeholder="Filter friends" placeholderTextColor={palette.muted} style={{ flex: 1, fontSize: 13, fontFamily: font[500], color: palette.text, padding: 0 , ...noOutline }} />
             </View>
 
 
@@ -226,7 +226,7 @@ export function Friends() {
               <>
                 <SectionLabel style={{ marginTop: 4 }}>REQUESTED — WAITING</SectionLabel>
                 {s.sent.map((p) => (
-                  <View key={p.id} style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: palette.vio44, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View key={p.id} style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: palette.vio44, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Avatar initial={p.initial} size={32} fill={palette.inset} color={palette.muted} w={700} fontSize={12} />
                     <View style={{ flex: 1 }}>
                       <T size={12.5} w={700}>

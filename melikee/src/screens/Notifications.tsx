@@ -72,7 +72,7 @@ export function Notifications() {
                   markRead(n.id);
                   go(n.to);
                 }}
-                style={{ backgroundColor: n.read ? 'transparent' : palette.card, borderWidth: 1, borderColor: n.read ? palette.vio22 : palette.vio44, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 11 }}
+                style={{ backgroundColor: n.read ? 'transparent' : palette.card, borderWidth: 1, borderColor: n.read ? palette.vio22 : palette.vio44, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 11 }}
               >
                 <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: n.read ? 'transparent' : DOT[n.kind], marginTop: 4 }} />
                 <View style={{ flex: 1, minWidth: 0 }}>

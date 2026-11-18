@@ -7,7 +7,7 @@ import { DAYS, label, MONTHS, shortDate, type Month } from '@/lib/dates';
 import { cleanSizes, MAX_SIZE, SIZE_FIELDS, TOP_SIZES, type Sizes } from '@/lib/sizes';
 import { listById, useApp, visibleLists } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
-import { AccentButton, Field, LimeButton, PhotoBox, Select, SheetTitle, T, Tap, ToggleRow } from '@/ui/primitives';
+import { AccentButton, Field, LimeButton, PhotoBox, Select, SheetTitle, T, Tap, ToggleRow, noOutline } from '@/ui/primitives';
 
 export function BdaySheet() {
   const p = useApp((s) => s.profile);
@@ -68,7 +68,7 @@ export function ParentSheet() {
       </T>
       {parent ? (
         <>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: palette.inset, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 13 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: palette.inset, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 13 }}>
             <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: palette.deep, alignItems: 'center', justifyContent: 'center' }}>
               <T size={13} w={700} color={palette.avt}>
                 {parent.name[0]}
@@ -89,7 +89,7 @@ export function ParentSheet() {
             </Tap>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={{ flex: 1, backgroundColor: palette.inset, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 12, gap: 5 }}>
+            <View style={{ flex: 1, backgroundColor: palette.inset, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 12, gap: 5 }}>
               <T size={11} w={700} color={palette.limeText} style={{ letterSpacing: 0.66 }}>
                 {short.toUpperCase()} CAN SEE
               </T>
@@ -97,7 +97,7 @@ export function ParentSheet() {
                 Shared lists · your friends · friend requests
               </T>
             </View>
-            <View style={{ flex: 1, backgroundColor: palette.inset, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 12, gap: 5 }}>
+            <View style={{ flex: 1, backgroundColor: palette.inset, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 12, gap: 5 }}>
               <T size={11} w={700} color={brand.pink} style={{ letterSpacing: 0.66 }}>
                 NEVER
               </T>
@@ -136,7 +136,7 @@ export function CleanupSheet({ listId }: { listId: string }) {
         {open.map((i) => {
           const k = !!kept[i.id];
           return (
-            <View key={i.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: palette.inset, borderRadius: 14, paddingVertical: 9, paddingHorizontal: 11 }}>
+            <View key={i.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: palette.inset, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 11 }}>
               <PhotoBox label="" style={{ width: 40, height: 40, borderRadius: 9 }} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <T size={13} w={700}>
@@ -189,7 +189,7 @@ export function NotifSettingsSheet() {
   return (
     <>
       <View style={{ height: 4 }} />
-      <T size={17} w={800} style={{ marginBottom: 4 }}>
+      <T size={24} w={300} style={{ letterSpacing: -0.6, marginBottom: 4 }}>
         Notifications
       </T>
       {NOTIF_ROWS.map(([k, t, sub]) => (
@@ -281,7 +281,7 @@ export function HandleSheet() {
           autoCapitalize="none"
           autoCorrect={false}
           accessibilityLabel="Handle"
-          style={{ flex: 1, fontSize: 14, fontFamily: font[600], color: palette.text, padding: 0 }}
+          style={{ flex: 1, fontSize: 14, fontFamily: font[600], color: palette.text, padding: 0 , ...noOutline }}
         />
       </View>
       {h !== current ? (

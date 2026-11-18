@@ -10,7 +10,7 @@ import { WantButton } from '@/screens/Feed';
 import { useApp } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
 import { Search } from '@/ui/icons';
-import { AccentButton, Avatar, ChipButton, PhotoBox, SectionLabel, SheetTitle, T, Tap } from '@/ui/primitives';
+import { AccentButton, Avatar, ChipButton, PhotoBox, SectionLabel, SheetTitle, T, Tap, noOutline } from '@/ui/primitives';
 
 export function InviteSheet() {
   const s = useApp((st) => st);
@@ -66,7 +66,7 @@ export function InviteSheet() {
           autoCapitalize="none"
           autoCorrect={false}
           accessibilityLabel="Search people"
-          style={{ flex: 1, fontSize: 13, fontFamily: font[600], color: palette.text, padding: 0 }}
+          style={{ flex: 1, fontSize: 13, fontFamily: font[600], color: palette.text, padding: 0 , ...noOutline }}
         />
       </View>
       <View style={{ gap: 8 }}>
@@ -124,7 +124,7 @@ export function InviteSheet() {
             setCopied(true);
             s.showToast('Link copied — send it anywhere');
           }}
-          style={{ flex: 1, backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.lime66, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 12 }}
+          style={{ flex: 1, backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.lime66, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 12 }}
         >
           <SectionLabel>SEND YOUR LINK</SectionLabel>
           <T size={12} w={700} color={palette.limeText} style={{ marginTop: 2 }}>
@@ -134,7 +134,7 @@ export function InviteSheet() {
             {copied ? 'copied ✓' : 'tap to copy'}
           </T>
         </Tap>
-        <View style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 14, padding: 9, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        <View style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 10, padding: 9, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
           <QrStub />
           <T size={11} w={600} color={palette.muted}>
             or scan me
@@ -156,7 +156,7 @@ export function FeedItemSheet({ id }: { id: string }) {
   if (!f) return null;
   return (
     <>
-      <PhotoBox uri={f.image} style={{ height: 180, borderRadius: 14 }} />
+      <PhotoBox uri={f.image} style={{ height: 180, borderRadius: 10 }} />
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
         <T size={18} w={800} style={{ flex: 1 }}>
           {f.name}
@@ -187,7 +187,7 @@ export function ConfirmSheet({ action, friendId }: { action: 'remove' | 'block';
   const name = friend.name;
   return (
     <>
-      <T size={17} w={800}>
+      <T size={24} w={300} style={{ letterSpacing: -0.6 }}>
         {block ? `Block ${name}?` : `Remove ${name}?`}
       </T>
       <T size={12.5} color={palette.muted} style={{ lineHeight: 19, marginTop: -4 }}>

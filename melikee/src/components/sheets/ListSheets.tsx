@@ -10,7 +10,7 @@ import type { LinkExpiry, Vis } from '@/store/types';
 import { brand, font, listColors, palette } from '@/theme/tokens';
 import { Chevron, LinkIcon, Lock, People } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
-import { ChipButton, Field, GhostButton, LimeButton, LimeFill, OptionPill, Radio, SectionLabel, Select, SheetTitle, T, Tap, ToggleRow } from '@/ui/primitives';
+import { ChipButton, Field, GhostButton, LimeButton, LimeFill, OptionPill, Radio, SectionLabel, Select, SheetTitle, T, Tap, ToggleRow, noOutline } from '@/ui/primitives';
 
 /** "Write one for me" — the prototype's line, without assuming an age. */
 const NOTE_IDEA = "Hello all, my birthday's coming up! Your company is all I ask — but if you need ideas, here they are";
@@ -52,7 +52,7 @@ export function ShareSheet({ listId }: { listId: string }) {
   return (
     <>
       <SheetTitle sub={visNote}>Share {list.name}</SheetTitle>
-      <Tap onPress={copy} style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.lime66, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <Tap onPress={copy} style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.lime66, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <T size={13.5} w={700} color={palette.limeText} numberOfLines={1} style={{ flex: 1 }}>
           {url}
         </T>
@@ -88,7 +88,7 @@ export function ShareSheet({ listId }: { listId: string }) {
             onChangeText={(v) => s.updateList(list.id, { note: v })}
             multiline
             numberOfLines={2}
-            style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12, fontSize: 13, fontFamily: font[500], color: palette.text, lineHeight: 19, minHeight: 58, textAlignVertical: 'top' }}
+            style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12, fontSize: 13, fontFamily: font[500], color: palette.text, lineHeight: 19, minHeight: 58, textAlignVertical: 'top' , ...noOutline }}
           />
           <Tap onPress={() => s.updateList(list.id, { note: NOTE_IDEA })} style={{ alignSelf: 'flex-start' }}>
             <T size={12} w={700} color={palette.vio}>
@@ -168,7 +168,7 @@ export function VisSheet({ listId }: { listId: string }) {
 
   return (
     <>
-      <T size={17} w={800} style={{ marginBottom: 2 }}>
+      <T size={24} w={300} style={{ letterSpacing: -0.6, marginBottom: 2 }}>
         Who sees {list.name}?
       </T>
       {VIS_OPTS.map(({ k, title, body, Icon }) => {
@@ -180,7 +180,7 @@ export function VisSheet({ listId }: { listId: string }) {
             onPress={() => setD(k)}
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
-            style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 13, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1.5, borderColor: on ? palette.vio : palette.vio33, backgroundColor: on ? palette.vio22 : 'transparent' }}
+            style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 13, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1.5, borderColor: on ? palette.vio : palette.vio33, backgroundColor: on ? palette.vio22 : 'transparent' }}
           >
             <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: palette.inset, alignItems: 'center', justifyContent: 'center' }}>
               <Icon size={17} strokeWidth={1.4} color={on ? palette.text : palette.muted} />
@@ -205,26 +205,18 @@ export function VisSheet({ listId }: { listId: string }) {
         );
       })}
       {note ? (
-        <View style={{ backgroundColor: palette.inset, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 }}>
-          <T size={12} color={palette.soft} style={{ lineHeight: 18 }}>
+        <View style={{ backgroundColor: palette.inset, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12 }}>
+          <T size={13} color={palette.soft} style={{ lineHeight: 19 }}>
             {note}
           </T>
         </View>
       ) : null}
       <Tap onPress={confirm} style={{ marginTop: 2 }}>
-        {d !== cur && d !== 'me' ? (
-          <LimeFill style={{ paddingVertical: 13, alignItems: 'center' }}>
-            <T size={14} w={800} color={brand.limeInk}>
-              {cta}
-            </T>
-          </LimeFill>
-        ) : (
-          <View style={{ paddingVertical: 13, alignItems: 'center', borderRadius: 999, backgroundColor: d === cur ? palette.chip : palette.text }}>
-            <T size={14} w={800} color={d === cur ? palette.text : palette.bg}>
-              {cta}
-            </T>
-          </View>
-        )}
+        <LimeFill style={{ paddingVertical: 15, alignItems: 'center' }}>
+          <T size={15} w={500} color={brand.limeInk}>
+            {cta}
+          </T>
+        </LimeFill>
       </Tap>
     </>
   );

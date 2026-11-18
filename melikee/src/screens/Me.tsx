@@ -5,7 +5,7 @@ import { daysUntil, label } from '@/lib/dates';
 import { LinkStatus } from '@/components/LinkStatus';
 import { profileLink } from '@/lib/links';
 import { friendsWithAccess, listAccent, plural, shinies, useApp, visibleLists } from '@/store/useApp';
-import { brand, palette, ringSoon } from '@/theme/tokens';
+import { brand, palette } from '@/theme/tokens';
 import { Gear, Gift, Lock } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
 import { Avatar, Card, GhostButton, LimeFill, SectionLabel, T, Tap } from '@/ui/primitives';
@@ -38,7 +38,7 @@ export function Me() {
           <Tap onPress={() => s.go({ name: 'settings' })} accessibilityLabel="Settings" style={{ position: 'absolute', top: 12, right: 0, width: 40, height: 40, borderRadius: 20, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.vio44, alignItems: 'center', justifyContent: 'center' }}>
             <Gear color={palette.muted} />
           </Tap>
-          <Avatar initial={s.profile.name[0]} size={76} ring={ringSoon} ringWidth={3} fontSize={26} />
+          <Avatar initial={s.profile.name[0]} size={76} ring={palette.deep} ringWidth={1} fontSize={28} />
           <T size={21} w={800} style={{ letterSpacing: -0.42 }}>
             {s.profile.name}
           </T>
@@ -60,9 +60,9 @@ export function Me() {
               <Tap
                 onPress={() => s.go({ name: 'list', id: xmas.id })}
                 accessibilityLabel={`Christmas, in ${xmasDays} days`}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: listAccent(xmas), borderRadius: 999, paddingVertical: 5, paddingHorizontal: 11 }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: palette.vio44, borderRadius: 999, paddingVertical: 5, paddingHorizontal: 11 }}
               >
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: listAccent(xmas) }} />
+
                 <T size={12} w={600} color={palette.soft}>
                   Christmas · {dayWord(xmasDays)}
                 </T>

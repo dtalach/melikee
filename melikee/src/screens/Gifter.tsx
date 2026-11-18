@@ -25,7 +25,7 @@ import { listById, useApp } from '@/store/useApp';
 import { brand, font, gift } from '@/theme/tokens';
 import { Sparkle } from '@/ui/icons';
 import { Appear, SlideUp } from '@/ui/motion';
-import { Avatar, LimeFill, T, Tap } from '@/ui/primitives';
+import { Avatar, LimeFill, T, Tap, noOutline } from '@/ui/primitives';
 import { BoardCover, coverShots } from './shared';
 
 const NAME_CHIPS = ['Grandma', 'Mom', 'Dad', 'Aunt', 'A friend'];
@@ -70,7 +70,7 @@ export function GifterView(p: ViewProps) {
   };
 
   const joinCta = (title: string) => (
-    <View style={{ marginTop: 6, backgroundColor: gift.text, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'stretch' }}>
+    <View style={{ marginTop: 6, backgroundColor: gift.text, borderRadius: 10, paddingVertical: 16, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'stretch' }}>
       <View style={{ flex: 1 }}>
         <T size={13.5} w={800} color={gift.page}>
           {title}
@@ -79,8 +79,8 @@ export function GifterView(p: ViewProps) {
           Free. Friends call dibs, nobody gets doubles.
         </T>
       </View>
-      <Tap onPress={() => (p.preview ? showToast('Opens MeLikee — their list starts with one tap') : router.replace('/'))} style={{ backgroundColor: brand.lime, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999 }}>
-        <T size={12} w={800} color={brand.limeInk}>
+      <Tap onPress={() => (p.preview ? showToast('Opens MeLikee — their list starts with one tap') : router.replace('/'))} style={{ backgroundColor: gift.page, paddingVertical: 9, paddingHorizontal: 16, borderRadius: 999 }}>
+        <T size={13} w={500} color={gift.text}>
           Make mine
         </T>
       </Tap>
@@ -143,17 +143,17 @@ export function GifterView(p: ViewProps) {
             </View>
             {shots.length ? (
               // The list as a board: its best photos, like the owner sees it.
-              <View style={{ alignSelf: 'stretch', maxWidth: 420, width: '100%', marginVertical: 4, borderRadius: 18, boxShadow: '0 6px 20px rgba(45,36,71,0.12)' }}>
+              <View style={{ alignSelf: 'stretch', maxWidth: 420, width: '100%', marginVertical: 4 }}>
                 <BoardCover shots={shots} accent={gift.thumb} initial="" initialInk={gift.text} gapColor={gift.page} />
               </View>
             ) : (
-              <Avatar initial={owner[0]} size={58} ring={[brand.pink, gift.accent]} ringWidth={2.5} fill="#fff" color="#7a5fd0" gap="#fff" fontSize={21} />
+              <Avatar initial={owner[0]} size={58} ring={brand.pink} ringWidth={1.5} fill="#fff" color={gift.text} gap="#fff" fontSize={21} />
             )}
-            <T size={21} w={800} color={gift.text} style={{ letterSpacing: -0.42, textAlign: 'center' }}>
+            <T size={28} w={300} color={gift.text} style={{ letterSpacing: -0.7, textAlign: 'center' }}>
               {whose} {p.isMain ? 'wishlist' : p.listName}
             </T>
             {p.note ? (
-              <View style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: gift.bandLine, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, maxWidth: 280 }}>
+              <View style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: gift.bandLine, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, maxWidth: 280 }}>
                 <T size={12.5} w={600} color={gift.body} style={{ lineHeight: 19, textAlign: 'center' }}>
                   “{p.note}”
                 </T>
@@ -165,7 +165,7 @@ export function GifterView(p: ViewProps) {
             {sizeParts(p.sizes).length ? (
               <View
                 accessibilityLabel={`${whose} sizes: ${sizeParts(p.sizes).join(', ')}`}
-                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: gift.bandLine, borderRadius: 14, paddingVertical: 9, paddingHorizontal: 14, maxWidth: 320, alignItems: 'center', gap: 6 }}
+                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: gift.bandLine, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 14, maxWidth: 320, alignItems: 'center', gap: 6 }}
               >
                 <T size={11} w={800} color={gift.meta} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
                   {whose} sizes
@@ -204,7 +204,7 @@ export function GifterView(p: ViewProps) {
                 Nothing on this list yet.
               </T>
             ) : null}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 24 }}>
               {items.map((i) => {
                 const choosing = !!i.pending;
                 const d = p.dibs[String(i.id)];
@@ -220,8 +220,8 @@ export function GifterView(p: ViewProps) {
                       : null;
                 const meta = choosing ? 'still choosing the exact one' : [i.store, i.size].filter(Boolean).join(' · ');
                 return (
-                  <View key={i.id} style={{ width: '48.5%', backgroundColor: '#fff', borderWidth: 1, borderColor: mine ? gift.accent66 : gift.rowLine, borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 8px rgba(45,36,71,0.06)', opacity: busy ? 0.6 : 1 }}>
-                    <View style={{ aspectRatio: 1, backgroundColor: i.image && !choosing ? '#fff' : gift.thumb, alignItems: 'center', justifyContent: 'center' }}>
+                  <View key={i.id} style={{ width: '47.5%', gap: 8, opacity: busy ? 0.6 : 1 }}>
+                    <View style={{ aspectRatio: 1, borderRadius: 6, overflow: 'hidden', backgroundColor: gift.thumb, alignItems: 'center', justifyContent: 'center' }}>
                       {i.image && !choosing ? (
                         <Image source={{ uri: i.image }} resizeMode="contain" style={{ width: '88%', height: '88%' }} accessibilityIgnoresInvertColors />
                       ) : (
@@ -230,24 +230,24 @@ export function GifterView(p: ViewProps) {
                         </T>
                       )}
                       {i.star ? (
-                        <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: gift.text, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
-                          <T size={11} w={800} color={gift.page}>
+                        <View style={{ position: 'absolute', top: 7, left: 7, backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9 }}>
+                          <T size={11} w={500} color={gift.text}>
                             ★ Really wants
                           </T>
                         </View>
                       ) : null}
                     </View>
-                    <View style={{ paddingTop: 9, paddingHorizontal: 11, paddingBottom: 11, gap: 3, flex: 1 }}>
-                      <T size={13} w={700} color={gift.text} numberOfLines={2} style={{ lineHeight: 17 }}>
+                    <View style={{ gap: 2, flex: 1 }}>
+                      <T size={14} color={gift.text} numberOfLines={2} style={{ lineHeight: 19 }}>
                         {i.name}
                       </T>
                       {!choosing ? (
-                        <T size={14} w={800} color={gift.text}>
+                        <T size={14} w={500} color={gift.text}>
                           {i.price}
                         </T>
                       ) : null}
                       {meta ? (
-                        <T size={12} color={gift.meta} numberOfLines={1}>
+                        <T size={13} color={gift.meta} numberOfLines={1}>
                           {meta}
                         </T>
                       ) : null}
@@ -271,22 +271,22 @@ export function GifterView(p: ViewProps) {
                         style={{ marginTop: 6 }}
                       >
                         {btn ? (
-                          <View style={{ backgroundColor: btn.bg, borderWidth: 1.5, borderColor: btn.bd, paddingVertical: 8, borderRadius: 999, alignItems: 'center' }}>
-                            <T size={12} w={800} color={btn.fg} numberOfLines={1}>
+                          <View style={{ backgroundColor: btn.bg, paddingVertical: 10, borderRadius: 999, alignItems: 'center' }}>
+                            <T size={13} w={500} color={btn.fg} numberOfLines={1}>
                               {btn.label}
                             </T>
                           </View>
                         ) : (
-                          <LimeFill style={{ paddingVertical: 9, alignItems: 'center' }}>
-                            <T size={12} w={800} color={brand.limeInk}>
+                          <LimeFill style={{ paddingVertical: 10, alignItems: 'center' }}>
+                            <T size={13} w={500} color={brand.limeInk}>
                               Call dibs
                             </T>
                           </LimeFill>
                         )}
                       </Tap>
                       {mine ? (
-                        <Tap onPress={() => (i.url ? Linking.openURL(i.url).catch(() => undefined) : showToast(`Find it at ${i.store}`))} style={{ alignItems: 'center', paddingTop: 8 }}>
-                          <T size={12} w={700} color={gift.accent}>
+                        <Tap onPress={() => (i.url ? Linking.openURL(i.url).catch(() => undefined) : showToast(`Find it at ${i.store}`))} style={{ alignItems: 'center', minHeight: 40, justifyContent: 'center' }}>
+                          <T size={13} w={500} color={gift.accent} style={{ textDecorationLine: 'underline' }}>
                             Buy at {i.store} →
                           </T>
                         </Tap>
@@ -296,8 +296,8 @@ export function GifterView(p: ViewProps) {
                 );
               })}
             </View>
-            <View style={{ backgroundColor: gift.band, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 14 }}>
-              <T size={11} color={gift.meta} style={{ textAlign: 'center', lineHeight: 16.5 }}>
+            <View style={{ borderTopWidth: 1, borderTopColor: gift.rowLine, paddingTop: 14 }}>
+              <T size={12} color={gift.meta} style={{ textAlign: 'center', lineHeight: 18 }}>
                 Dibs are a secret between gifters — {p.owner || 'the person whose list this is'} never sees what’s claimed. Buy it anywhere you like.
               </T>
             </View>
@@ -308,13 +308,13 @@ export function GifterView(p: ViewProps) {
 
       {asking != null ? (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-          <Tap accessibilityLabel="Cancel" onPress={() => setAsking(null)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(45,36,71,0.35)' }} />
+          <Tap accessibilityLabel="Cancel" onPress={() => setAsking(null)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' }} />
           <SlideUp style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-            <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 18, paddingHorizontal: 20, paddingBottom: 36 + insets.bottom, gap: 12, boxShadow: '0 -10px 30px rgba(45,36,71,0.2)' }}>
-              <T size={17} w={800} color={gift.text}>
+            <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 22, paddingHorizontal: 24, paddingBottom: 36 + insets.bottom, gap: 14, boxShadow: '0 -20px 40px rgba(0,0,0,0.08)' }}>
+              <T size={24} w={300} color={gift.text} style={{ letterSpacing: -0.6 }}>
                 Who’s calling dibs?
               </T>
-              <T size={12} color={gift.body} style={{ lineHeight: 18 }}>
+              <T size={13} color={gift.meta} style={{ lineHeight: 20 }}>
                 Other gifters see your name so nobody doubles up. {p.owner || 'The wisher'} never does.
               </T>
               <TextInput
@@ -324,20 +324,20 @@ export function GifterView(p: ViewProps) {
                 placeholderTextColor={gift.meta}
                 autoFocus
                 onSubmitEditing={confirmName}
-                style={{ backgroundColor: gift.page, borderWidth: 1.5, borderColor: gift.bandLine, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 13, fontSize: 14, fontFamily: font[600], color: gift.text }}
+                style={{ backgroundColor: gift.band, borderWidth: 0, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, fontSize: 14, fontFamily: font[400], color: gift.text , ...noOutline }}
               />
-              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+              <View style={{ flexDirection: 'row', gap: 14, flexWrap: 'wrap' }}>
                 {NAME_CHIPS.map((c) => (
-                  <Tap key={c} onPress={() => setDraft(c)} style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: gift.band }}>
-                    <T size={12} w={600} color={gift.body}>
+                  <Tap key={c} onPress={() => setDraft(c)} style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: 4 }}>
+                    <T size={13} color={gift.body} style={{ textDecorationLine: 'underline' }}>
                       {c}
                     </T>
                   </Tap>
                 ))}
               </View>
               <Tap onPress={confirmName} disabled={!draft.trim()} style={{ opacity: draft.trim() ? 1 : 0.45 }}>
-                <LimeFill style={{ paddingVertical: 13, alignItems: 'center' }}>
-                  <T size={14} w={800} color={brand.limeInk}>
+                <LimeFill style={{ paddingVertical: 15, alignItems: 'center' }}>
+                  <T size={15} w={500} color={brand.limeInk}>
                     Call dibs on {items.find((i) => i.id === asking)?.name ?? ''}
                   </T>
                 </LimeFill>

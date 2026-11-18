@@ -21,7 +21,7 @@ import { fillImage, listById, useApp, type CaptureMode } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
 import { Close, Photos, Sparkle, Torch } from '@/ui/icons';
 import { Appear, Burst, Flash, SheetOut, Shimmer, Spin, Twinkle } from '@/ui/motion';
-import { AccentButton, ChipButton, LimeButton, LimeFill, PhotoBox, RadialGround, SectionLabel, T, Tap, TextLink, Toggle } from '@/ui/primitives';
+import { AccentButton, ChipButton, LimeButton, LimeFill, PhotoBox, RadialGround, SectionLabel, T, Tap, TextLink, Toggle, noOutline } from '@/ui/primitives';
 
 const MODES: CaptureMode[] = ['scan', 'snap', 'say'];
 const native = Platform.OS !== 'web';
@@ -604,7 +604,7 @@ function FoundSheet() {
                   placeholder={hasVariants ? 'Size — e.g. M, 9.5' : 'Size, color — e.g. M, black'}
                   placeholderTextColor={palette.muted}
                   autoFocus
-                  style={{ backgroundColor: palette.inset, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 10, fontSize: 14, fontFamily: font[400], color: palette.text }}
+                  style={{ backgroundColor: palette.inset, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 10, fontSize: 14, fontFamily: font[400], color: palette.text , ...noOutline }}
                 />
               ) : null}
               {row(
@@ -809,7 +809,7 @@ function TypeIt() {
           placeholderTextColor={palette.muted}
           autoFocus
           returnKeyType="search"
-          style={{ backgroundColor: palette.card, borderWidth: 1, borderColor: palette.vio55, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 14, fontFamily: font[600], color: palette.text }}
+          style={{ backgroundColor: palette.card, borderWidth: 1, borderColor: palette.vio55, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 14, fontFamily: font[600], color: palette.text , ...noOutline }}
         />
         <Tap onPress={search} disabled={!q} style={{ opacity: q ? 1 : 0.45 }}>
           <LimeFill style={{ paddingVertical: 13, alignItems: 'center' }}>
