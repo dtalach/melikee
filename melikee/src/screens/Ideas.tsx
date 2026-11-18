@@ -45,13 +45,16 @@ export function Ideas() {
 
   return (
     <Appear style={{ flex: 1 }}>
-      <ScrollView onScroll={onScroll} scrollEventThrottle={200} contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 16, paddingBottom: 120, gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 2 }}>
-          <T size={26} w={800} style={{ letterSpacing: -0.78 }}>
-            Ideas
-          </T>
-          <T size={12} color={palette.muted} style={{ flex: 1 }}>
-            picked for you
+      <ScrollView onScroll={onScroll} scrollEventThrottle={200} contentContainerStyle={{ paddingTop: 6, paddingHorizontal: 16, paddingBottom: 120, gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 2 }}>
+          <T size={12} color={palette.muted} style={{ flex: 1, lineHeight: 17 }}>
+            {ideas.themes.length ? (
+              <>
+                Because you’re into <T size={12} w={700} color={palette.soft}>{ideas.themes.map((t) => t.name.toLowerCase()).join(' · ')}</T>
+              </>
+            ) : (
+              'Picked from your lists and what you search'
+            )}
           </T>
           <Tap onPress={() => void loadIdeas()} disabled={loading} accessibilityLabel="New ideas" style={{ borderWidth: 1, borderColor: palette.vio44, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12, opacity: loading ? 0.5 : 1 }}>
             <T size={12} w={700}>
@@ -59,12 +62,6 @@ export function Ideas() {
             </T>
           </Tap>
         </View>
-
-        {ideas.themes.length ? (
-          <T size={12} color={palette.muted} style={{ paddingHorizontal: 2, lineHeight: 17 }}>
-            Because you’re into <T size={12} w={700} color={palette.soft}>{ideas.themes.map((t) => t.name.toLowerCase()).join(' · ')}</T>
-          </T>
-        ) : null}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
           {BUDGETS.map(([b, label]) => {

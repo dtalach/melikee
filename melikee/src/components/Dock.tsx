@@ -1,5 +1,6 @@
 /**
- * The bottom dock: Feed · Ideas · shutter · Lists · Friends · Me.
+ * The bottom dock: Home · Lists · shutter · Friends · Me. Home holds both
+ * For you (gift ideas) and Friends (the Feed).
  *
  * Tapping the shutter opens the full-screen camera. Holding it (450ms) opens
  * the camera straight into Say mode; letting go captures.
@@ -13,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '@/store/useApp';
 import type { Route } from '@/store/types';
 import { brand, palette } from '@/theme/tokens';
-import { Plus, People, Sparkle, TabFeed, TabIdeas, TabLists, TabMe } from '@/ui/icons';
+import { Plus, People, Sparkle, TabHome, TabLists, TabMe } from '@/ui/icons';
 import { Breathe } from '@/ui/motion';
 import { T, Tap } from '@/ui/primitives';
 
@@ -30,6 +31,7 @@ export function Dock({ route }: { route: Route }) {
     if (n === 'lists') return route.name === 'lists' || route.name === 'list';
     if (n === 'me') return route.name === 'me' || route.name === 'settings';
     if (n === 'people') return route.name === 'people';
+    if (n === 'feed') return route.name === 'feed' || route.name === 'ideas';
     return route.name === n;
   };
   const color = (n: string) => (active(n) ? palette.limeText : palette.muted);
@@ -91,8 +93,8 @@ export function Dock({ route }: { route: Route }) {
         zIndex: 5,
       }}
     >
-      {item('feed', 'Feed', <TabFeed color={color('feed')} />)}
-      {item('ideas', 'Ideas', <TabIdeas color={color('ideas')} />)}
+      {item('feed', 'Home', <TabHome color={color('feed')} />)}
+      {item('lists', 'Lists', <TabLists color={color('lists')} />)}
       <Breathe on={firstRun} period={3400} style={{ marginTop: -26 }}>
         <Pressable
           onPress={onPress}
@@ -127,7 +129,6 @@ export function Dock({ route }: { route: Route }) {
           </LinearGradient>
         </Pressable>
       </Breathe>
-      {item('lists', 'Lists', <TabLists color={color('lists')} />)}
       {item('people', 'Friends', <People size={22} strokeWidth={1.4} color={color('people')} />, friendsBadge)}
       {item('me', 'Me', <TabMe color={color('me')} />)}
     </View>

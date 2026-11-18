@@ -159,9 +159,17 @@ Storage (Redis): `acct:<phoneKey>` gains `uid`, `handle`, `name`,
 `huid:<handle>` power search; `fr:<uid>` is a hash of that account's side of
 each relationship.
 
+## Home
+
+The dock is **Home · Lists · (+) · Friends · Me**. Home has a **For you |
+Friends** switch (`src/screens/Home.tsx`): For you is gift inspiration, Friends
+is the Feed. Someone with no friends yet lands on For you (full on day one);
+once they have friends, Home opens on Friends. Sign-up is birthday → phone →
+code → first name (optional) + handle → parent (13–17, optional).
+
 ## Ideas (gift inspiration)
 
-The Ideas tab is a scroll of specific products picked for this person
+Home → For you is a scroll of specific products picked for this person
 (`src/screens/Ideas.tsx`, `src/lib/ideas.ts` → `POST /api/ideas` →
 `server/ideas.ts`).
 

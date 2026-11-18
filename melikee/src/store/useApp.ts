@@ -180,6 +180,8 @@ type Session = {
   filing: { itemId: number; key: number } | null;
   /** Whether your shared lists are live at melikee.app. */
   publishState: 'idle' | 'live' | 'taken' | 'off' | 'error' | 'signed_out';
+  /** Home's For you / Friends switch, once picked this session (null = by whether you have friends). */
+  homeTab: 'foryou' | 'friends' | null;
   /** Gift inspiration is fetching a batch. */
   ideasLoading: boolean;
   ideasError: string | null;
@@ -188,6 +190,7 @@ type Session = {
 type Actions = {
   go: (r: Route) => void;
   tab: (name: 'feed' | 'ideas' | 'lists' | 'people' | 'me') => void;
+  setHomeTab: (t: 'foryou' | 'friends') => void;
   back: () => void;
   replace: (r: Route) => void;
   openSheet: (s: Sheet) => void;
@@ -257,7 +260,7 @@ type Actions = {
 
   // profile
   setProfile: (patch: Partial<Profile>) => void;
-  finishOnboarding: (p: { handle: string; birthday: Profile['birthday']; parent: string; privateDefault: boolean }) => void;
+  finishOnboarding: (p: { handle: string; name?: string; birthday: Profile['birthday']; parent: string }) => void;
   /** After a correct code: store the device's new secret, and on a restore bring back the account's handle and shared lists. */
   applySignIn: (r: Extract<VerifyResponse, { ok: true }>) => void;
   finishCleanup: (sorted: { got: number[]; kept: number[] }) => void;
@@ -330,12 +333,15 @@ export const useApp = create<AppState>()(
       capture: idleCapture,
       filing: null,
       publishState: 'idle',
+      homeTab: null,
       ideasLoading: false,
       ideasError: null,
 
       go: (r) => set((s) => ({ stack: [...s.stack, r], sheet: null })),
       replace: (r) => set((s) => ({ stack: [...s.stack.slice(0, -1), r], sheet: null })),
-      tab: (name) => set({ stack: [{ name }], sheet: null }),
+      // 'ideas' is Home on For you (kept so older links and notifications still land).
+      tab: (name) => set(name === 'ideas' ? { stack: [{ name: 'feed' }], homeTab: 'foryou', sheet: null } : { stack: [{ name }], sheet: null }),
+      setHomeTab: (homeTab) => set({ homeTab }),
       back: () =>
         set((s) => ({ stack: s.stack.length > 1 ? s.stack.slice(0, -1) : [{ name: 'feed' }], sheet: null })),
       openSheet: (sheet) => set({ sheet }),
@@ -837,7 +843,7 @@ export const useApp = create<AppState>()(
       markAllRead: () => set((s) => ({ notifs: s.notifs.map((n) => ({ ...n, read: true })) })),
 
       setProfile: (patch) => set((s) => ({ profile: { ...s.profile, ...patch } })),
-      finishOnboarding: ({ handle, birthday, parent, privateDefault }) =>
+      finishOnboarding: ({ handle, name, birthday, parent }) =>
         set((s) => ({
           onboarded: true,
           profile: {
@@ -845,13 +851,12 @@ export const useApp = create<AppState>()(
             handle,
             birthdaySet: true,
             // There's no name step: gifters see the handle until a name is set.
-            name: s.profile.name || handle,
+            name: name || (s.profile.name && s.profile.name !== s.profile.handle ? s.profile.name : handle),
             birthday,
             parent: parent.trim()
               ? { on: true, approve: true, name: 'Parent', contact: parent.trim(), since: Date.now() }
               : null,
           },
-          lists: privateDefault ? s.lists.map((l) => (l.id === 'w' ? { ...l, vis: 'me' } : l)) : s.lists,
           stack: [{ name: 'feed' }],
         })),
       applySignIn: (r) => {
@@ -912,7 +917,8 @@ export const useApp = create<AppState>()(
       version: 4,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => {
-        const { stack, sheet, toast, capture, filing, publishState, ideasLoading, ideasError, ...rest } = s;
+        const { stack, sheet, toast, capture, filing, publishState, homeTab, ideasLoading, ideasError, ...rest } = s;
+        void homeTab;
         void publishState;
         void ideasLoading;
         void ideasError;
