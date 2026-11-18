@@ -80,7 +80,7 @@ export function Friends() {
                     </T>
                   </View>
                   <LimePill label="Accept" size={11.5} onPress={() => void s.acceptRequest(r.id)} style={{ paddingVertical: 6, paddingHorizontal: 13 }} />
-                  <Tap onPress={() => void s.declineRequest(r.id)} accessibilityLabel={`Decline ${r.name}`} style={{ paddingVertical: 10, paddingHorizontal: 2 }}>
+                  <Tap onPress={() => void s.declineRequest(r.id)} accessibilityLabel={`Decline ${r.name}`} style={{ minHeight: 40, justifyContent: 'center', paddingHorizontal: 6 }}>
                     <T size={11.5} w={700} color={palette.muted}>
                       Decline
                     </T>
@@ -93,7 +93,7 @@ export function Friends() {
 
         {empty ? (
           <View style={{ flex: 1, marginHorizontal: -18, marginTop: 6 }}>
-            <EmptyGlow fill icon="people" title={'Wishing is better\nwith your people'} cta="Find your people" onCta={() => s.openSheet({ type: 'invite' })} footer="Private lists never show. To anyone.">
+            <EmptyGlow fill icon="people" title={'Wishing is better\nwith your people'} cta="Find your people" onCta={() => s.openSheet({ type: 'invite' })} footer="“Only me” lists never show. To anyone.">
               <View style={{ gap: 10, maxWidth: 270 }}>
                 {[
                   ['1', brand.lime, brand.limeInk, 'They see your shinies', ' — friends follow the lists you choose. You approve everyone.'],
@@ -168,14 +168,14 @@ export function Friends() {
                         ))}
                       </View>
                       <View style={{ flexDirection: 'row', gap: 18, paddingTop: 2 }}>
-                        <Tap onPress={() => s.openSheet({ type: 'confirm', action: 'remove', friendId: p.id })} style={{ paddingVertical: 8 }}>
+                        <Tap onPress={() => s.openSheet({ type: 'confirm', action: 'remove', friendId: p.id })} style={{ minHeight: 40, justifyContent: 'center' }}>
                           <T size={12} w={700} color={palette.soft}>
                             Remove
                           </T>
                         </Tap>
-                        <Tap onPress={() => s.openSheet({ type: 'confirm', action: 'block', friendId: p.id })} style={{ paddingVertical: 8 }}>
+                        <Tap onPress={() => s.openSheet({ type: 'confirm', action: 'block', friendId: p.id })} style={{ minHeight: 40, justifyContent: 'center' }}>
                           <T size={12} w={700} color={brand.pink}>
-                            Block or report
+                            Block
                           </T>
                         </Tap>
                       </View>
@@ -238,7 +238,7 @@ export function Friends() {
                     </View>
                     <Tap
                       onPress={() => void s.cancelInvite(p.id)}
-                      style={{ paddingVertical: 8 }}
+                      style={{ minHeight: 40, justifyContent: 'center', paddingHorizontal: 6 }}
                     >
                       <T size={12} w={700} color={palette.muted}>
                         Cancel
@@ -249,7 +249,7 @@ export function Friends() {
               </>
             ) : null}
             <T size={11} color={palette.muted} style={{ textAlign: 'center', paddingVertical: 4, paddingHorizontal: 10, lineHeight: 16 }}>
-              Private lists never show to anyone, no matter what’s checked here. Switch any list between private and shared in its settings.
+              Lists set to “Only me” never show to anyone, whatever’s checked here. Change who sees a list in its settings.
             </T>
           </>
         )}

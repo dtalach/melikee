@@ -23,7 +23,7 @@ export function LinkStatus({ shared = true }: { shared?: boolean }) {
       : state === 'error'
         ? 'Couldn’t sync just now — we’ll keep trying.'
         : !shared
-          ? 'Make a list Friends + link to share it here.'
+          ? 'Set a list to “Anyone with the link” to share it here.'
           : state === 'live'
             ? 'Live — opens on any phone, no app needed.'
             : 'Getting your link ready…';

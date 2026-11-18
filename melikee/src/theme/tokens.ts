@@ -17,7 +17,8 @@ export const palette = {
   rad1: '#1c1c1e',
   rad2: '#0b0b0c',
   text: '#f5f4f0',
-  muted: '#9c9b95',
+  /** Secondary text: 7.4:1 on the background, readable outdoors. */
+  muted: '#aaa9a3',
   soft: '#c8c7c1',
   avt: '#dad9d3',
   vio: '#e9e6dd',

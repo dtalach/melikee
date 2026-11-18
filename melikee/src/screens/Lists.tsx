@@ -63,16 +63,16 @@ function ListBoard({ s, id, onOpen, onShare, onVis, onDate }: { s: AppState; id:
           ) : null}
         </BoardCover>
       </Tap>
-      <View style={{ gap: 3, paddingHorizontal: 2 }}>
+      <View style={{ gap: 2, paddingHorizontal: 2 }}>
         <T size={15} w={800} numberOfLines={1} onPress={onOpen}>
           {l.name}
         </T>
-        <Tap onPress={onVis} accessibilityLabel={`Sharing: ${visWord(l.vis)}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-          <T size={11.5} color={palette.muted}>
-            {shinies(its.length)} ·
-          </T>
+        <T size={12} color={palette.muted}>
+          {shinies(its.length)}
+        </T>
+        <Tap onPress={onVis} accessibilityLabel={`Who sees it: ${visWord(l.vis)}. Change`} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingVertical: 2 }}>
           <VisIcon vis={l.vis} color={palette.muted} />
-          <T size={11.5} color={palette.muted} numberOfLines={1} style={{ flexShrink: 1 }}>
+          <T size={12} color={palette.muted} numberOfLines={1} style={{ flexShrink: 1 }}>
             {visWord(l.vis)}
           </T>
         </Tap>

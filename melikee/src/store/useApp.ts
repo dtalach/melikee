@@ -1345,7 +1345,7 @@ export function listAccent(l: WishList) {
 }
 
 export function visWord(v: Vis) {
-  return v === 'friends' ? 'Friends' : v === 'invite' ? 'Friends + link' : 'Private';
+  return v === 'friends' ? 'Friends' : v === 'invite' ? 'Anyone with the link' : 'Only me';
 }
 
 export function visSentence(v: Vis) {
@@ -1365,11 +1365,11 @@ export function friendsWithAccess(s: AppState, listId: string) {
   return s.friends.filter((f) => f.access[listId] !== false);
 }
 
-/** "2 friends + link", "Private · only you" — the chip under a list title. */
+/** "2 friends · anyone with the link", "Only me" — the chip under a list title. */
 export function visSummary(s: AppState, l: WishList) {
-  if (l.vis === 'me') return 'Private · only you';
+  if (l.vis === 'me') return 'Only me';
   const n = friendsWithAccess(s, l.id).length;
   const fs = n ? plural(n, 'friend', 'friends') : 'no friends picked';
-  return l.vis === 'invite' ? `${fs} + link` : fs;
+  return l.vis === 'invite' ? `${fs} · anyone with the link` : fs;
 }
 

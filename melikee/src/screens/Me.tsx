@@ -87,7 +87,7 @@ export function Me() {
                 shots={coverShots(its)}
                 accent={listAccent(l)}
                 name={l.name}
-                sub={`${shinies(its.length)} · ${plural(f, 'friend', 'friends')}${l.vis === 'invite' ? ' + link' : ''}`}
+                sub={l.vis === 'invite' ? `${shinies(its.length)} · anyone with the link` : `${shinies(its.length)} · ${plural(f, 'friend', 'friends')}`}
                 onPress={() => s.go({ name: 'list', id: l.id })}
               />
             );
@@ -96,7 +96,7 @@ export function Me() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 2 }}>
           <Lock size={12} color={palette.muted} />
           <T size={11.5} color={palette.muted}>
-            {privCount ? `${privCount} private ${privCount === 1 ? 'list' : 'lists'} — only you see ${privCount === 1 ? 'it' : 'them'}` : 'No private lists'}
+            {privCount ? `${privCount} ${privCount === 1 ? 'list' : 'lists'} only you see` : 'Every list is shared'}
           </T>
         </View>
 
