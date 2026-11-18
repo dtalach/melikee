@@ -64,6 +64,9 @@ function typeSize(size: number) {
   return size;
 }
 
+/** Web only: no browser focus box on text fields (the field itself shows focus). */
+export const noOutline = { outlineStyle: 'none' } as unknown as TextStyle;
+
 /** "WHAT FRIENDS SEE": small caps, tracked out, muted. Section headers and row labels. */
 export function SectionLabel({ children, style, color = palette.muted }: { children: ReactNode; style?: StyleProp<TextStyle>; color?: string }) {
   return (
@@ -401,6 +404,7 @@ export function Field({ style, ...rest }: TextInputProps & { style?: StyleProp<T
           paddingHorizontal: 14,
           fontSize: 14,
           fontFamily: font[400],
+          ...noOutline,
           color: palette.text,
         },
         style,

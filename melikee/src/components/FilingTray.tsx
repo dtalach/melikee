@@ -27,7 +27,7 @@ export function FilingTray({ onCamera }: { onCamera: boolean }) {
           backgroundColor: palette.card,
           borderWidth: 1,
           borderColor: palette.vio33,
-          borderRadius: 18,
+          borderRadius: 10,
           paddingVertical: 10,
           paddingHorizontal: 12,
           flexDirection: 'row',

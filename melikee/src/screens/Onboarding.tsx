@@ -18,7 +18,7 @@ import { useApp } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
 import { Chevron, Sparkle } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
-import { AccentButton, Field, LimeButton, RadialGround, Select, T, Tap } from '@/ui/primitives';
+import { AccentButton, Field, LimeButton, noOutline, RadialGround, Select, T, Tap } from '@/ui/primitives';
 
 type Mode = 'signup' | 'signin' | 'verify';
 type Step = 'welcome' | 'verifyIntro' | 'birthday' | 'phone' | 'code' | 'handle' | 'parent';
@@ -164,7 +164,7 @@ export function Onboarding() {
       {error}
     </T>
   ) : null;
-  const inputBox = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14 };
+  const inputBox = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 10, paddingVertical: 13, paddingHorizontal: 14 };
 
   if (ageBlocked) {
     return (
@@ -276,7 +276,7 @@ export function Onboarding() {
                   textContentType="telephoneNumber"
                   autoFocus
                   accessibilityLabel="Phone number"
-                  style={{ flex: 1, fontSize: 15, fontFamily: font[600], color: palette.text, padding: 0, outlineWidth: 0 }}
+                  style={{ flex: 1, fontSize: 15, fontFamily: font[500], color: palette.text, padding: 0, outlineWidth: 0, ...noOutline }}
                 />
               </View>
               {errorLine}
@@ -307,11 +307,11 @@ export function Onboarding() {
                 maxLength={MAX_CODE}
                 autoFocus
                 accessibilityLabel="Code"
-                style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 14, fontSize: 26, letterSpacing: 10, textAlign: 'center', fontFamily: font[700], color: palette.text }}
+                style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 10, paddingVertical: 14, paddingHorizontal: 14, fontSize: 26, letterSpacing: 10, textAlign: 'center', fontFamily: font[700], color: palette.text , ...noOutline }}
               />
               {errorLine}
               {noAccount ? (
-                <View style={{ backgroundColor: palette.inset, borderRadius: 14, padding: 14, gap: 10 }}>
+                <View style={{ backgroundColor: palette.inset, borderRadius: 10, padding: 14, gap: 10 }}>
                   <T size={13} w={700}>
                     No account for {phone} yet.
                   </T>
@@ -354,7 +354,7 @@ export function Onboarding() {
                 autoCapitalize="words"
                 maxLength={40}
                 accessibilityLabel="First name"
-                style={{ fontSize: 15, fontFamily: font[600], paddingVertical: 13, paddingHorizontal: 14, borderRadius: 14 }}
+                style={{ fontSize: 15, fontFamily: font[600], paddingVertical: 13, paddingHorizontal: 14, borderRadius: 10 }}
               />
               <View style={inputBox}>
                 <T size={15} w={600} color={palette.muted}>
@@ -366,7 +366,7 @@ export function Onboarding() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   accessibilityLabel="Handle"
-                  style={{ flex: 1, fontSize: 15, fontFamily: font[600], color: palette.text, padding: 0, outlineWidth: 0 }}
+                  style={{ flex: 1, fontSize: 15, fontFamily: font[500], color: palette.text, padding: 0, outlineWidth: 0, ...noOutline }}
                 />
               </View>
               <T size={12.5} w={600} color={hOk ? palette.limeText : hStatus === 'checking' ? palette.muted : brand.pink} style={{ marginTop: -8 }}>
@@ -380,8 +380,8 @@ export function Onboarding() {
           {step === 'parent' ? (
             <>
               {title('Add a parent?', 'Optional. Some families like it — you can always add one later in Settings.')}
-              <Field value={parent} onChangeText={setParent} placeholder="Parent's phone or email" autoCapitalize="none" keyboardType="email-address" style={{ fontSize: 15, fontFamily: font[600], paddingVertical: 13, paddingHorizontal: 14, borderRadius: 14 }} />
-              <View style={{ backgroundColor: palette.inset, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 }}>
+              <Field value={parent} onChangeText={setParent} placeholder="Parent's phone or email" autoCapitalize="none" keyboardType="email-address" style={{ fontSize: 15, fontFamily: font[600], paddingVertical: 13, paddingHorizontal: 14, borderRadius: 10 }} />
+              <View style={{ backgroundColor: palette.inset, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14 }}>
                 <T size={12} color={palette.soft} style={{ lineHeight: 18.5 }}>
                   They’ll see your shared lists and friends. Never your private lists, and never who called dibs.
                 </T>
