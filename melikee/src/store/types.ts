@@ -188,6 +188,7 @@ export type Profile = {
 export type Route =
   | { name: 'camera' }
   | { name: 'feed' }
+  | { name: 'ideas' }
   | { name: 'lists' }
   | { name: 'list'; id: string }
   | { name: 'item'; id: number }

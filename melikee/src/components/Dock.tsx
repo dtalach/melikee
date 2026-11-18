@@ -1,5 +1,5 @@
 /**
- * The bottom dock: Feed · Lists · shutter · Friends · Me.
+ * The bottom dock: Feed · Ideas · shutter · Lists · Friends · Me.
  *
  * Tapping the shutter opens the full-screen camera. Holding it (450ms) opens
  * the camera straight into Say mode; letting go captures.
@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '@/store/useApp';
 import type { Route } from '@/store/types';
 import { brand, palette } from '@/theme/tokens';
-import { Plus, People, Sparkle, TabFeed, TabLists, TabMe } from '@/ui/icons';
+import { Plus, People, Sparkle, TabFeed, TabIdeas, TabLists, TabMe } from '@/ui/icons';
 import { Breathe } from '@/ui/motion';
 import { T, Tap } from '@/ui/primitives';
 
@@ -57,7 +57,7 @@ export function Dock({ route }: { route: Route }) {
     openCamera();
   };
 
-  const item = (n: 'feed' | 'lists' | 'people' | 'me', label: string, icon: React.ReactNode, badge?: boolean) => (
+  const item = (n: 'feed' | 'ideas' | 'lists' | 'people' | 'me', label: string, icon: React.ReactNode, badge?: boolean) => (
     <Tap
       onPress={() => tab(n)}
       accessibilityLabel={label}
@@ -92,7 +92,7 @@ export function Dock({ route }: { route: Route }) {
       }}
     >
       {item('feed', 'Feed', <TabFeed color={color('feed')} />)}
-      {item('lists', 'Lists', <TabLists color={color('lists')} />)}
+      {item('ideas', 'Ideas', <TabIdeas color={color('ideas')} />)}
       <Breathe on={firstRun} period={3400} style={{ marginTop: -26 }}>
         <Pressable
           onPress={onPress}
@@ -127,6 +127,7 @@ export function Dock({ route }: { route: Route }) {
           </LinearGradient>
         </Pressable>
       </Breathe>
+      {item('lists', 'Lists', <TabLists color={color('lists')} />)}
       {item('people', 'Friends', <People size={22} strokeWidth={1.4} color={color('people')} />, friendsBadge)}
       {item('me', 'Me', <TabMe color={color('me')} />)}
     </View>

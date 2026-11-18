@@ -12,6 +12,7 @@ import { Feed } from '@/screens/Feed';
 import { FriendListScreen } from '@/screens/FriendList';
 import { Friends } from '@/screens/Friends';
 import { GifterPage } from '@/screens/Gifter';
+import { Ideas } from '@/screens/Ideas';
 import { ItemDetail } from '@/screens/ItemDetail';
 import { ListDetail } from '@/screens/ListDetail';
 import { Lists } from '@/screens/Lists';
@@ -28,7 +29,7 @@ import { Sheets } from './sheets/Sheets';
 import { Toast } from './Toast';
 import { usePublisher } from './usePublisher';
 
-const DOCKED: Route['name'][] = ['feed', 'lists', 'list', 'me', 'people', 'friendList', 'settings', 'notifs'];
+const DOCKED: Route['name'][] = ['feed', 'ideas', 'lists', 'list', 'me', 'people', 'friendList', 'settings', 'notifs'];
 
 export function Shell() {
   const onboarded = useApp((s) => s.onboarded);
@@ -111,6 +112,8 @@ function Screen({ route }: { route: Route }) {
       return <Camera />;
     case 'feed':
       return <Feed />;
+    case 'ideas':
+      return <Ideas />;
     case 'lists':
       return <Lists />;
     case 'list':
