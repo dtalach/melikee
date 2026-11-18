@@ -30,7 +30,7 @@ export default async function handler(req: Req, res: Res) {
   }
   const signals = cleanSignals(b?.signals);
   if (!b || !signals) return res.status(400).json({ ok: false, code: 'bad_request', message: 'Expected { signals }.' });
-  const count = Math.max(4, Math.min(12, Number(b.count) || 8));
+  const count = Math.max(4, Math.min(20, Number(b.count) || 8));
 
   try {
     const fwd = req.headers?.['x-forwarded-for'];
