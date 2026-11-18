@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
-import { brand, font, palette, type Weight } from '@/theme/tokens';
+import { brand, font, palette, paper, type Weight } from '@/theme/tokens';
 import { Chevron } from './icons';
 import { SlideUp } from './motion';
 
@@ -282,6 +282,7 @@ export function PhotoBox({
   uri,
   fallback,
   fit = 'contain',
+  light,
 }: {
   style?: StyleProp<ViewStyle>;
   label?: string;
@@ -291,6 +292,8 @@ export function PhotoBox({
   uri?: string | null;
   fallback?: string | null;
   fit?: 'contain' | 'cover';
+  /** On a white page: a pale placeholder instead of the dark one. */
+  light?: boolean;
 }) {
   const [failed, setFailed] = useState<string[]>([]);
   const ok = (u?: string | null): u is string => !!u && !failed.includes(u);
@@ -299,7 +302,7 @@ export function PhotoBox({
   const mode = src && src === uri ? fit : 'cover';
   return (
     <LinearGradient
-      colors={[palette.ph1, palette.ph2]}
+      colors={light ? [paper.photo, paper.photo] : [palette.ph1, palette.ph2]}
       start={{ x: 0, y: 0 }}
       end={vertical ? { x: 0, y: 1 } : { x: 1, y: 1 }}
       style={[{ alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, style]}
@@ -310,7 +313,7 @@ export function PhotoBox({
         </View>
       ) : null}
       {label && !src ? (
-        <T size={labelSize} color={palette.muted}>
+        <T size={labelSize} color={light ? paper.muted : palette.muted}>
           {label}
         </T>
       ) : null}

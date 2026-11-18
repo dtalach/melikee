@@ -1,162 +1,201 @@
 /**
- * The Feed: what your people want. Friends with a birthday coming lead the
- * row; a friend's birthday list gets a dibs card; then friends' recent adds,
- * then what's trending.
+ * The Feed (Home → Friends), in the light style: a white page, thin
+ * oversized type and plenty of air. Friends with a birthday coming lead the
+ * row; the soonest birthday list gets the black countdown card; then friends'
+ * latest wants, big photo first; then what's trending.
  */
 import { useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { ago, daysUntil, SOON_DAYS } from '@/lib/dates';
 import { trending } from '@/store/seed';
 import { useApp } from '@/store/useApp';
-import { brand, palette, ringSoon } from '@/theme/tokens';
-
+import { brand, palette, paper } from '@/theme/tokens';
 import { Appear } from '@/ui/motion';
-import { Avatar, DaysTag, LimeFill, PhotoBox, T, Tap } from '@/ui/primitives';
-import { EmptyGlow } from './shared';
+import { LimeFill, PhotoBox, T, Tap } from '@/ui/primitives';
 
-/** Friends' side of Home: their birthdays, their new wants, ideas everyone likes. */
+/** "AVA’S SWEET 16" — small, tracked-out caps. */
+function Label({ children, color = paper.muted }: { children: string; color?: string }) {
+  return (
+    <T size={12} w={500} color={color} style={{ letterSpacing: 2.4, textTransform: 'uppercase' }}>
+      {children}
+    </T>
+  );
+}
+
+function Circle({ initial, ring, label, strong, onPress, a11y }: { initial: string; ring: string; label: string; strong?: boolean; onPress: () => void; a11y: string }) {
+  return (
+    <Tap onPress={onPress} accessibilityLabel={a11y} style={{ alignItems: 'center', gap: 8, width: 62 }}>
+      <View style={{ width: 58, height: 58, borderRadius: 29, borderWidth: 2.5, borderColor: ring, padding: 3 }}>
+        <View style={{ flex: 1, borderRadius: 999, backgroundColor: paper.avatar, alignItems: 'center', justifyContent: 'center' }}>
+          <T size={17} w={500} color={paper.text}>
+            {initial}
+          </T>
+        </View>
+      </View>
+      <T size={12} w={strong ? 600 : 400} color={paper.text} numberOfLines={1}>
+        {label}
+      </T>
+    </Tap>
+  );
+}
+
 export function Feed() {
   const friends = useApp((s) => s.friends);
   const feed = useApp((s) => s.feed);
   const friendLists = useApp((s) => s.friendLists);
   const friendDibs = useApp((s) => s.friendDibs);
+  const unread = useApp((s) => s.notifs.filter((n) => !n.read).length);
   const go = useApp((s) => s.go);
   const openSheet = useApp((s) => s.openSheet);
   const wantToo = useApp((s) => s.wantToo);
   const showToast = useApp((s) => s.showToast);
   const openCamera = useApp((s) => s.openCamera);
   const runCapture = useApp((s) => s.runCapture);
-
-  const people = friends.map((f) => ({ ...f, days: daysUntil(f.birthday) })).sort((a, b) => a.days - b.days);
-  const empty = friends.length === 0;
-  const byId = Object.fromEntries(friends.map((f) => [f.id, f]));
-
-  // The soonest friend birthday with a list gets the dibs card.
-  const bdayCard = people
-    .filter((p) => p.days <= SOON_DAYS)
-    .map((p) => ({ p, list: friendLists.find((l) => l.friendId === p.id && l.isBirthday) ?? friendLists.find((l) => l.friendId === p.id) }))
-    .find((x) => x.list);
-  const left = bdayCard?.list ? bdayCard.list.items.filter((i) => !i.taken && !friendDibs[i.id] && !i.pending).length : 0;
   const syncFriends = useApp((s) => s.syncFriends);
   useEffect(() => {
     void syncFriends();
   }, [syncFriends]);
 
+  const people = friends.map((f) => ({ ...f, days: daysUntil(f.birthday) })).sort((a, b) => a.days - b.days);
+  const empty = friends.length === 0;
+  const byId = Object.fromEntries(friends.map((f) => [f.id, f]));
+  const listOf = (id: string) => friendLists.find((l) => l.friendId === id && l.isBirthday) ?? friendLists.find((l) => l.friendId === id);
+
+  // The soonest friend birthday with a list gets the countdown card.
+  const bday = people.filter((p) => p.days <= SOON_DAYS).map((p) => ({ p, list: listOf(p.id) })).find((x) => x.list);
+  const left = bday?.list ? bday.list.items.filter((i) => !i.taken && !friendDibs[i.id] && !i.pending).length : 0;
+
   return (
-    <Appear style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
-        <View style={{ height: 6 }} />
+    <Appear style={{ flex: 1, backgroundColor: paper.bg }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 130 }}>
+        <View style={{ paddingTop: 18, paddingHorizontal: 24, paddingBottom: 22, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+            <T size={38} w={300} color={paper.text} style={{ letterSpacing: -1.2 }}>
+              The Feed
+            </T>
+            <T size={14} w={400} color={paper.muted}>
+              what your people want
+            </T>
+          </View>
+          <Tap onPress={() => go({ name: 'notifs' })} accessibilityLabel={`Notifications, ${unread} unread`} style={{ width: 46, height: 46, borderRadius: 23, borderWidth: 1, borderColor: paper.ring, alignItems: 'center', justifyContent: 'center' }}>
+            <BellLine />
+            {unread ? (
+              <View style={{ position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, backgroundColor: brand.pink, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 }}>
+                <T size={12} w={600} color={brand.white}>
+                  {unread}
+                </T>
+              </View>
+            ) : null}
+          </Tap>
+        </View>
 
         {empty ? (
-          <EmptyGlow
-            title={'Your Feed is quiet…\ntoo quiet.'}
-            body="This is where your friends' wants show up — and where you'll call dibs on their birthday gifts."
-            cta="Find your people"
-            onCta={() => openSheet({ type: 'invite' })}
-            icon="eye"
-          />
+          <View style={{ paddingHorizontal: 24, paddingTop: 40, gap: 16 }}>
+            <T size={30} w={300} color={paper.text} style={{ letterSpacing: -0.8, lineHeight: 36 }}>
+              {'Your Feed is quiet…\ntoo quiet.'}
+            </T>
+            <T size={15} w={400} color={paper.body} style={{ lineHeight: 22 }}>
+              This is where your friends’ wants show up, and where you call dibs on their birthday gifts.
+            </T>
+            <Tap onPress={() => openSheet({ type: 'invite' })} style={{ alignSelf: 'flex-start', backgroundColor: paper.card, borderRadius: 999, paddingVertical: 13, paddingHorizontal: 22, marginTop: 6 }}>
+              <T size={14} w={600} color={paper.cardText}>
+                Find your people
+              </T>
+            </Tap>
+          </View>
         ) : (
           <>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingHorizontal: 18, paddingBottom: 14 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingHorizontal: 24, paddingBottom: 30 }}>
               {people.map((p) => {
                 const soon = p.days <= SOON_DAYS;
-                const list = friendLists.find((l) => l.friendId === p.id);
+                const list = listOf(p.id);
                 return (
-                  <Tap
+                  <Circle
                     key={p.id}
-                    onPress={() => (list ? go({ name: 'friendList', id: list.id }) : showToast(`${p.name}’s lists open here`))}
-                    accessibilityLabel={soon ? `${p.name}, birthday in ${p.days} days` : p.name}
-                    style={{ alignItems: 'center', gap: 5, width: 56 }}
-                  >
-                    <Avatar initial={p.initial} size={54} ringWidth={2.5} ring={soon ? ringSoon : palette.deep} fontSize={16} />
-                    <T size={11} w={soon ? 800 : 600} color={soon ? brand.pink : palette.avt} numberOfLines={1}>
-                      {soon ? `${p.days}d` : p.name}
-                    </T>
-                  </Tap>
+                    initial={p.initial}
+                    ring={soon ? brand.pink : paper.ring}
+                    label={soon ? `${p.days}d` : p.name}
+                    strong={soon}
+                    a11y={soon ? `${p.name}, birthday in ${p.days} days` : p.name}
+                    onPress={() => (list ? go({ name: 'friendList', id: list.id }) : showToast(`${p.name} hasn’t shared a list with you yet`))}
+                  />
                 );
               })}
-              <Tap onPress={() => openSheet({ type: 'invite' })} style={{ alignItems: 'center', gap: 5, width: 56 }}>
-                <View style={{ width: 54, height: 54, borderRadius: 27, borderWidth: 1.5, borderStyle: 'dashed', borderColor: palette.vio66, alignItems: 'center', justifyContent: 'center' }}>
-                  <T size={22} color={palette.muted}>
+              <Tap onPress={() => openSheet({ type: 'invite' })} accessibilityLabel="Find your people" style={{ alignItems: 'center', gap: 8, width: 62 }}>
+                <View style={{ width: 58, height: 58, borderRadius: 29, borderWidth: 1.5, borderStyle: 'dashed', borderColor: paper.ring, alignItems: 'center', justifyContent: 'center' }}>
+                  <T size={26} w={200} color={paper.muted}>
                     +
                   </T>
                 </View>
-                <T size={11} color={palette.muted}>
+                <T size={12} w={400} color={paper.muted}>
                   Invite
                 </T>
               </Tap>
             </ScrollView>
 
-            {bdayCard?.list ? (
-              <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
-                <View style={{ backgroundColor: palette.card, borderWidth: 1, borderColor: palette.vio33, borderRadius: 18, padding: 14, gap: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Avatar initial={bdayCard.p.initial} size={36} ring={ringSoon} gap={palette.chip} fontSize={13} />
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <T size={14} w={800}>
-                        {bdayCard.list.name}
-                      </T>
-                      <T size={11.5} color={palette.muted}>
-                        in {bdayCard.p.days} days · {left} of {bdayCard.list.items.length} still up for dibs
-                      </T>
-                    </View>
-                    <DaysTag label={`${bdayCard.p.days}d`} />
+            {bday?.list ? (
+              <Tap onPress={() => go({ name: 'friendList', id: bday.list!.id })} accessibilityLabel={`${bday.list.name}: ${bday.p.days} days to go, see the list`} style={{ marginHorizontal: 24, backgroundColor: paper.card, borderRadius: 28, paddingTop: 26, paddingHorizontal: 26, paddingBottom: 26, gap: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Label color={paper.cardMuted}>{`${bday.p.name}’s ${bday.list.isBirthday ? 'birthday' : bday.list.name}`}</Label>
                   </View>
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    {bdayCard.list.items.slice(0, 4).map((i) => (
-                      <PhotoBox key={i.id} uri={i.image} label="" style={{ flex: 1, aspectRatio: 1, borderRadius: 10, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 5 }}>
-                        <T size={11} w={700}>
-                          {i.price}
-                        </T>
-                      </PhotoBox>
-                    ))}
-                  </View>
-                  <Tap onPress={() => go({ name: 'friendList', id: bdayCard.list!.id })} style={{ backgroundColor: brand.pink, borderRadius: 999, paddingVertical: 11, alignItems: 'center' }}>
-                    <T size={13} w={800} color={brand.white}>
-                      See {bdayCard.p.name}’s list · call dibs
-                    </T>
-                  </Tap>
+                  <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: brand.pink }} />
                 </View>
-              </View>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 12, marginTop: 6 }}>
+                  <T size={88} w={200} color={paper.cardText} style={{ letterSpacing: -4, lineHeight: 96 }}>
+                    {String(bday.p.days)}
+                  </T>
+                  <T size={18} w={400} color={paper.cardText}>
+                    {bday.p.days === 1 ? 'day to go' : bday.p.days === 0 ? 'today!' : 'days to go'}
+                  </T>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 10 }}>
+                  <T size={15} w={400} color={paper.cardMuted} style={{ flex: 1 }}>
+                    {left} of {bday.list.items.length} still up for dibs
+                  </T>
+                  <T size={15} w={500} color={paper.cardText}>
+                    See the list →
+                  </T>
+                </View>
+              </Tap>
             ) : null}
 
-            <View style={{ gap: 14, paddingHorizontal: 16 }}>
+            <View style={{ paddingTop: 44, paddingHorizontal: 24, gap: 18 }}>
+              <Label>Latest from friends</Label>
               {feed.length === 0 ? (
-                <T size={12} color={palette.muted} style={{ textAlign: 'center', paddingVertical: 10, lineHeight: 18 }}>
-                  Nothing new from your friends yet. When they add shinies to lists they share with you, they show up here.
+                <T size={15} w={400} color={paper.body} style={{ lineHeight: 22 }}>
+                  Nothing new yet. When friends add to lists they share with you, it shows up here.
                 </T>
               ) : null}
               {feed.map((f) => {
                 const who = byId[f.friendId];
                 if (!who) return null;
                 return (
-                  <View key={f.id} style={{ backgroundColor: palette.card, borderWidth: 1, borderColor: palette.vio33, borderRadius: 18, overflow: 'hidden' }}>
-                    <Tap onPress={() => openSheet({ type: 'feedItem', id: f.id })}>
-                      <View style={{ paddingVertical: 11, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Avatar initial={who.initial} size={28} fill={palette.deep} fontSize={11} w={700} />
-                        <T size={12.5} w={800} style={{ flexShrink: 1 }}>
-                          {who.name} <T size={12.5} color={palette.muted}>added to</T> <T size={12.5} w={700}>{f.list}</T>
-                        </T>
-                        <T size={11} color={palette.muted} style={{ marginLeft: 'auto' }}>
-                          {ago(f.at)}
-                        </T>
+                  <View key={f.id} style={{ gap: 12, paddingBottom: 18 }}>
+                    <Tap onPress={() => openSheet({ type: 'feedItem', id: f.id })} accessibilityLabel={`${f.name}, ${f.price}`}>
+                      <View style={{ borderRadius: 14, overflow: 'hidden', backgroundColor: paper.photo, borderWidth: 1, borderColor: paper.line }}>
+                        <PhotoBox light uri={f.image} label="photo" style={{ aspectRatio: 1.4 }} />
                       </View>
-                      <PhotoBox uri={f.image} style={{ height: 170 }} />
-                      <View style={{ paddingTop: 11, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-                        <T size={14} w={700} style={{ flex: 1 }}>
+                    </Tap>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <T size={14} w={400} color={paper.body} numberOfLines={1}>
+                          {who.name} · {f.list} · {ago(f.at)}
+                        </T>
+                        <T size={22} w={400} color={paper.text} style={{ letterSpacing: -0.3, lineHeight: 27 }} numberOfLines={2}>
                           {f.name}
                         </T>
-                        <T size={14} w={800} color={palette.limeText}>
-                          {f.price}
+                        <T size={14} w={400} color={paper.muted} numberOfLines={1}>
+                          {f.price} · {f.store}
                         </T>
                       </View>
-                      <T size={11.5} color={palette.muted} style={{ paddingTop: 2, paddingHorizontal: 14 }}>
-                        {f.store}
-                      </T>
-                    </Tap>
-                    <View style={{ paddingTop: 10, paddingBottom: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <WantButton wanted={f.wanted} onPress={() => wantToo(f.id)} />
+                      <Tap onPress={() => wantToo(f.id)} disabled={f.wanted} accessibilityLabel={f.wanted ? `${f.name} is in My wants` : `Want ${f.name} too`} style={{ paddingVertical: 6 }}>
+                        <T size={16} w={500} color={f.wanted ? paper.muted : paper.text} style={{ textDecorationLine: f.wanted ? 'none' : 'underline' }}>
+                          {f.wanted ? 'In My wants ✓' : 'Want it too'}
+                        </T>
+                      </Tap>
                     </View>
                   </View>
                 );
@@ -165,47 +204,45 @@ export function Feed() {
           </>
         )}
 
-        <View style={{ paddingTop: 18, paddingHorizontal: 18, paddingBottom: 6, flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-          <T size={14} w={800}>
-            Trending this week
-          </T>
-          <T size={11} color={palette.muted}>
-            tap one to add it
-          </T>
+        <View style={{ paddingTop: 30, paddingHorizontal: 24, paddingBottom: 14 }}>
+          <Label>Trending this week</Label>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}>
-          {trending.map((t) => {
-            const tone = t.tone === 'pink' ? { bd: brand.pink66, bg: brand.pink, fg: brand.white } : t.tone === 'vio' ? { bd: palette.vio66, bg: palette.vio, fg: palette.bg } : { bd: palette.lime66, bg: brand.lime, fg: brand.limeInk };
-            return (
-              <Tap
-                key={t.rank}
-                onPress={() => {
-                  // Trending is a list of names; tapping one looks up its real price.
-                  openCamera({ mode: 'snap' });
-                  void runCapture({ source: 'catalog', query: t.name });
-                }}
-                style={{ width: 122, backgroundColor: palette.card, borderWidth: 2, borderColor: tone.bd, borderRadius: 16, overflow: 'hidden' }}
-              >
-                <View style={{ position: 'absolute', top: 6, left: 6, zIndex: 1, backgroundColor: tone.bg, paddingVertical: 2, paddingHorizontal: 8, borderRadius: 6, transform: [{ rotate: '-3deg' }] }}>
-                  <T size={11} w={800} color={tone.fg}>
-                    {t.rank}
-                  </T>
-                </View>
-                <PhotoBox style={{ height: 74 }} />
-                <View style={{ paddingVertical: 8, paddingHorizontal: 10 }}>
-                  <T size={11.5} w={600} style={{ lineHeight: 14 }}>
-                    {t.name}
-                  </T>
-                  <T size={12} w={700} color={palette.limeText} style={{ marginTop: 2 }}>
-                    {t.price}
-                  </T>
-                </View>
-              </Tap>
-            );
-          })}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingHorizontal: 24 }}>
+          {trending.map((t) => (
+            <Tap
+              key={t.rank}
+              onPress={() => {
+                // Trending is a list of names; tapping one looks up its real price.
+                openCamera({ mode: 'snap' });
+                void runCapture({ source: 'catalog', query: t.name });
+              }}
+              style={{ width: 150, gap: 8 }}
+            >
+              <View style={{ aspectRatio: 1, borderRadius: 14, backgroundColor: paper.photo, alignItems: 'flex-start', justifyContent: 'flex-start', padding: 10 }}>
+                <T size={13} w={500} color={paper.muted}>
+                  {t.rank}
+                </T>
+              </View>
+              <T size={15} w={400} color={paper.text} numberOfLines={2} style={{ lineHeight: 19 }}>
+                {t.name}
+              </T>
+              <T size={14} w={400} color={paper.muted}>
+                {t.price}
+              </T>
+            </Tap>
+          ))}
         </ScrollView>
       </ScrollView>
     </Appear>
+  );
+}
+
+/** The bell, drawn thin to match the light Feed. */
+function BellLine() {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 16 16" fill="none" stroke={paper.text} strokeWidth={1.1}>
+      <Path d="M8 2a4 4 0 014 4c0 3 1.5 4.5 1.5 4.5h-11S4 9 4 6a4 4 0 014-4zM6.5 13a1.5 1.5 0 003 0" />
+    </Svg>
   );
 }
 

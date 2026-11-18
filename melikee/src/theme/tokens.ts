@@ -75,10 +75,31 @@ export const gift = {
   text: '#2d2a26',
 } as const;
 
+/**
+ * The light Feed (Home → Friends): white page, thin oversized type, a black
+ * countdown card, lots of air. Every other screen keeps the dark theme.
+ */
+export const paper = {
+  bg: '#ffffff',
+  text: '#111111',
+  body: '#3a3a3a',
+  muted: '#8e8e8e',
+  line: '#ececec',
+  photo: '#f4f4f4',
+  ring: '#e4e4e4',
+  avatar: '#f2f2f2',
+  card: '#121212',
+  cardText: '#ffffff',
+  cardMuted: '#bdbdbd',
+} as const;
+
 /** Friends' list accents offered when making a new list. */
 export const listColors = ['#5b8cff', '#2fd4c2', '#ffb02e', '#ff5da2', '#a78bfa'] as const;
 
 export const font = {
+  200: 'Inter_200ExtraLight',
+  300: 'Inter_300Light',
+  400: 'Inter_400Regular',
   500: 'Inter_500Medium',
   600: 'Inter_600SemiBold',
   700: 'Inter_700Bold',
