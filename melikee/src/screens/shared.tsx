@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import type { Vis } from '@/store/types';
 import { brand, palette } from '@/theme/tokens';
 import { LinkIcon, Lock, People } from '@/ui/icons';
-import { GiftWrap } from '@/ui/gift';
+import { GiftWrap, Sprinkles } from '@/ui/gift';
 import { PhotoBox, T, Tap, TextLink } from '@/ui/primitives';
 
 export function VisIcon({ vis, size = 11, color = palette.soft }: { vis: Vis; size?: number; color?: string }) {
@@ -60,12 +60,24 @@ export function BoardWrap() {
   return <GiftWrap right={62} top={40} band={9} bow={54} />;
 }
 
-export function MiniBoard({ shots, accent, name, sub, onPress, selected, width, label, wrapped }: { shots: CoverShot[]; accent: string; name: string; sub: string; onPress: () => void; selected?: boolean; width: number | `${number}%`; label?: string; wrapped?: boolean }) {
+/** The decoration an occasion's board wears: Christmas is wrapped, a birthday gets sprinkles. */
+export type BoardDecor = 'xmas' | 'bday' | undefined;
+export function boardDecor(l: { id: string; isBirthday?: boolean; date?: { month: string; day: number } }): BoardDecor {
+  if (l.isBirthday) return 'bday';
+  return isXmasList(l) ? 'xmas' : undefined;
+}
+export function BoardDecoration({ decor }: { decor: BoardDecor }) {
+  if (decor === 'xmas') return <BoardWrap />;
+  if (decor === 'bday') return <Sprinkles />;
+  return null;
+}
+
+export function MiniBoard({ shots, accent, name, sub, onPress, selected, width, label, decor }: { shots: CoverShot[]; accent: string; name: string; sub: string; onPress: () => void; selected?: boolean; width: number | `${number}%`; label?: string; decor?: BoardDecor }) {
   return (
     <Tap onPress={onPress} accessibilityLabel={label ?? `${name}, ${sub}`} accessibilityState={selected != null ? { selected } : undefined} style={{ width, gap: 6 }}>
       <View style={{ borderRadius: 8, borderWidth: 1.5, borderColor: selected ? palette.text : 'transparent', padding: 1 }}>
         <BoardCover shots={shots} accent={accent} initial={name[0] ?? ''} initialInk={accent === brand.lime ? brand.limeInk : brand.white}>
-          {wrapped ? <BoardWrap /> : null}
+          <BoardDecoration decor={decor} />
         </BoardCover>
       </View>
       <View style={{ paddingHorizontal: 2 }}>
