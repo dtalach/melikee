@@ -94,14 +94,14 @@ export function MiniBoard({ shots, accent, name, sub, onPress, selected, width, 
  * stacked on the right, from the list's shinies. Empty spots take the list's
  * color, faded; an empty list shows its initial on the color.
  */
-export function BoardCover({ shots, accent, initial, initialInk, children }: { shots: CoverShot[]; accent: string; initial: string; initialInk: string; children?: ReactNode }) {
+export function BoardCover({ shots, accent, initial, initialInk, children, gapColor = palette.bg }: { shots: CoverShot[]; accent: string; initial: string; initialInk: string; children?: ReactNode; gapColor?: string }) {
   const tile = (i: number, style: object) => {
     const s = shots[i];
     if (s) return <PhotoBox key={i} uri={s.uri} fallback={s.fallback} label="" fit="contain" style={style} />;
     return <View key={i} style={[style, { backgroundColor: accent, opacity: shots.length ? 0.28 : i === 0 ? 1 : 0.55 }]} />;
   };
   return (
-    <View style={{ aspectRatio: 1.35, borderRadius: 16, overflow: 'hidden', flexDirection: 'row', gap: 2, backgroundColor: palette.bg }}>
+    <View style={{ aspectRatio: 1.35, borderRadius: 16, overflow: 'hidden', flexDirection: 'row', gap: 2, backgroundColor: gapColor }}>
       {tile(0, { flex: 2 })}
       <View style={{ flex: 1, gap: 2 }}>
         {tile(1, { flex: 1 })}
