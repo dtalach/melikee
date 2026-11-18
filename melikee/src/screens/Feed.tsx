@@ -10,7 +10,7 @@ import { ago, daysUntil, SOON_DAYS } from '@/lib/dates';
 import { trending } from '@/store/seed';
 import { useApp } from '@/store/useApp';
 import { brand, palette, ringSoon } from '@/theme/tokens';
-import { Bell, Heart } from '@/ui/icons';
+import { Bell } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
 import { Avatar, DaysTag, LimeFill, PhotoBox, T, Tap } from '@/ui/primitives';
 import { EmptyGlow } from './shared';
@@ -23,7 +23,6 @@ export function Feed() {
   const unread = useApp((s) => s.notifs.filter((n) => !n.read).length);
   const go = useApp((s) => s.go);
   const openSheet = useApp((s) => s.openSheet);
-  const heart = useApp((s) => s.heart);
   const wantToo = useApp((s) => s.wantToo);
   const showToast = useApp((s) => s.showToast);
   const openCamera = useApp((s) => s.openCamera);
@@ -174,17 +173,6 @@ export function Feed() {
                       </T>
                     </Tap>
                     <View style={{ paddingTop: 10, paddingBottom: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Tap
-                        onPress={() => heart(f.id)}
-                        accessibilityLabel={f.myHeart ? 'Unlove' : 'Love'}
-                        accessibilityState={{ selected: f.myHeart }}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: palette.vio44, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 11 }}
-                      >
-                        <Heart color={f.myHeart ? brand.pink : palette.soft} fill={f.myHeart ? brand.pink : 'none'} />
-                        <T size={12} w={700} color={palette.soft}>
-                          {f.myHeart ? 'Loved' : 'Love'}
-                        </T>
-                      </Tap>
                       <WantButton wanted={f.wanted} onPress={() => wantToo(f.id)} />
                     </View>
                   </View>

@@ -6,10 +6,11 @@ import { LinkStatus } from '@/components/LinkStatus';
 import { profileLink } from '@/lib/links';
 import { friendsWithAccess, listAccent, plural, shinies, useApp, visibleLists } from '@/store/useApp';
 import { brand, palette, ringSoon } from '@/theme/tokens';
-import { Chevron, Gear, Gift, Lock } from '@/ui/icons';
+import { Gear, Gift, Lock } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
-import { Avatar, Card, GhostButton, LimeFill, PhotoBox, SectionLabel, T, Tap } from '@/ui/primitives';
+import { Avatar, Card, GhostButton, LimeFill, SectionLabel, T, Tap } from '@/ui/primitives';
 import { QrStub } from './Friends';
+import { coverShots, MiniBoard } from './shared';
 
 /** "today", "tomorrow", "in 12 days". */
 function dayWord(n: number) {
@@ -75,25 +76,23 @@ export function Me() {
         </View>
 
         <SectionLabel>WHAT FRIENDS SEE</SectionLabel>
-        {shared.map((l) => {
-          const n = s.items.filter((i) => i.list === l.id).length;
-          const f = friendsWithAccess(s, l.id).length;
-          return (
-            <Card key={l.id} onPress={() => s.go({ name: 'list', id: l.id })} style={{ paddingVertical: 11, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <PhotoBox label="" style={{ width: 44, height: 44, borderRadius: 11, borderWidth: 2, borderColor: listAccent(l) }} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <T size={13.5} w={700}>
-                  {l.name}
-                </T>
-                <T size={11.5} color={palette.muted}>
-                  {shinies(n)} · {plural(f, 'friend', 'friends')}
-                  {l.vis === 'invite' ? ' + link' : ''}
-                </T>
-              </View>
-              <Chevron dir="right" size={14} color={palette.muted} />
-            </Card>
-          );
-        })}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 14 }}>
+          {shared.map((l) => {
+            const its = s.items.filter((i) => i.list === l.id);
+            const f = friendsWithAccess(s, l.id).length;
+            return (
+              <MiniBoard
+                key={l.id}
+                width="48%"
+                shots={coverShots(its)}
+                accent={listAccent(l)}
+                name={l.name}
+                sub={`${shinies(its.length)} · ${plural(f, 'friend', 'friends')}${l.vis === 'invite' ? ' + link' : ''}`}
+                onPress={() => s.go({ name: 'list', id: l.id })}
+              />
+            );
+          })}
+        </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 2 }}>
           <Lock size={12} color={palette.muted} />
           <T size={11.5} color={palette.muted}>

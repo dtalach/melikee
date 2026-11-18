@@ -172,9 +172,7 @@ export function CleanupSheet({ listId }: { listId: string }) {
 }
 
 const NOTIF_ROWS: [keyof ReturnType<typeof useApp.getState>['notifSettings'], string, string][] = [
-  ['bday', 'Friends’ birthdays', '2 weeks and 3 days before'],
-  ['too', 'Someone wants yours too', 'when a friend adds the same thing'],
-  ['coming', 'Something’s coming', 'a hint when a gifter calls dibs, never what'],
+  ['bday', 'Friends’ birthdays', 'in the two weeks before'],
   ['req', 'Friend requests', 'and when someone accepts yours'],
 ];
 

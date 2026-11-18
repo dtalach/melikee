@@ -61,6 +61,34 @@ export function EmptyGlow({ title, body, cta, onCta, icon, children, fill, foote
 /** One photo on a board cover: the store's, else the user's own shot. */
 export type CoverShot = { uri?: string; fallback?: string };
 
+/** The shinies a cover shows: starred first, then newest, only ones with a photo. */
+export function coverShots(items: { image?: string; photo?: string; star?: boolean; createdAt?: number; at?: number }[]): CoverShot[] {
+  return [...items]
+    .sort((a, b) => Number(!!b.star) - Number(!!a.star) || (b.createdAt ?? b.at ?? 0) - (a.createdAt ?? a.at ?? 0))
+    .filter((i) => i.image || i.photo)
+    .slice(0, 3)
+    .map((i) => ({ uri: i.image, fallback: i.photo }));
+}
+
+/** A small board: cover, name, one line under it. For grids and strips. */
+export function MiniBoard({ shots, accent, name, sub, onPress, selected, width, label }: { shots: CoverShot[]; accent: string; name: string; sub: string; onPress: () => void; selected?: boolean; width: number | `${number}%`; label?: string }) {
+  return (
+    <Tap onPress={onPress} accessibilityLabel={label ?? `${name}, ${sub}`} accessibilityState={selected != null ? { selected } : undefined} style={{ width, gap: 6 }}>
+      <View style={{ borderRadius: 18, borderWidth: 2, borderColor: selected ? brand.lime : 'transparent' }}>
+        <BoardCover shots={shots} accent={accent} initial={name[0] ?? ''} initialInk={accent === brand.lime ? brand.limeInk : brand.white} />
+      </View>
+      <View style={{ paddingHorizontal: 2 }}>
+        <T size={13.5} w={800} numberOfLines={1}>
+          {name}
+        </T>
+        <T size={11} color={palette.muted} numberOfLines={1}>
+          {sub}
+        </T>
+      </View>
+    </Tap>
+  );
+}
+
 /**
  * A board cover, like a Pinterest board: one big photo on the left and two
  * stacked on the right, from the list's shinies. Empty spots take the list's

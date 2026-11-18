@@ -11,6 +11,7 @@ import { brand, palette, ringSoon } from '@/theme/tokens';
 import { Appear } from '@/ui/motion';
 import { Avatar, BackHeader, PhotoBox, T, Tap } from '@/ui/primitives';
 import { sortItems, SortRow, type SortKey } from './ListDetail';
+import { coverShots, MiniBoard } from './shared';
 
 export function FriendListScreen({ id }: { id: string }) {
   const list = useApp((s) => s.friendLists.find((l) => l.id === id));
@@ -69,25 +70,22 @@ export function FriendListScreen({ id }: { id: string }) {
         />
       </View>
       {siblings.length > 1 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 6, paddingHorizontal: 18, paddingBottom: 10 }}>
-          {siblings.map((l) => {
-            const on = l.id === list.id;
-            return (
-              <Tap
-                key={l.id}
-                accessibilityRole="button"
-                accessibilityState={{ selected: on }}
-                accessibilityLabel={`${friend.name}’s ${l.name}`}
-                // Switch lists in place: Back still goes to wherever you came from.
-                onPress={() => useApp.setState((st) => ({ stack: [...st.stack.slice(0, -1), { name: 'friendList', id: l.id }] }))}
-                style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: on ? brand.lime : palette.chip }}
-              >
-                <T size={12} w={700} color={on ? brand.limeInk : palette.soft}>
-                  {l.name} · {l.items.length}
-                </T>
-              </Tap>
-            );
-          })}
+        // All their lists as boards; the one you're on is outlined.
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 10, paddingHorizontal: 16, paddingBottom: 12 }}>
+          {siblings.map((l) => (
+            <MiniBoard
+              key={l.id}
+              width={128}
+              shots={coverShots(l.items)}
+              accent={l.isBirthday ? brand.pink : l.listId === 'w' ? brand.lime : l.date === 'Dec 25' ? '#4fd18b' : palette.vio}
+              name={l.name}
+              sub={`${l.items.length} ${l.items.length === 1 ? 'shiny' : 'shinies'}`}
+              selected={l.id === list.id}
+              label={`${friend.name}’s ${l.name}`}
+              // Switch lists in place: Back still goes to wherever you came from.
+              onPress={() => useApp.setState((st) => ({ stack: [...st.stack.slice(0, -1), { name: 'friendList', id: l.id }] }))}
+            />
+          ))}
         </ScrollView>
       ) : null}
       <SortRow by={by} onPick={setBy} note={`★ = ${friend.name} really wants`} />
