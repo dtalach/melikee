@@ -9,10 +9,10 @@ import { useEffect } from 'react';
 import { ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 
 import type { Budget } from '@/lib/ideasContract';
-import { useApp, type IdeaCard } from '@/store/useApp';
+import { IDEAS_STALE_MS, useApp, type IdeaCard } from '@/store/useApp';
 import { brand, palette } from '@/theme/tokens';
 import { Close, Sparkle } from '@/ui/icons';
-import { Appear, Twinkle } from '@/ui/motion';
+import { Appear, Pulse } from '@/ui/motion';
 import { PhotoBox, T, Tap } from '@/ui/primitives';
 
 const BUDGETS: [Budget, string][] = [
@@ -22,9 +22,6 @@ const BUDGETS: [Budget, string][] = [
   ['under100', 'Under $100'],
   ['splurge', 'Splurge'],
 ];
-
-/** A batch older than this is refreshed when the tab opens. */
-const STALE_MS = 12 * 3600 * 1000;
 
 export function Ideas() {
   const ideas = useApp((s) => s.ideas);
@@ -37,7 +34,7 @@ export function Ideas() {
 
   useEffect(() => {
     const st = useApp.getState().ideas;
-    if (!st.cards.length || Date.now() - st.at > STALE_MS) void loadIdeas();
+    if (!st.cards.length || Date.now() - st.at > IDEAS_STALE_MS) void loadIdeas();
   }, [loadIdeas]);
 
   // Near the bottom: fetch the next batch.
@@ -92,7 +89,7 @@ export function Ideas() {
           {cards.map((c) => (
             <IdeaTile key={c.id} c={c} />
           ))}
-          {loading ? [0, 1, 2, 3].slice(0, cards.length ? 2 : 4).map((i) => <SkeletonTile key={`s${i}`} />) : null}
+          {loading ? [0, 1, 2, 3, 4, 5].slice(0, cards.length ? 2 : 6).map((i) => <SkeletonTile key={`s${i}`} />) : null}
         </View>
 
         {error ? (
@@ -156,12 +153,12 @@ function IdeaTile({ c }: { c: IdeaCard }) {
 
 function SkeletonTile() {
   return (
-    <View style={{ width: '48%', gap: 7 }}>
-      <Twinkle period={1400}>
+    <View style={{ width: '48%' }}>
+      <Pulse style={{ gap: 7 }}>
         <View style={{ aspectRatio: 1, borderRadius: 16, backgroundColor: palette.card }} />
-      </Twinkle>
-      <View style={{ height: 12, width: '80%', borderRadius: 6, backgroundColor: palette.card }} />
-      <View style={{ height: 10, width: '55%', borderRadius: 5, backgroundColor: palette.card }} />
+        <View style={{ height: 12, width: '80%', borderRadius: 6, backgroundColor: palette.card }} />
+        <View style={{ height: 10, width: '55%', borderRadius: 5, backgroundColor: palette.card }} />
+      </Pulse>
     </View>
   );
 }

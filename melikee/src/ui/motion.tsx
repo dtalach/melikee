@@ -56,6 +56,18 @@ export function Twinkle({ children, period = 2200, delay = 0, style }: { childre
   return <Animated.View style={[style, { opacity, transform: [{ scale }] }]}>{children}</Animated.View>;
 }
 
+/** A loading pulse: opacity only, so it never grows into its neighbours. */
+export function Pulse({ children, period = 1400, style }: { children: ReactNode; period?: number; style?: StyleProp<ViewStyle> }) {
+  const v = useLoop((x) =>
+    Animated.sequence([
+      Animated.timing(x, { toValue: 1, duration: period / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: native }),
+      Animated.timing(x, { toValue: 0, duration: period / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: native }),
+    ]),
+  );
+  const opacity = v.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0.9] });
+  return <Animated.View style={[style, { opacity }]}>{children}</Animated.View>;
+}
+
 /** mlk-breathe: a slow 1→1.05 swell. */
 export function Breathe({ children, period = 3200, on = true, style }: { children: ReactNode; period?: number; on?: boolean; style?: StyleProp<ViewStyle> }) {
   const v = useValue(0);

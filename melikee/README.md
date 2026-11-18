@@ -181,6 +181,10 @@ The Ideas tab is a scroll of specific products picked for this person
 - **Fast:** no web search in that call. Photos load in the background through
   the same lookup as captures (cached a week); "Want it" saves to My wants at
   once and finds the real store and price behind the scenes.
+- **Pages of 20, ready ahead:** at launch the app fetches the first 20 in the
+  background (and refreshes them after 12 hours), then the next 20 while those
+  are on screen; reaching the end shows the next page at once and starts the
+  one after. Photos fill in three at a time, on-screen ideas first.
 - **Limits and caching:** same signals → same ideas for 6 hours. 60 batches a
   day per signed-in device, 20 per connection otherwise.
 

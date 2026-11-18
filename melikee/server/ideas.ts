@@ -52,7 +52,7 @@ Work in two steps.
 2. Ideas. Suggest the requested number of products.
 - Each is one real product sold now in their region, named the way a store lists it (brand, product, key variant), so a search finds it. Never a category ("a cozy hoodie", "skincare set").
 - Complement, don't duplicate: nothing already on their lists, already seen, or turned down (including near-identical variants). Accessories, upgrades and things that go with what they want are good.
-- Spread: at most two ideas per theme, plus one "stretch" idea outside the themes that still fits who they are.
+- Spread: share the ideas out across the themes (no theme more than a third of them), plus one or two "stretch" ideas outside the themes that still fit who they are.
 - Price: follow the budget line. Without one, mix bands around the prices on their lists.
 - Season and occasions: if Christmas or their birthday is near, lean toward giftable things; never mention dates.
 - Age-appropriate, always: no alcohol, nicotine or vapes, cannabis, gambling, weapons, adult content, diet pills or risky supplements. For under-18s also nothing that needs an adult (contracts, subscriptions with auto-renew, dating or meet-up apps).

@@ -141,7 +141,8 @@ type Content = {
   /** Others can find me by my full phone number. */
   findByPhone: boolean;
   /** Gift inspiration: the current batch (persisted so the tab opens instantly) and how it was asked for. */
-  ideas: { cards: IdeaCard[]; themes: Theme[]; budget: Budget; at: number };
+  /** `next`: the following page, fetched while the person looks at `cards`, so scrolling on is instant. */
+  ideas: { cards: IdeaCard[]; next?: IdeaCard[]; themes: Theme[]; budget: Budget; at: number };
   /** How the person reacted to ideas: the strongest taste signal there is. */
   ideaFeedback: IdeaFeedback;
   /** What they recently typed or said on the capture screen. */
@@ -282,7 +283,7 @@ function freshContent(): Content {
     sent: [],
     findByPhone: true,
     feedLocal: {},
-    ideas: { cards: [], themes: [], budget: 'any', at: 0 },
+    ideas: { cards: [], next: [], themes: [], budget: 'any', at: 0 },
     ideaFeedback: { liked: [], disliked: [] },
     recentQueries: [],
     linkHolders: [],
@@ -720,23 +721,49 @@ export const useApp = create<AppState>()(
       },
       loadIdeas: async (more) => {
         const s0 = get();
-        if (s0.ideasLoading || !s0.phone) return;
+        if (!s0.phone) return;
+        const next = s0.ideas.next ?? [];
+        // The next page is usually ready: show it at once and start on the one after.
+        if (more && next.length) {
+          set((st) => {
+            const have = new Set(st.ideas.cards.map((c) => c.id));
+            return { ideas: { ...st.ideas, cards: [...st.ideas.cards, ...next.filter((c) => !have.has(c.id))], next: [] } };
+          });
+          void fillIdeaImages();
+          void prefetchIdeas();
+          return;
+        }
+        if (s0.ideasLoading) return;
+        // The next page is still on its way: wait for it rather than ask twice.
+        if (more && inflightPrefetch) {
+          set({ ideasLoading: true, ideasError: null });
+          await inflightPrefetch;
+          set({ ideasLoading: false });
+          if ((get().ideas.next ?? []).length) return get().loadIdeas(true);
+        }
         set({ ideasLoading: true, ideasError: null });
+        const budget = s0.ideas.budget;
         const shown = more ? s0.ideas.cards.map((c) => c.name) : [];
-        const r = await fetchIdeas(s0.ownerSecret, buildSignals(s0, s0.ideas.budget, shown), 8);
+        const r = await fetchIdeas(s0.ownerSecret, buildSignals(s0, budget, shown), IDEAS_PAGE);
         if (!r.ok) {
           set({ ideasLoading: false, ideasError: r.message });
+          return;
+        }
+        // The budget changed while this was on its way: it's the wrong page.
+        if (get().ideas.budget !== budget) {
+          set({ ideasLoading: false });
           return;
         }
         set((st) => {
           const old = more ? st.ideas.cards : [];
           const have = new Set(old.map((c) => c.id));
-          return { ideasLoading: false, ideas: { ...st.ideas, cards: [...old, ...r.ideas.filter((i) => !have.has(i.id))], themes: r.themes, at: Date.now() } };
+          return { ideasLoading: false, ideas: { ...st.ideas, cards: [...old, ...r.ideas.filter((i) => !have.has(i.id))], next: more ? st.ideas.next : [], themes: r.themes, at: Date.now() } };
         });
         void fillIdeaImages();
+        void prefetchIdeas();
       },
       setIdeaBudget: (budget) => {
-        set((st) => ({ ideas: { ...st.ideas, budget, cards: [] } }));
+        set((st) => ({ ideas: { ...st.ideas, budget, cards: [], next: [] } }));
         void get().loadIdeas();
       },
       wantIdea: (id) => {
@@ -1187,25 +1214,71 @@ export function fillImage(m: { name: string; url?: string; image?: string; color
     .finally(() => imageLookups.delete(key));
 }
 
+/** Ideas come in pages of this many. */
+const IDEAS_PAGE = 20;
+/** A batch older than this is refreshed (in the background at launch, or when the tab opens). */
+export const IDEAS_STALE_MS = 12 * 3600 * 1000;
+
 /**
- * Photos for idea cards, two lookups at a time (each is a web search on the
+ * Fetch the page after what's showing into `ideas.next`, quietly (no
+ * skeletons), so reaching the end of the scroll shows it at once.
+ */
+let inflightPrefetch: Promise<void> | null = null;
+function prefetchIdeas(): Promise<void> {
+  if (inflightPrefetch) return inflightPrefetch;
+  const s0 = useApp.getState();
+  if (!s0.phone || (s0.ideas.next ?? []).length || !s0.ideas.cards.length) return Promise.resolve();
+  inflightPrefetch = fetchNextPage().finally(() => {
+    inflightPrefetch = null;
+  });
+  return inflightPrefetch;
+}
+
+async function fetchNextPage() {
+  const s0 = useApp.getState();
+  const budget = s0.ideas.budget;
+  const shown = s0.ideas.cards.map((c) => c.name);
+  const r = await fetchIdeas(s0.ownerSecret, buildSignals(s0, budget, shown), IDEAS_PAGE);
+  if (!r.ok) return;
+  useApp.setState((st) => {
+    if (st.ideas.budget !== budget) return {};
+    const have = new Set(st.ideas.cards.map((c) => c.id));
+    return { ideas: { ...st.ideas, next: r.ideas.filter((i) => !have.has(i.id)) } };
+  });
+  void fillIdeaImages();
+}
+
+/** At launch: have the first page (and the one after) ready before the tab is opened. */
+export function warmIdeas() {
+  const st = useApp.getState();
+  if (!st.ideas.cards.length || Date.now() - st.ideas.at > IDEAS_STALE_MS) void st.loadIdeas();
+  else void prefetchIdeas();
+}
+
+/**
+ * Photos for idea cards, three lookups at a time (each is a web search on the
  * server, cached for a week). Ideas whose photo can't be found keep their
  * coloured placeholder.
  */
 const ideaImageTried = new Set<string>();
 async function fillIdeaImages() {
-  const next = () => useApp.getState().ideas.cards.find((c) => !c.image && !c.state && !ideaImageTried.has(c.id));
+  const next = () => {
+    const { cards, next: later = [] } = useApp.getState().ideas;
+    // What's on screen first, then the page waiting to be shown.
+    return [...cards, ...later].find((c) => !c.image && !c.state && !ideaImageTried.has(c.id));
+  };
   const worker = async () => {
     for (let c = next(); c; c = next()) {
       ideaImageTried.add(c.id);
       const image = await imageFor({ name: c.name }).catch(() => null);
       if (image) {
         const id = c.id;
-        useApp.setState((st) => ({ ideas: { ...st.ideas, cards: st.ideas.cards.map((x) => (x.id === id ? { ...x, image } : x)) } }));
+        const put = (x: IdeaCard) => (x.id === id ? { ...x, image } : x);
+        useApp.setState((st) => ({ ideas: { ...st.ideas, cards: st.ideas.cards.map(put), next: (st.ideas.next ?? []).map(put) } }));
       }
     }
   };
-  await Promise.all([worker(), worker()]);
+  await Promise.all([worker(), worker(), worker()]);
 }
 
 /** Once per launch: find photos for saved shinies that never got one (one at a time). */

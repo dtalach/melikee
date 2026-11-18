@@ -20,7 +20,7 @@ import { Me } from '@/screens/Me';
 import { Notifications } from '@/screens/Notifications';
 import { Onboarding } from '@/screens/Onboarding';
 import { Settings } from '@/screens/Settings';
-import { backfillImages, useApp } from '@/store/useApp';
+import { backfillImages, useApp, warmIdeas } from '@/store/useApp';
 import type { Route } from '@/store/types';
 import { palette } from '@/theme/tokens';
 import { Dock } from './Dock';
@@ -52,6 +52,11 @@ export function Shell() {
       clearInterval(every);
       sub.remove();
     };
+  }, [onboarded, verified]);
+
+  // Gift ideas: have the first page (and the next) ready before the Ideas tab is opened.
+  useEffect(() => {
+    if (onboarded && verified) warmIdeas();
   }, [onboarded, verified]);
 
   // Shinies saved before photo lookup existed (or whose lookup failed) get one more try.
