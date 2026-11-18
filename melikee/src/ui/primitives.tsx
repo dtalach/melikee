@@ -35,7 +35,17 @@ export function T({
   style,
   ...rest
 }: TextProps & { size?: number; w?: Weight; color?: string; style?: StyleProp<TextStyle> }) {
-  return <Text {...rest} style={[{ fontFamily: font[w], fontSize: typeSize(size), color }, style]} />;
+  return <Text {...rest} style={[{ fontFamily: font[monoWeight(w, size)], fontSize: typeSize(size), color }, style]} />;
+}
+
+/**
+ * Mono uses three weights: 300, 400 and 500. Heavier asks become 500, and
+ * big ones (titles, prices) become light 300, which is how Mono draws display
+ * type.
+ */
+function monoWeight(w: Weight, size: number): Weight {
+  if (w < 600) return w;
+  return size >= 20 ? 300 : 500;
 }
 
 /**
@@ -54,12 +64,23 @@ function typeSize(size: number) {
   return size;
 }
 
-/** "WHAT FRIENDS SEE" — the small tracked-out caps label above a group. */
+/** "WHAT FRIENDS SEE": small caps, tracked out, muted. Section headers and row labels. */
 export function SectionLabel({ children, style, color = palette.muted }: { children: ReactNode; style?: StyleProp<TextStyle>; color?: string }) {
   return (
-    <T size={11} w={700} color={color} style={[{ letterSpacing: 0.66 }, style]}>
+    <T size={12} w={400} color={color} style={[{ letterSpacing: 1.6, textTransform: 'uppercase' }, style]}>
       {children}
     </T>
+  );
+}
+
+/** Every secondary action: "Not it", "Share", "New list", "Remove". Underlined, never a box. */
+export function TextLink({ label, onPress, color = palette.text, size = 13, style, disabled, accessibilityLabel }: { label: string; onPress?: () => void; color?: string; size?: number; style?: StyleProp<ViewStyle>; disabled?: boolean; accessibilityLabel?: string }) {
+  return (
+    <Tap onPress={onPress} disabled={disabled} accessibilityRole="link" accessibilityLabel={accessibilityLabel ?? label} style={[{ minHeight: 44, justifyContent: 'center', opacity: disabled ? 0.45 : 1 }, style]}>
+      <T size={size} w={500} color={color} style={{ textDecorationLine: 'underline' }}>
+        {label}
+      </T>
+    </Tap>
   );
 }
 
@@ -81,13 +102,9 @@ export function Tap({ style, children, hitSlop = HIT, ...rest }: PressableProps 
   );
 }
 
-/** The lime gradient fill used on every primary action. */
+/** The fill of the one primary action on a screen: solid ink, white text. */
 export function LimeFill({ style, children, radius = 999 }: { style?: StyleProp<ViewStyle>; children?: ReactNode; radius?: number }) {
-  return (
-    <LinearGradient colors={[brand.limeTop, brand.lime]} style={[{ borderRadius: radius }, style]}>
-      {children}
-    </LinearGradient>
-  );
+  return <View style={[{ borderRadius: radius, backgroundColor: palette.text }, style]}>{children}</View>;
 }
 
 type BtnProps = {
@@ -104,8 +121,8 @@ type BtnProps = {
 export function LimeButton({ label, onPress, size = 14, pad = 13, disabled, style, flex }: BtnProps) {
   return (
     <Tap onPress={disabled ? undefined : onPress} disabled={disabled} style={[flex && { flex: 1 }, { opacity: disabled ? 0.45 : 1 }, style]}>
-      <LimeFill style={{ paddingVertical: pad, paddingHorizontal: 16, alignItems: 'center' }}>
-        <T size={size} w={800} color={brand.limeInk}>
+      <LimeFill style={{ paddingVertical: Math.max(pad, 15), paddingHorizontal: 18, alignItems: 'center' }}>
+        <T size={Math.max(size, 15)} w={500} color={brand.limeInk}>
           {label}
         </T>
       </LimeFill>
@@ -113,45 +130,45 @@ export function LimeButton({ label, onPress, size = 14, pad = 13, disabled, styl
   );
 }
 
-/** Outlined in the accent: "Type it instead", "Paste a link". */
-export function AccentButton({ label, onPress, size = 13.5, pad = 12, style, flex, color = palette.vio, width = 1.5 }: BtnProps & { color?: string; width?: number }) {
+/** Secondary actions are text links in Mono: "Type it instead", "Paste a link". */
+export function AccentButton({ label, onPress, size = 13.5, style, flex, color = palette.text }: BtnProps & { color?: string; width?: number }) {
   return (
-    <Tap onPress={onPress} style={[flex && { flex: 1 }, { paddingVertical: pad, paddingHorizontal: 16, borderRadius: 999, borderWidth: width, borderColor: color, alignItems: 'center' }, style]}>
-      <T size={size} w={800} color={color}>
+    <Tap onPress={onPress} accessibilityRole="link" style={[flex && { flex: 1 }, { minHeight: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' }, style]}>
+      <T size={Math.min(size, 14)} w={500} color={color} style={{ textDecorationLine: 'underline' }}>
         {label}
       </T>
     </Tap>
   );
 }
 
-/** Quiet, outlined: "Not it", "Edit profile", "Share". */
-export function GhostButton({ label, onPress, size = 13.5, pad = 12, style, flex, w = 700, border = palette.vio55, color = palette.text }: BtnProps & { w?: Weight; border?: string; color?: string }) {
+/** Quiet actions: "Not it", "Edit profile", "Share" — an underlined link. */
+export function GhostButton({ label, onPress, size = 13.5, style, flex, color = palette.text }: BtnProps & { w?: Weight; border?: string; color?: string }) {
   return (
-    <Tap onPress={onPress} style={[flex && { flex: 1 }, { paddingVertical: pad, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: border, alignItems: 'center' }, style]}>
-      <T size={size} w={w} color={color}>
+    <Tap onPress={onPress} accessibilityRole="link" style={[flex && { flex: 1 }, { minHeight: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' }, style]}>
+      <T size={Math.min(size, 14)} w={500} color={color} style={{ textDecorationLine: 'underline' }}>
         {label}
       </T>
     </Tap>
   );
 }
 
-/** Filled chip-grey: "Try again", "Cancel", "Undo". */
-export function ChipButton({ label, onPress, size = 13.5, pad = 12, style, flex }: BtnProps) {
+/** "Try again", "Cancel", "Undo" — a muted link. */
+export function ChipButton({ label, onPress, size = 13.5, style, flex }: BtnProps) {
   return (
-    <Tap onPress={onPress} style={[flex && { flex: 1 }, { paddingVertical: pad, paddingHorizontal: 16, borderRadius: 999, backgroundColor: palette.chip, alignItems: 'center' }, style]}>
-      <T size={size} w={700}>
+    <Tap onPress={onPress} accessibilityRole="link" style={[flex && { flex: 1 }, { minHeight: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' }, style]}>
+      <T size={Math.min(size, 14)} w={500} color={palette.soft} style={{ textDecorationLine: 'underline' }}>
         {label}
       </T>
     </Tap>
   );
 }
 
-/** Small solid lime pill: "+ New list", "+ Invite", "Accept", "Add". */
+/** "New list", "Find", "Accept", "Add" — a text link in Mono (the screen's one black button is LimeButton). */
 export function LimePill({ label, onPress, size = 12.5, style }: { label: string; onPress?: () => void; size?: number; style?: StyleProp<ViewStyle> }) {
   return (
-    <Tap onPress={onPress} style={[{ backgroundColor: brand.lime, paddingVertical: 7, paddingHorizontal: 15, borderRadius: 999 }, style]}>
-      <T size={size} w={800} color={brand.limeInk}>
-        {label}
+    <Tap onPress={onPress} accessibilityRole="link" style={[{ minHeight: 44, paddingHorizontal: 6, justifyContent: 'center' }, style]}>
+      <T size={Math.max(size, 13)} w={500} color={palette.text} style={{ textDecorationLine: 'underline' }}>
+        {label.replace(/^\+\s*/, '')}
       </T>
     </Tap>
   );
@@ -164,15 +181,14 @@ export function OptionPill({ label, on, onPress, size = 11.5 }: { label: string;
       onPress={onPress}
       accessibilityState={{ selected: on }}
       style={{
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 999,
-        borderWidth: 1.5,
-        borderColor: on ? palette.vio : palette.vio33,
-        backgroundColor: on ? palette.vio22 : 'transparent',
+        minHeight: 36,
+        justifyContent: 'center',
+        paddingHorizontal: 2,
+        borderBottomWidth: 1,
+        borderBottomColor: on ? palette.text : 'transparent',
       }}
     >
-      <T size={size} w={700} color={on ? palette.text : palette.muted}>
+      <T size={size} w={400} color={on ? palette.text : palette.muted} style={{ letterSpacing: 1.4, textTransform: 'uppercase' }}>
         {label}
       </T>
     </Tap>
@@ -198,17 +214,17 @@ export function AccessChip({ label, on, onPress }: { label: string; on: boolean;
 
 export function Toggle({ on }: { on: boolean }) {
   return (
-    <View style={{ width: 38, height: 22, borderRadius: 11, backgroundColor: on ? palette.vio : palette.chip }}>
-      <View style={{ position: 'absolute', top: 3, left: on ? 19 : 3, width: 16, height: 16, borderRadius: 8, backgroundColor: on ? palette.bg : palette.text }} />
+    <View style={{ width: 40, height: 24, borderRadius: 12, backgroundColor: on ? palette.text : palette.deep }}>
+      <View style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: palette.bg, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
     </View>
   );
 }
 
 export function ToggleRow({ title, sub, on, onPress, style }: { title: string; sub?: string; on: boolean; onPress: () => void; style?: StyleProp<ViewStyle> }) {
   return (
-    <Tap onPress={onPress} accessibilityRole="switch" accessibilityState={{ checked: on }} style={[{ flexDirection: 'row', alignItems: 'center', gap: 10 }, style]}>
+    <Tap onPress={onPress} accessibilityRole="switch" accessibilityState={{ checked: on }} style={[{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingVertical: 8, borderTopWidth: 1, borderTopColor: palette.vio33 }, style]}>
       <View style={{ flex: 1 }}>
-        <T size={13} w={700}>
+        <T size={14} w={400}>
           {title}
         </T>
         {sub ? (
@@ -232,8 +248,9 @@ export function Radio({ on }: { on: boolean }) {
 
 // ——— surfaces ———
 
+/** A group of content: no box in Mono, just a hairline above it. */
 export function Card({ children, style, border = palette.vio33, onPress }: { children: ReactNode; style?: StyleProp<ViewStyle>; border?: string; onPress?: () => void }) {
-  const s = [{ backgroundColor: palette.card, borderWidth: 1, borderColor: border, borderRadius: 16 }, style];
+  const s = [style, { backgroundColor: 'transparent', borderWidth: 0, borderTopWidth: 1, borderTopColor: border === palette.vio33 || border === palette.lime66 ? palette.vio33 : border, borderRadius: 0, paddingHorizontal: 0 }];
   if (onPress) {
     return (
       <Tap onPress={onPress} style={s}>
@@ -247,11 +264,11 @@ export function Card({ children, style, border = palette.vio33, onPress }: { chi
 /** Card row with a chevron — Settings and Me. */
 export function NavRow({ title, sub, onPress, left, border = palette.vio33, right }: { title: ReactNode; sub?: string; onPress: () => void; left?: ReactNode; border?: string; right?: ReactNode }) {
   return (
-    <Card onPress={onPress} border={border} style={{ paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+    <Card onPress={onPress} border={border} style={{ minHeight: 52, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       {left}
       <View style={{ flex: 1 }}>
         {typeof title === 'string' ? (
-          <T size={13} w={700}>
+          <T size={15} w={400}>
             {title}
           </T>
         ) : (
@@ -361,7 +378,7 @@ export function Avatar({ initial, size = 36, ring, ringWidth = 2, fontSize, gap 
 export function DaysTag({ label, radius = 6, size = 11, style }: { label: string; radius?: number; size?: number; style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[{ backgroundColor: brand.pink, paddingVertical: 2, paddingHorizontal: 8, borderRadius: radius }, style]}>
-      <T size={size} w={800} color={brand.white}>
+      <T size={size} w={500} color={palette.text}>
         {label}
       </T>
     </View>
@@ -378,13 +395,12 @@ export function Field({ style, ...rest }: TextInputProps & { style?: StyleProp<T
       style={[
         {
           backgroundColor: palette.inset,
-          borderWidth: 1,
-          borderColor: palette.vio44,
-          borderRadius: 12,
-          paddingVertical: 10,
-          paddingHorizontal: 12,
-          fontSize: 13,
-          fontFamily: font[500],
+          borderWidth: 0,
+          borderRadius: 10,
+          paddingVertical: 12,
+          paddingHorizontal: 14,
+          fontSize: 14,
+          fontFamily: font[400],
           color: palette.text,
         },
         style,
@@ -405,7 +421,7 @@ export function Select<V extends string>({ value, options, onChange, style, size
         onPress={() => setOpen((o) => !o)}
         accessibilityLabel={accessibilityLabel}
         accessibilityState={{ expanded: open }}
-        style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: open ? palette.vio : palette.vio44, borderRadius: 12, paddingVertical: pad, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center' }}
+        style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: open ? palette.text : 'transparent', borderRadius: 10, paddingVertical: Math.max(pad, 12), paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' }}
       >
         <T size={size} w={600} style={{ flex: 1 }}>
           {value}
@@ -441,11 +457,11 @@ export function Select<V extends string>({ value, options, onChange, style, size
 export function BackHeader({ title, onBack, right, sub }: { title: string; onBack: () => void; right?: ReactNode; sub?: ReactNode }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 4 }}>
-      <Tap onPress={onBack} accessibilityLabel="Back" style={{ width: 28, height: 32, justifyContent: 'center' }}>
-        <Chevron color={palette.muted} />
+      <Tap onPress={onBack} accessibilityLabel="Back" style={{ width: 44, height: 44, marginLeft: -12, alignItems: 'center', justifyContent: 'center' }}>
+        <Chevron color={palette.text} strokeWidth={1.3} />
       </Tap>
       <View style={{ flex: 1, minWidth: 0, gap: 5, alignItems: 'flex-start' }}>
-        <T size={20} w={800}>
+        <T size={28} w={300} style={{ letterSpacing: -0.8 }}>
           {title}
         </T>
         {sub}
@@ -464,16 +480,13 @@ export function SheetFrame({ children, onClose, gap = 12, border = palette.vio44
         <View
           style={{
             backgroundColor: palette.card,
-            borderWidth: 1,
-            borderBottomWidth: 0,
-            borderColor: border,
-            borderTopLeftRadius: 22,
-            borderTopRightRadius: 22,
-            paddingTop: 14,
-            paddingHorizontal: 18,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            paddingTop: 12,
+            paddingHorizontal: 24,
             paddingBottom: bottom,
-            gap,
-            boxShadow: '0 -10px 34px rgba(0,0,0,0.6)',
+            gap: Math.max(gap, 14),
+            boxShadow: '0 -1px 0 rgba(0,0,0,0.07), 0 -20px 40px rgba(0,0,0,0.06)',
             maxHeight: '92%',
           }}
         >
@@ -488,11 +501,11 @@ export function SheetFrame({ children, onClose, gap = 12, border = palette.vio44
 export function SheetTitle({ children, sub }: { children: ReactNode; sub?: string }) {
   return (
     <View>
-      <T size={17} w={800}>
+      <T size={24} w={300} style={{ letterSpacing: -0.6 }}>
         {children}
       </T>
       {sub ? (
-        <T size={12} color={palette.muted} style={{ marginTop: 3, lineHeight: 18 }}>
+        <T size={13} color={palette.muted} style={{ marginTop: 6, lineHeight: 20 }}>
           {sub}
         </T>
       ) : null}

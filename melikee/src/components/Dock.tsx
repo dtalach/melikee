@@ -8,18 +8,17 @@
 import * as Haptics from 'expo-haptics';
 import { useRef } from 'react';
 import { Platform, Pressable, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '@/store/useApp';
 import type { Route } from '@/store/types';
-import { brand, palette, paper } from '@/theme/tokens';
-import { Plus, People, Sparkle, TabHome, TabLists, TabMe } from '@/ui/icons';
+import { accent, brand, palette } from '@/theme/tokens';
+import { Plus, People, TabHome, TabLists, TabMe } from '@/ui/icons';
 import { Breathe } from '@/ui/motion';
 import { T, Tap } from '@/ui/primitives';
 
-/** `light`: the white dock that goes with the light Feed. */
-export function Dock({ route, light }: { route: Route; light?: boolean }) {
+/** The white Mono dock: outline icons, a small dot under the active tab, the lime + in the middle. */
+export function Dock({ route }: { route: Route; light?: boolean }) {
   const insets = useSafeAreaInsets();
   const tab = useApp((s) => s.tab);
   const openCamera = useApp((s) => s.openCamera);
@@ -35,7 +34,7 @@ export function Dock({ route, light }: { route: Route; light?: boolean }) {
     if (n === 'feed') return route.name === 'feed' || route.name === 'ideas';
     return route.name === n;
   };
-  const color = (n: string) => (active(n) ? (light ? paper.text : palette.limeText) : light ? paper.muted : palette.muted);
+  const color = (n: string) => (active(n) ? palette.text : palette.muted);
 
   const onPressIn = () => {
     held.current = false;
@@ -68,11 +67,12 @@ export function Dock({ route, light }: { route: Route; light?: boolean }) {
       style={{ flex: 1, alignItems: 'center', gap: 3, paddingTop: 9 }}
     >
       {icon}
-      <T size={11} w={600} color={color(n)}>
+      <T size={11} w={active(n) ? 500 : 400} color={color(n)}>
         {label}
       </T>
+      <View style={{ width: 4, height: 4, borderRadius: 2, marginTop: 1, backgroundColor: active(n) ? palette.text : 'transparent' }} />
       {badge ? (
-        <View style={{ position: 'absolute', top: 7, left: '50%', marginLeft: 7, width: 9, height: 9, borderRadius: 5, backgroundColor: brand.pink, borderWidth: 2, borderColor: light ? paper.bg : palette.bg }} />
+        <View style={{ position: 'absolute', top: 7, left: '50%', marginLeft: 7, width: 9, height: 9, borderRadius: 5, backgroundColor: brand.pink, borderWidth: 2, borderColor: palette.bg }} />
       ) : null}
     </Tap>
   );
@@ -88,15 +88,15 @@ export function Dock({ route, light }: { route: Route; light?: boolean }) {
         alignItems: 'flex-start',
         paddingHorizontal: 8,
         paddingBottom: Math.max(insets.bottom, 12) + 4,
-        backgroundColor: light ? paper.bg : palette.dock,
+        backgroundColor: palette.dock,
         borderTopWidth: 1,
-        borderTopColor: light ? paper.line : palette.vio33,
+        borderTopColor: palette.vio33,
         zIndex: 5,
       }}
     >
       {item('feed', 'Home', <TabHome color={color('feed')} />)}
       {item('lists', 'Lists', <TabLists color={color('lists')} />)}
-      <Breathe on={firstRun} period={3400} style={{ marginTop: -26 }}>
+      <Breathe on={firstRun} period={3400} style={{ marginTop: 2 }}>
         <Pressable
           onPress={onPress}
           onPressIn={onPressIn}
@@ -105,29 +105,16 @@ export function Dock({ route, light }: { route: Route; light?: boolean }) {
           accessibilityLabel="Add a shiny"
           accessibilityHint="Opens the camera. Hold to open it in Say mode."
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: 32,
-            borderWidth: 3,
-            borderColor: light ? paper.ring : palette.ring,
-            backgroundColor: light ? paper.bg : palette.inset,
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+            marginHorizontal: 6,
+            backgroundColor: accent.add,
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
           }}
         >
-          <LinearGradient
-            colors={[brand.limeTop, brand.lime, brand.limeDeep]}
-            locations={[0, 0.55, 1]}
-            start={{ x: 0.3, y: 0.25 }}
-            end={{ x: 1, y: 1 }}
-            style={{ width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Plus color={brand.shutterInk} />
-            <View style={{ position: 'absolute', top: 5, right: 6, opacity: 0.85 }}>
-              <Sparkle size={9} color="#fff" />
-            </View>
-          </LinearGradient>
+          <Plus color={accent.ink} />
         </Pressable>
       </Breathe>
       {item('people', 'Friends', <People size={22} strokeWidth={1.4} color={color('people')} />, friendsBadge)}
