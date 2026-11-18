@@ -10,7 +10,7 @@ import { Gear, Gift, Lock } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
 import { Avatar, Card, GhostButton, LimeFill, SectionLabel, T, Tap } from '@/ui/primitives';
 import { QrStub } from './Friends';
-import { coverShots, isXmasList, MiniBoard } from './shared';
+import { boardDecor, coverShots, MiniBoard } from './shared';
 
 /** "today", "tomorrow", "in 12 days". */
 function dayWord(n: number) {
@@ -89,7 +89,7 @@ export function Me() {
                 name={l.name}
                 sub={l.vis === 'invite' ? `${shinies(its.length)} · anyone with the link` : `${shinies(its.length)} · ${plural(f, 'friend', 'friends')}`}
                 onPress={() => s.go({ name: 'list', id: l.id })}
-                wrapped={isXmasList(l)}
+                decor={boardDecor(l)}
               />
             );
           })}
