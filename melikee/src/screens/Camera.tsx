@@ -17,11 +17,11 @@ import { Linking, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Tex
 
 import { hostOf, isExact, matchBadge } from '@/lib/match';
 import { preparePhoto } from '@/lib/photo';
-import { fillImage, listAccent, listById, useApp, type CaptureMode } from '@/store/useApp';
+import { fillImage, listById, useApp, type CaptureMode } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
 import { Close, Photos, Sparkle, Torch } from '@/ui/icons';
-import { Appear, Breathe, Burst, Flash, SheetOut, Shimmer, Slap, Spin, Twinkle } from '@/ui/motion';
-import { AccentButton, ChipButton, GhostButton, LimeButton, LimeFill, PhotoBox, RadialGround, T, Tap } from '@/ui/primitives';
+import { Appear, Burst, Flash, SheetOut, Shimmer, Spin, Twinkle } from '@/ui/motion';
+import { AccentButton, ChipButton, LimeButton, LimeFill, PhotoBox, RadialGround, SectionLabel, T, Tap, TextLink, Toggle } from '@/ui/primitives';
 
 const MODES: CaptureMode[] = ['scan', 'snap', 'say'];
 const native = Platform.OS !== 'web';
@@ -228,19 +228,19 @@ export function Camera() {
 
       {clip && idle && !denied ? (
         <View style={{ position: 'absolute', top: 66, left: 0, right: 0, alignItems: 'center', zIndex: 3 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(20,16,31,0.7)', borderWidth: 1.5, borderColor: '#c8f54266', borderRadius: 999, paddingVertical: 5, paddingLeft: 14, paddingRight: 6 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: palette.bg, borderRadius: 999, paddingVertical: 4, paddingLeft: 16, paddingRight: 4, boxShadow: '0 4px 16px rgba(0,0,0,0.18)' }}>
             <Tap onPress={pasteClip} style={{ flexShrink: 1 }}>
-              <T size={12} w={600} color={brand.camText} numberOfLines={1}>
-                Copied link · <T size={12} color={brand.camSoft}>{hostOf(clip).slice(0, 18)}…</T>
+              <T size={13} color={palette.text} numberOfLines={1}>
+                Copied link · <T size={13} color={palette.muted}>{hostOf(clip).slice(0, 18)}…</T>
               </T>
             </Tap>
-            <Tap onPress={pasteClip} style={{ backgroundColor: brand.lime, paddingVertical: 5, paddingHorizontal: 11, borderRadius: 999 }}>
-              <T size={11.5} w={800} color={brand.limeInk}>
+            <Tap onPress={pasteClip} style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: 6 }}>
+              <T size={13} w={500} color={palette.text} style={{ textDecorationLine: 'underline' }}>
                 Add
               </T>
             </Tap>
-            <Tap onPress={() => setClip(null)} accessibilityLabel="Dismiss" style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
-              <Close size={12} color={brand.camSoft} />
+            <Tap onPress={() => setClip(null)} accessibilityLabel="Dismiss" style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
+              <Close size={12} color={palette.muted} />
             </Tap>
           </View>
         </View>
@@ -289,9 +289,10 @@ export function Camera() {
             <View style={{ flexDirection: 'row', gap: 22, alignItems: 'center' }}>
               {MODES.map((m) => (
                 <Tap key={m} onPress={() => setMode(m)} accessibilityState={{ selected: c.mode === m }} style={{ paddingVertical: 10, paddingHorizontal: 2 }}>
-                  <T size={12.5} w={800} color={c.mode === m ? palette.limeText : palette.muted} style={{ letterSpacing: 1.25, textTransform: 'uppercase' }}>
+                  <T size={12} w={c.mode === m ? 500 : 400} color={c.mode === m ? brand.camText : brand.camSoft} style={{ letterSpacing: 1.6, textTransform: 'uppercase' }}>
                     {m}
                   </T>
+                  <View style={{ height: 1, marginTop: 4, backgroundColor: c.mode === m ? brand.camText : 'transparent' }} />
                 </Tap>
               ))}
             </View>
@@ -372,20 +373,6 @@ function IdleLayer({ mode, firstRun, denied, live, onPaste, onRoll }: { mode: Ca
         </View>
       ) : null}
 
-      {firstRun && !denied && mode !== 'say' ? (
-        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: '26%', alignItems: 'center', gap: 6 }}>
-          <T size={32} w={800} color={brand.camText} style={{ letterSpacing: -0.96, textShadowColor: palette.glow50, textShadowRadius: 24, textShadowOffset: { width: 0, height: 4 } }}>
-            Ooh. Shiny.
-          </T>
-          <Slap style={{ marginTop: 4 }}>
-            <View style={{ backgroundColor: brand.lime, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 6 }}>
-              <T size={11} w={800} color={brand.limeInk} style={{ letterSpacing: 0.66 }}>
-                YOUR WISHLIST WRITES ITSELF
-              </T>
-            </View>
-          </Slap>
-        </View>
-      ) : null}
 
       {mode === 'say' ? (
         <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, top: '52%', alignItems: 'center', gap: 8 }}>
@@ -458,7 +445,7 @@ function ShotDim() {
   return <LinearGradient pointerEvents="none" colors={[brand.shotTop, brand.shotBottom]} start={{ x: 0.3, y: 0 }} end={{ x: 0.7, y: 1 }} style={[StyleSheet.absoluteFill, { opacity: 0.6 }]} />;
 }
 
-/** "Ooh, shiny." — the found sheet. */
+/** The found sheet: photo, name, price and a few spec rows, then "Want it". */
 function FoundSheet() {
   const c = useApp((s) => s.capture);
   const lastList = useApp((s) => s.lastList);
@@ -477,15 +464,26 @@ function FoundSheet() {
   const stores = [{ store: m.store, price: m.price, best: true }, ...(m.others ?? []).map((x) => ({ ...x, best: false }))];
   const hasAlts = c.alternates.length > 1;
 
-  const chip = (label: React.ReactNode, onPress: () => void, on = false, key?: string) => (
-    <Tap
-      key={key}
-      onPress={onPress}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: on ? brand.lime : palette.vio44, backgroundColor: on ? brand.lime : 'transparent' }}
-    >
-      {label}
-    </Tap>
-  );
+  // One spec row: small-caps label on the left, the value (or control) on the right.
+  // A row with no action of its own is a plain View, so controls inside it stay tappable.
+  const row = (label: string, value: React.ReactNode, onPress?: () => void, a11y?: string) => {
+    const style = { flexDirection: 'row' as const, alignItems: 'center' as const, minHeight: 48, borderTopWidth: 1, borderTopColor: palette.vio33, gap: 12 };
+    const inner = (
+      <>
+        <SectionLabel style={{ width: 104 }}>{label}</SectionLabel>
+        <View style={{ flex: 1, alignItems: 'flex-end' }}>{typeof value === 'string' ? <T size={14}>{value}</T> : value}</View>
+      </>
+    );
+    return onPress ? (
+      <Tap onPress={onPress} accessibilityLabel={a11y} style={style}>
+        {inner}
+      </Tap>
+    ) : (
+      <View style={style}>{inner}</View>
+    );
+  };
+  const optionLabel = m.optionLabel || 'Color';
+  const hasVariants = (m.variants?.length ?? 0) > 1;
 
   return (
     <>
@@ -494,24 +492,14 @@ function FoundSheet() {
         <Appear distance={60} duration={300}>
           <ScrollView
             bounces={false}
-            style={{ maxHeight: 640 }}
-            contentContainerStyle={{ backgroundColor: palette.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 10, paddingHorizontal: 18, paddingBottom: 34, gap: 11 }}
+            style={{ maxHeight: 680 }}
+            contentContainerStyle={{ backgroundColor: palette.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 10, paddingHorizontal: 24, paddingBottom: 34, gap: 14, boxShadow: '0 -20px 40px rgba(0,0,0,0.12)' }}
           >
-            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: palette.vio55, alignSelf: 'center', marginBottom: 2 }} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                <Sparkle size={12} color={palette.limeText} />
-                <T size={13} w={800} color={palette.limeText}>
-                  Ooh, shiny.
-                </T>
-              </View>
-              <View style={{ borderWidth: 1, borderColor: exact ? palette.lime66 : palette.vio44, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
-                <T size={11} w={600} color={exact ? palette.limeText : palette.soft}>
-                  {matchBadge(m, c.chosen)}
-                </T>
-              </View>
-              <Tap onPress={reset} accessibilityLabel="Close" style={{ marginLeft: 'auto', width: 30, height: 30, borderRadius: 15, backgroundColor: palette.chip, alignItems: 'center', justifyContent: 'center' }}>
-                <Close size={11} color={palette.muted} />
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: palette.vio55, alignSelf: 'center' }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <SectionLabel style={{ flex: 1 }}>{matchBadge(m, c.chosen)}</SectionLabel>
+              <Tap onPress={reset} accessibilityLabel="Close" style={{ width: 44, height: 44, marginRight: -12, alignItems: 'center', justifyContent: 'center' }}>
+                <Close size={13} strokeWidth={1.3} color={palette.text} />
               </Tap>
             </View>
             <PhotoBox
@@ -519,148 +507,142 @@ function FoundSheet() {
               // Your shot stands in only while it's the colour you photographed.
               fallback={c.variant && c.variant !== m.color && m.optionChangesLook !== false ? null : c.shotUri}
               label="finding a photo…"
-              style={{ height: 150, borderRadius: 16 }}
+              light
+              style={{ height: 190, borderRadius: 6 }}
             >
               {!exact && c.shotUri && m.image ? (
-                <View style={{ position: 'absolute', left: 10, bottom: 10, width: 54, height: 54, borderRadius: 10, borderWidth: 2, borderColor: palette.text, overflow: 'hidden' }}>
+                <View style={{ position: 'absolute', left: 10, bottom: 10, width: 54, height: 54, borderRadius: 6, borderWidth: 2, borderColor: palette.bg, overflow: 'hidden' }}>
                   <PhotoBox uri={c.shotUri} fit="cover" label="you" style={{ flex: 1 }} />
                 </View>
               ) : null}
             </PhotoBox>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
-              <T size={18} w={800} style={{ flex: 1, lineHeight: 22 }}>
+            <View style={{ gap: 4 }}>
+              <T size={22} w={300} style={{ lineHeight: 28, letterSpacing: -0.4 }}>
                 {m.name}
               </T>
-              {m.searching ? null : (
-                <T size={18} w={800} color={palette.limeText}>
+              {m.searching ? (
+                <T size={13} color={palette.muted} accessibilityLabel="Finding stores and prices">
+                  Finding stores and prices… you can save it now
+                </T>
+              ) : (
+                <T size={28} w={300} style={{ letterSpacing: -0.6 }}>
                   {m.price}
                 </T>
               )}
             </View>
-            {m.searching ? (
-              <View accessibilityLabel="Finding stores and prices" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -6 }}>
-                <Breathe>
-                  <Sparkle size={11} color={palette.vio} />
-                </Breathe>
-                <T size={12} color={palette.muted}>
-                  Finding stores and prices… you can save it now
-                </T>
-              </View>
-            ) : (
-              <Tap onPress={() => stores.length > 1 && set({ storesOpen: !c.storesOpen })} style={{ flexDirection: 'row', marginTop: -6 }}>
-                <T size={12} color={palette.muted}>
-                  {stores.length > 1 ? 'Best price at ' : 'At '}
-                  <T size={12} w={700}>{m.store}</T>
-                  {stores.length > 1 ? (
-                    <T size={12} w={700} color={palette.vio}>
-                      {' '}· {c.storesOpen ? 'hide stores' : `${stores.length - 1} other ${stores.length === 2 ? 'store' : 'stores'}`}
-                    </T>
-                  ) : null}
-                </T>
-              </Tap>
-            )}
-            {c.storesOpen ? (
-              <View style={{ backgroundColor: palette.inset, borderRadius: 12, paddingVertical: 2, paddingHorizontal: 12 }}>
-                {stores.map((s, i) => (
-                  <View key={s.store + i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: i < stores.length - 1 ? 1 : 0, borderBottomColor: palette.vio22 }}>
-                    <T size={12.5} w={600}>
-                      {s.store}
-                    </T>
-                    <T size={12.5} w={700} color={s.best ? palette.limeText : palette.soft}>
-                      {s.price}
-                    </T>
-                  </View>
-                ))}
-              </View>
-            ) : null}
             {dupe ? (
-              <View style={{ backgroundColor: brand.pink22, borderRadius: 10, paddingVertical: 7, paddingHorizontal: 10 }}>
-                <T size={12} w={700} color={brand.pink}>
-                  Already in {dupeList}
-                </T>
-              </View>
+              <T size={13} color={brand.pink}>
+                Already in {dupeList}
+              </T>
             ) : null}
-            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-              {chip(
-                <T size={12} w={700} color={c.star ? brand.limeInk : palette.soft}>
-                  ★ Really want
-                </T>,
-                () => set({ star: !c.star }),
-                c.star,
-              )}
-              {chip(
-                <T size={12} w={700} color={palette.soft}>
-                  {c.size || '+ Size / color'}
+            <View>
+              {m.searching
+                ? null
+                : row(
+                    'Store',
+                    <T size={14}>
+                      {m.store}
+                      {stores.length > 1 ? (
+                        <T size={14} color={palette.muted} style={{ textDecorationLine: 'underline' }}>
+                          {'  '}
+                          {c.storesOpen ? 'hide' : `+${stores.length - 1} more`}
+                        </T>
+                      ) : null}
+                    </T>,
+                    stores.length > 1 ? () => set({ storesOpen: !c.storesOpen }) : undefined,
+                  )}
+              {c.storesOpen ? (
+                <View style={{ paddingBottom: 8 }}>
+                  {stores.map((s, i) => (
+                    <View key={s.store + i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, paddingLeft: 116 }}>
+                      <T size={13} color={palette.soft}>
+                        {s.store}
+                      </T>
+                      <T size={13} w={s.best ? 500 : 400} color={s.best ? palette.text : palette.soft}>
+                        {s.price}
+                      </T>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              {hasVariants
+                ? row(
+                    optionLabel,
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingVertical: 6 }}>
+                      {m.variants!.map((v) => {
+                        const on = (c.variant ?? m.color) === v;
+                        return (
+                          <Tap
+                            key={v}
+                            onPress={() => pickVariant(v)}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: on }}
+                            accessibilityLabel={`${optionLabel} ${v}`}
+                            style={{ paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: on ? palette.text : 'transparent' }}
+                          >
+                            <T size={14} color={on ? palette.text : palette.muted}>
+                              {v}
+                            </T>
+                          </Tap>
+                        );
+                      })}
+                    </ScrollView>,
+                  )
+                : null}
+              {row(
+                hasVariants ? 'Size' : 'Size / color',
+                <T size={14} color={c.size ? palette.text : palette.muted} style={c.size ? undefined : { textDecorationLine: 'underline' }}>
+                  {c.size || 'Add'}
                 </T>,
                 () => set({ sizeEditing: !c.sizeEditing }),
+                hasVariants ? 'Size' : 'Size or color',
               )}
-              {chip(
-                <>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: listAccent(dest) }} />
-                  <T size={12} w={700} color={palette.soft}>
-                    {dest.name} ▾
-                  </T>
-                </>,
+              {c.sizeEditing ? (
+                <TextInput
+                  value={c.size}
+                  onChangeText={(v) => set({ size: v })}
+                  placeholder={hasVariants ? 'Size — e.g. M, 9.5' : 'Size, color — e.g. M, black'}
+                  placeholderTextColor={palette.muted}
+                  autoFocus
+                  style={{ backgroundColor: palette.inset, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 10, fontSize: 14, fontFamily: font[400], color: palette.text }}
+                />
+              ) : null}
+              {row(
+                'Add to',
+                <T size={14}>
+                  {dest.name} <T size={11} color={palette.muted}>▾</T>
+                </T>,
                 () => set({ destOpen: !c.destOpen }),
+                `Add to ${dest.name}`,
               )}
+              {c.destOpen ? (
+                <View style={{ paddingBottom: 8 }}>
+                  {lists.map((l) => (
+                    <Tap
+                      key={l.id}
+                      onPress={() => {
+                        useApp.setState({ lastList: l.id });
+                        set({ destOpen: false });
+                      }}
+                      style={{ minHeight: 40, justifyContent: 'center', alignItems: 'flex-end' }}
+                    >
+                      <T size={14} w={l.id === lastList ? 500 : 400} color={l.id === lastList ? palette.text : palette.soft}>
+                        {l.id === lastList ? `✓ ${l.name}` : l.name}
+                      </T>
+                    </Tap>
+                  ))}
+                </View>
+              ) : null}
+              {row('Really want', <Toggle on={c.star} />, () => set({ star: !c.star }), 'Really want')}
             </View>
-            {(m.variants?.length ?? 0) > 1 ? (
-              <View style={{ gap: 6 }}>
-                <T size={11} w={700} color={palette.muted} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
-                  {m.optionLabel || 'Color'}
-                </T>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                  {m.variants!.map((v) => {
-                    const on = (c.variant ?? m.color) === v;
-                    return (
-                      <Tap
-                        key={v}
-                        onPress={() => pickVariant(v)}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: on }}
-                        accessibilityLabel={`${m.optionLabel || 'Color'} ${v}`}
-                        style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: on ? brand.lime : palette.chip }}
-                      >
-                        <T size={12} w={700} color={on ? brand.limeInk : palette.soft}>
-                          {v}
-                        </T>
-                      </Tap>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            ) : null}
-            {c.sizeEditing ? (
-              <TextInput
-                value={c.size}
-                onChangeText={(v) => set({ size: v })}
-                placeholder={(m.variants?.length ?? 0) > 1 ? 'Size — e.g. M, 9.5' : 'Size, color — e.g. M, black'}
-                placeholderTextColor={palette.muted}
-                autoFocus
-                style={{ backgroundColor: palette.inset, borderWidth: 1, borderColor: palette.vio44, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12, fontSize: 13, fontFamily: font[500], color: palette.text }}
+            <View style={{ gap: 4, marginTop: 4 }}>
+              <LimeButton label={dupe ? 'Add again' : 'Want it'} onPress={wantIt} />
+              <TextLink
+                label={exact ? 'Wrong product?' : 'Not it'}
+                color={palette.soft}
+                style={{ alignSelf: 'center' }}
+                onPress={() => set(hasAlts ? { phase: 'alts' } : { phase: 'type', typeQ: m.searching ? m.name : '' })}
               />
-            ) : null}
-            {c.destOpen ? (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                {lists.map((l) => (
-                  <Tap
-                    key={l.id}
-                    onPress={() => {
-                      useApp.setState({ lastList: l.id });
-                      set({ destOpen: false });
-                    }}
-                    style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: l.id === lastList ? brand.lime : palette.chip }}
-                  >
-                    <T size={12} w={700} color={l.id === lastList ? brand.limeInk : palette.soft}>
-                      {l.name}
-                    </T>
-                  </Tap>
-                ))}
-              </View>
-            ) : null}
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
-              <GhostButton label={exact ? 'Wrong product?' : 'Not it'} pad={13} onPress={() => set(hasAlts ? { phase: 'alts' } : { phase: 'type', typeQ: m.searching ? m.name : '' })} />
-              <LimeButton label={dupe ? 'Add again' : 'Want it'} size={14.5} flex onPress={wantIt} />
             </View>
           </ScrollView>
         </Appear>
