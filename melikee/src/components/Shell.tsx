@@ -19,9 +19,9 @@ import { Me } from '@/screens/Me';
 import { Notifications } from '@/screens/Notifications';
 import { Onboarding } from '@/screens/Onboarding';
 import { Settings } from '@/screens/Settings';
-import { backfillImages, useApp, warmIdeas } from '@/store/useApp';
+import { backfillImages, homeSide, useApp, warmIdeas } from '@/store/useApp';
 import type { Route } from '@/store/types';
-import { palette } from '@/theme/tokens';
+import { palette, paper } from '@/theme/tokens';
 import { Dock } from './Dock';
 import { FilingTray } from './FilingTray';
 import { Sheets } from './sheets/Sheets';
@@ -36,6 +36,7 @@ export function Shell() {
   const verified = useApp((s) => !!s.phone);
   const route = useApp((s) => s.stack[s.stack.length - 1]);
   const sheet = useApp((s) => s.sheet);
+  const side = useApp(homeSide);
   const insets = useSafeAreaInsets();
   // Keeps your Friends + link lists live at melikee.app.
   usePublisher();
@@ -95,14 +96,16 @@ export function Shell() {
   }
 
   const fullBleed = route.name === 'camera' || route.name === 'gifter';
+  // Home → Friends is the light Feed: white page, dark status bar, white dock.
+  const lightFeed = (route.name === 'feed' || route.name === 'ideas') && side === 'friends';
 
   return (
-    <View style={{ flex: 1, backgroundColor: route.name === 'gifter' ? '#faf7f2' : palette.bg }}>
-      <StatusBar style={route.name === 'gifter' ? 'dark' : 'light'} />
+    <View style={{ flex: 1, backgroundColor: route.name === 'gifter' ? '#faf7f2' : lightFeed ? paper.bg : palette.bg }}>
+      <StatusBar style={route.name === 'gifter' || lightFeed ? 'dark' : 'light'} />
       <View style={{ flex: 1, paddingTop: fullBleed ? 0 : insets.top }}>
         <Screen route={route} />
       </View>
-      {DOCKED.includes(route.name) ? <Dock route={route} /> : null}
+      {DOCKED.includes(route.name) ? <Dock route={route} light={lightFeed} /> : null}
       <FilingTray onCamera={route.name === 'camera'} />
       <Toast />
       {sheet ? <Sheets sheet={sheet} /> : null}

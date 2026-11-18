@@ -1148,6 +1148,11 @@ function birthdayFromAccount(s: AppState, birth?: { year: number; month: number;
   return { profile: { ...s.profile, birthday: { month: MONTHS[birth.month - 1], day: birth.day, year: birth.year }, birthdaySet: true } };
 }
 
+/** Which side of Home is showing: the person's pick this session, else Friends once they have friends. */
+export function homeSide(s: Pick<AppState, 'homeTab' | 'friends'>): 'foryou' | 'friends' {
+  return s.homeTab ?? (s.friends.length ? 'friends' : 'foryou');
+}
+
 /** Photo captures shown before their search finished, by capture run. */
 const early = new Map<number, { itemId: number | null; query: string }>();
 

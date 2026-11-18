@@ -13,12 +13,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '@/store/useApp';
 import type { Route } from '@/store/types';
-import { brand, palette } from '@/theme/tokens';
+import { brand, palette, paper } from '@/theme/tokens';
 import { Plus, People, Sparkle, TabHome, TabLists, TabMe } from '@/ui/icons';
 import { Breathe } from '@/ui/motion';
 import { T, Tap } from '@/ui/primitives';
 
-export function Dock({ route }: { route: Route }) {
+/** `light`: the white dock that goes with the light Feed. */
+export function Dock({ route, light }: { route: Route; light?: boolean }) {
   const insets = useSafeAreaInsets();
   const tab = useApp((s) => s.tab);
   const openCamera = useApp((s) => s.openCamera);
@@ -34,7 +35,7 @@ export function Dock({ route }: { route: Route }) {
     if (n === 'feed') return route.name === 'feed' || route.name === 'ideas';
     return route.name === n;
   };
-  const color = (n: string) => (active(n) ? palette.limeText : palette.muted);
+  const color = (n: string) => (active(n) ? (light ? paper.text : palette.limeText) : light ? paper.muted : palette.muted);
 
   const onPressIn = () => {
     held.current = false;
@@ -71,7 +72,7 @@ export function Dock({ route }: { route: Route }) {
         {label}
       </T>
       {badge ? (
-        <View style={{ position: 'absolute', top: 7, left: '50%', marginLeft: 7, width: 9, height: 9, borderRadius: 5, backgroundColor: brand.pink, borderWidth: 2, borderColor: palette.bg }} />
+        <View style={{ position: 'absolute', top: 7, left: '50%', marginLeft: 7, width: 9, height: 9, borderRadius: 5, backgroundColor: brand.pink, borderWidth: 2, borderColor: light ? paper.bg : palette.bg }} />
       ) : null}
     </Tap>
   );
@@ -87,9 +88,9 @@ export function Dock({ route }: { route: Route }) {
         alignItems: 'flex-start',
         paddingHorizontal: 8,
         paddingBottom: Math.max(insets.bottom, 12) + 4,
-        backgroundColor: palette.dock,
+        backgroundColor: light ? paper.bg : palette.dock,
         borderTopWidth: 1,
-        borderTopColor: palette.vio33,
+        borderTopColor: light ? paper.line : palette.vio33,
         zIndex: 5,
       }}
     >
@@ -108,8 +109,8 @@ export function Dock({ route }: { route: Route }) {
             height: 64,
             borderRadius: 32,
             borderWidth: 3,
-            borderColor: palette.ring,
-            backgroundColor: palette.inset,
+            borderColor: light ? paper.ring : palette.ring,
+            backgroundColor: light ? paper.bg : palette.inset,
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
