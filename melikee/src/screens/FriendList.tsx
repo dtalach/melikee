@@ -3,7 +3,7 @@
  * Dibs are secret from the wisher.
  */
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Linking, ScrollView, View } from 'react-native';
 
 import { daysUntil, parseLabel, SOON_DAYS } from '@/lib/dates';
 import { useApp } from '@/store/useApp';
@@ -96,19 +96,28 @@ export function FriendListScreen({ id }: { id: string }) {
           const choosing = !!a.pending;
           return (
             <View key={a.id} style={{ width: '48.4%', backgroundColor: palette.card, borderWidth: 1, borderColor: mine ? palette.lime66 : palette.vio33, borderRadius: 16, overflow: 'hidden', opacity: taken ? 0.55 : 1 }}>
-              <PhotoBox uri={a.image} style={{ height: 96 }} />
-              <View style={{ paddingTop: 9, paddingHorizontal: 11, flex: 1 }}>
-                <T size={12} w={600} style={{ lineHeight: 16 }}>
-                  {(a.star ? '★ ' : '') + a.name}
-                </T>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 3 }}>
-                  <T size={12} w={700} color={palette.limeText}>
-                    {a.price}
-                  </T>
-                  <T size={11} color={palette.muted} numberOfLines={1} style={{ flexShrink: 1 }}>
-                    {a.store}
+              <View>
+                <PhotoBox uri={a.image} label={choosing ? 'still choosing' : 'photo'} style={{ aspectRatio: 1 }} />
+                {a.star ? (
+                <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(12,12,12,0.72)', borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
+                  <T size={11} w={800} color={brand.lime}>
+                    ★ Really wants
                   </T>
                 </View>
+              ) : null}
+              </View>
+              <View style={{ paddingTop: 9, paddingHorizontal: 11, flex: 1, gap: 2 }}>
+                <T size={13} w={700} numberOfLines={2} style={{ lineHeight: 17 }}>
+                  {a.name}
+                </T>
+                {!choosing ? (
+                  <T size={14} w={800} color={palette.limeText}>
+                    {a.price}
+                  </T>
+                ) : null}
+                <T size={12} color={palette.muted} numberOfLines={1}>
+                  {choosing ? 'still choosing the exact one' : a.store}
+                </T>
               </View>
               <View style={{ paddingTop: 9, paddingHorizontal: 9, paddingBottom: 10 }}>
                 <Tap
@@ -127,6 +136,13 @@ export function FriendListScreen({ id }: { id: string }) {
                     {choosing ? 'Still choosing' : taken ? `${a.takenBy ?? 'Someone'} has it` : mine ? 'Yours ✓' : a.chipIn ? 'Chip in' : 'Call dibs'}
                   </T>
                 </Tap>
+                {mine ? (
+                  <Tap onPress={() => (a.url ? void Linking.openURL(a.url).catch(() => undefined) : showToast(`Find it at ${a.store}`))} style={{ alignItems: 'center', paddingTop: 8 }}>
+                    <T size={12} w={700} color={palette.soft}>
+                      Buy at {a.store} →
+                    </T>
+                  </Tap>
+                ) : null}
               </View>
             </View>
           );

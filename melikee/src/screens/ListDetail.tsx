@@ -4,7 +4,7 @@ import { ScrollView, View } from 'react-native';
 import { priceValue } from '@/lib/match';
 import { listById, useApp, visSummary } from '@/store/useApp';
 import type { Item } from '@/store/types';
-import { palette } from '@/theme/tokens';
+import { brand, palette } from '@/theme/tokens';
 import { Chevron } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
 import { BackHeader, GhostButton, OptionPill, PhotoBox, T, Tap } from '@/ui/primitives';
@@ -94,14 +94,28 @@ export function ListDetail({ id }: { id: string }) {
         </Tap>
         {items.map((it) => (
           <Tap key={it.id} onPress={() => s.go({ name: 'item', id: it.id })} style={{ width: '48.4%', backgroundColor: palette.card, borderWidth: 1, borderColor: it.pending ? palette.lime66 : palette.vio33, borderRadius: 16, overflow: 'hidden' }}>
-            <PhotoBox uri={it.image} fallback={it.photo} fit={it.pending ? 'cover' : 'contain'} style={{ height: 96 }} />
-            <View style={{ paddingVertical: 9, paddingHorizontal: 11 }}>
-              <T size={12} w={600} style={{ lineHeight: 16 }}>
-                {(it.star ? '★ ' : '') + it.name}
+            <View>
+              <PhotoBox uri={it.image} fallback={it.photo} fit={it.pending ? 'cover' : 'contain'} style={{ aspectRatio: 1 }} />
+              {it.star ? (
+                <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(12,12,12,0.72)', borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
+                  <T size={11} w={800} color={brand.lime}>
+                    ★ Really want
+                  </T>
+                </View>
+              ) : null}
+            </View>
+            <View style={{ paddingTop: 9, paddingHorizontal: 11, paddingBottom: 11, gap: 2 }}>
+              <T size={13} w={700} numberOfLines={2} style={{ lineHeight: 17 }}>
+                {it.name}
               </T>
-              <T size={12} w={700} color={it.pending ? palette.muted : palette.limeText} style={{ marginTop: 3 }}>
+              <T size={14} w={800} color={it.pending ? palette.muted : palette.limeText}>
                 {it.pending ? 'still matching' : it.price}
               </T>
+              {!it.pending ? (
+                <T size={12} color={palette.muted} numberOfLines={1}>
+                  {[it.store, it.size].filter(Boolean).join(' · ')}
+                </T>
+              ) : null}
             </View>
           </Tap>
         ))}
