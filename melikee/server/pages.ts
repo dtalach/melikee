@@ -33,6 +33,8 @@ export interface Store {
   zrem(key: string, member: string): Promise<void>;
   /** Members starting with `prefix`, in order, at most `limit`. */
   zprefix(key: string, prefix: string, limit: number): Promise<string[]>;
+  /** Every key matching a glob pattern (small databases only). */
+  scan(match: string): Promise<string[]>;
   /** Add one; the key expires `ttlSec` after it's first created. Returns the new count. */
   incr(key: string, ttlSec: number): Promise<number>;
 }
@@ -69,6 +71,16 @@ class RedisStore implements Store {
   }
   async zrem(key: string, member: string) {
     await this.r.zrem(key, member);
+  }
+  async scan(match: string) {
+    const keys: string[] = [];
+    let cursor: string | number = '0';
+    do {
+      const [next, batch]: [string | number, string[]] = await this.r.scan(cursor, { match, count: 500 });
+      keys.push(...batch.map(String));
+      cursor = next;
+    } while (String(cursor) !== '0');
+    return keys;
   }
   async zprefix(key: string, prefix: string, limit: number) {
     const out = await this.r.zrange<unknown[]>(key, `[${prefix}`, `[${prefix}\xff`, { byLex: true, offset: 0, count: limit });
@@ -125,6 +137,10 @@ class MemoryStore implements Store {
   }
   async zrem(key: string, member: string) {
     this.z.get(key)?.delete(member);
+  }
+  async scan(match: string) {
+    const re = new RegExp(`^${match.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`);
+    return [...this.kv.keys()].filter((k) => re.test(k));
   }
   async zprefix(key: string, prefix: string, limit: number) {
     return [...(this.z.get(key) ?? [])].filter((m) => m.startsWith(prefix)).sort().slice(0, limit);
