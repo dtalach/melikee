@@ -1,12 +1,19 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+/**
+ * One shiny: its photo on its own card, then the name, price and where to buy
+ * it, then the few things gifters should know. Price-drop alerts are off the
+ * page for now (prices aren't re-checked yet).
+ */
+import { useState } from 'react';
+import { Linking, ScrollView, View } from 'react-native';
 
-import { ago } from '@/lib/dates';
-import { listById, useApp, visWord } from '@/store/useApp';
+import { listAccent, listById, useApp, visWord } from '@/store/useApp';
 import { brand, palette } from '@/theme/tokens';
-import { Chevron, Share, Sparkle, TrendLine } from '@/ui/icons';
+import { Chevron, Share, Sparkle } from '@/ui/icons';
 import { Appear, Spin } from '@/ui/motion';
 import { Card, Field, LimeButton, LimeFill, PhotoBox, T, Tap, Toggle } from '@/ui/primitives';
+
+/** Round, dark buttons that stay visible on any photo, white or dark. */
+const photoButton = { position: 'absolute' as const, top: 12, width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(12,12,12,0.62)', alignItems: 'center' as const, justifyContent: 'center' as const };
 
 export function ItemDetail({ id }: { id: number }) {
   const item = useApp((s) => s.items.find((i) => i.id === id));
@@ -16,6 +23,7 @@ export function ItemDetail({ id }: { id: number }) {
   const removeItem = useApp((s) => s.removeItem);
   const openSheet = useApp((s) => s.openSheet);
   const showToast = useApp((s) => s.showToast);
+  const [compare, setCompare] = useState(false);
 
   if (!item || !list) {
     return (
@@ -43,7 +51,6 @@ export function ItemDetail({ id }: { id: number }) {
   };
   // Only stores the search actually saw. Sample shinies carry just their own.
   const stores = [{ store: item.store, price: item.price, url: item.url, best: true }, ...(item.others ?? []).map((x) => ({ ...x, best: false }))];
-  const checked = item.checkedAt ? `checked ${ago(item.checkedAt) === 'now' ? 'just now' : `${ago(item.checkedAt)} ago`}` : '';
   const open = (url?: string, store = item.store) => {
     if (url) Linking.openURL(url).catch(() => showToast(`Couldn’t open ${store}`));
     else showToast(`No link saved for ${store}`);
@@ -52,38 +59,31 @@ export function ItemDetail({ id }: { id: number }) {
   return (
     <Appear style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
-        <LinearGradient colors={[palette.ph2, palette.bg]} style={{ height: 200, alignItems: 'center', justifyContent: 'center' }}>
-          {item.image || item.photo ? (
-            <>
-              <PhotoBox uri={item.image} fallback={item.photo} label="" fit={item.pending ? 'cover' : 'contain'} style={StyleSheet.absoluteFill} />
-              <LinearGradient pointerEvents="none" colors={['rgba(18,18,18,0)', palette.bg]} locations={[0.35, 1]} style={StyleSheet.absoluteFill} />
-            </>
-          ) : (
-            <T size={11} color={palette.muted}>
-              photo
-            </T>
-          )}
-          <Tap onPress={back} accessibilityLabel="Back" style={{ position: 'absolute', left: 14, top: 8, padding: 4 }}>
-            <Chevron size={22} strokeWidth={1.5} color={palette.text} />
+        <View style={{ marginTop: 8, marginHorizontal: 14, borderRadius: 22, overflow: 'hidden' }}>
+          <PhotoBox uri={item.image} fallback={item.photo} label="no photo yet" fit={item.pending ? 'cover' : 'contain'} style={{ height: 300 }} />
+          <Tap onPress={back} accessibilityLabel="Back" style={[photoButton, { left: 12 }]}>
+            <Chevron size={20} strokeWidth={2} color={brand.white} />
           </Tap>
-          <View style={{ position: 'absolute', left: 20, right: 20, bottom: 12, gap: 6, alignItems: 'flex-start' }}>
-            <View style={{ backgroundColor: brand.lime, paddingVertical: 3, paddingHorizontal: 9, borderRadius: 6, transform: [{ rotate: '-2deg' }] }}>
-              <T size={11} w={800} color={brand.limeInk}>
-                {list.name}
-              </T>
-            </View>
-            <T size={22} w={800} style={{ letterSpacing: -0.44 }}>
-              {item.name}
-            </T>
-            <Tap onPress={() => openSheet({ type: 'vis', listId: list.id })} style={{ backgroundColor: 'rgba(20,16,31,0.45)', borderWidth: 1, borderColor: palette.vio44, borderRadius: 999, paddingVertical: 3, paddingHorizontal: 10 }}>
-              <T size={11.5} w={600}>
-                {list.name} · {visWord(list.vis)} ▾
-              </T>
+          {list.vis !== 'me' ? (
+            <Tap onPress={() => openSheet({ type: 'share', listId: list.id })} accessibilityLabel={`Share ${list.name}`} style={[photoButton, { right: 12 }]}>
+              <Share size={16} color={brand.white} />
             </Tap>
-          </View>
-        </LinearGradient>
+          ) : null}
+        </View>
 
-        <View style={{ paddingTop: 14, paddingHorizontal: 18, gap: 13 }}>
+        <View style={{ paddingTop: 18, paddingHorizontal: 20, gap: 6 }}>
+          <Tap onPress={() => openSheet({ type: 'vis', listId: list.id })} accessibilityLabel={`${list.name}, ${visWord(list.vis)}. Change who sees it`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: listAccent(list) }} />
+            <T size={12} w={600} color={palette.muted}>
+              {list.name} · {visWord(list.vis)} ▾
+            </T>
+          </Tap>
+          <T size={24} w={800} style={{ letterSpacing: -0.48, lineHeight: 29 }}>
+            {item.name}
+          </T>
+        </View>
+
+        <View style={{ paddingTop: 12, paddingHorizontal: 20, gap: 16 }}>
           {item.pending ? (
             <Card border={palette.lime66} style={{ paddingVertical: 12, paddingHorizontal: 14, gap: 10 }}>
               {item.suggest ? (
@@ -143,47 +143,50 @@ export function ItemDetail({ id }: { id: number }) {
               )}
             </Card>
           ) : (
-            <>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                <T size={26} w={800} color={palette.limeText}>
+            <View style={{ gap: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <T size={22} w={800} color={palette.limeText}>
                   {item.price}
                 </T>
-                <T size={12} color={palette.muted}>
-                  {[`at ${item.store}`, stores.length > 1 ? `${stores.length - 1} more ${stores.length === 2 ? 'store' : 'stores'}` : '', checked].filter(Boolean).join(' · ')}
+                <T size={13} color={palette.muted}>
+                  at {item.store}
                 </T>
-                {list.vis === 'me' ? (
-                  <View style={{ borderWidth: 1, borderColor: palette.vio55, paddingVertical: 2, paddingHorizontal: 9, borderRadius: 999 }}>
-                    <T size={11} w={700} color={palette.soft}>
-                      Private list
-                    </T>
-                  </View>
-                ) : null}
-              </View>
-              <Card style={{ paddingVertical: 4, paddingHorizontal: 14 }}>
-                {stores.map((st, i) => (
-                  <Tap key={st.store + i} onPress={() => open(st.url, st.store)} accessibilityLabel={`Open at ${st.store}`} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: i < stores.length - 1 ? 1 : 0, borderBottomColor: palette.vio22 }}>
-                    <T size={13} w={600}>
-                      {st.store}
-                    </T>
-                    <T size={13} w={800} color={st.best ? palette.limeText : palette.muted}>
-                      {st.price}
+                {stores.length > 1 ? (
+                  <Tap onPress={() => setCompare((x) => !x)} accessibilityState={{ expanded: compare }}>
+                    <T size={13} w={700} color={palette.vio}>
+                      · {compare ? 'hide stores' : `${stores.length - 1} more ${stores.length === 2 ? 'store' : 'stores'}`}
                     </T>
                   </Tap>
-                ))}
-              </Card>
-              {/* Price history isn't tracked yet; only shinies with a known drop show it. */}
-              {item.drop ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: palette.inset, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12 }}>
-                  <TrendLine color={palette.limeText} />
-                  <T size={12} w={600} style={{ flex: 1 }}>
-                    Down {item.drop} this month · lowest in 30 days
-                  </T>
-                </View>
+                ) : null}
+              </View>
+              {compare ? (
+                <Card style={{ paddingVertical: 2, paddingHorizontal: 14 }}>
+                  {stores.map((st, i) => (
+                    <Tap key={st.store + i} onPress={() => open(st.url, st.store)} accessibilityLabel={`Open at ${st.store}`} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: i < stores.length - 1 ? 1 : 0, borderBottomColor: palette.vio22 }}>
+                      <T size={13} w={600}>
+                        {st.store}
+                      </T>
+                      <T size={13} w={700} color={st.best ? palette.limeText : palette.muted}>
+                        {st.price}
+                      </T>
+                    </Tap>
+                  ))}
+                </Card>
               ) : null}
-            </>
+              <Tap onPress={() => open(item.url)}>
+                <LimeFill style={{ paddingVertical: 13, alignItems: 'center' }}>
+                  <T size={14} w={800} color={brand.limeInk}>
+                    Open at {item.store}
+                  </T>
+                </LimeFill>
+              </Tap>
+            </View>
           )}
 
 
+          <T size={11} w={700} color={palette.muted} style={{ letterSpacing: 0.66, marginBottom: -8, marginTop: 4 }}>
+            FOR GIFTERS
+          </T>
           <Card style={{ paddingTop: 2, paddingBottom: 4, paddingHorizontal: 14 }}>
             <Tap onPress={() => updateItem(item.id, { star: !item.star })} accessibilityRole="switch" accessibilityState={{ checked: !!item.star }} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: palette.vio22 }}>
               <T size={17} color={item.star ? brand.lime : palette.muted}>
@@ -199,60 +202,21 @@ export function ItemDetail({ id }: { id: number }) {
               </View>
               <Toggle on={!!item.star} />
             </Tap>
-            {!item.pending ? (
-              <Tap onPress={() => updateItem(item.id, { alert: item.alert === false })} accessibilityRole="switch" accessibilityState={{ checked: item.alert !== false }} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: palette.vio22 }}>
-                <View style={{ flex: 1 }}>
-                  <T size={13} w={700}>
-                    Price drop alerts
-                  </T>
-                  <T size={11} color={palette.muted}>
-                    when it dips below its 30-day high
-                  </T>
-                </View>
-                <Toggle on={item.alert !== false} />
-              </Tap>
-            ) : null}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: palette.vio22 }}>
-              <T size={12} color={palette.muted} style={{ width: 86 }}>
+              <T size={12} color={palette.muted} style={{ width: 82 }}>
                 Size / color
               </T>
               <Field value={item.size ?? ''} onChangeText={(v) => updateItem(item.id, { size: v })} placeholder="e.g. 8.5, black" style={{ flex: 1, minWidth: 0, paddingVertical: 8, paddingHorizontal: 10 }} />
             </View>
-            <View style={{ gap: 6, paddingVertical: 10 }}>
-              <T size={12} color={palette.muted}>
-                Note for gifters
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9 }}>
+              <T size={12} color={palette.muted} style={{ width: 82 }}>
+                Note
               </T>
-              <Field value={item.note ?? ''} onChangeText={(v) => updateItem(item.id, { note: v })} placeholder="e.g. not the pink one" style={{ paddingVertical: 8, paddingHorizontal: 10 }} />
+              <Field value={item.note ?? ''} onChangeText={(v) => updateItem(item.id, { note: v })} placeholder="e.g. not the pink one" style={{ flex: 1, minWidth: 0, paddingVertical: 8, paddingHorizontal: 10 }} />
             </View>
           </Card>
 
-          <View style={{ flexDirection: 'row', gap: 14 }}>
-            <T size={11} color={palette.muted}>
-              UPC {item.upc}
-            </T>
-            <T size={11} color={palette.muted}>
-              added {item.added}
-            </T>
-          </View>
-
-          {!item.pending ? (
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Tap onPress={() => open(item.url)} style={{ flex: 1 }}>
-                <LimeFill style={{ paddingVertical: 11, alignItems: 'center' }}>
-                  <T size={13} w={800} color={brand.limeInk}>
-                    Open at {item.store}
-                  </T>
-                </LimeFill>
-              </Tap>
-              {list.vis !== 'me' ? (
-                <Tap onPress={() => openSheet({ type: 'share', listId: list.id })} accessibilityLabel={`Share ${list.name}`} style={{ width: 44, borderWidth: 1, borderColor: palette.vio33, borderRadius: 999, alignItems: 'center', justifyContent: 'center' }}>
-                  <Share size={16} color={palette.vio} />
-                </Tap>
-              ) : null}
-            </View>
-          ) : null}
-
-          <View style={{ flexDirection: 'row', gap: 22, justifyContent: 'center', paddingTop: 4 }}>
+          <View style={{ flexDirection: 'row', gap: 22, justifyContent: 'center', paddingTop: 6 }}>
             <Tap onPress={fix}>
               <T size={12} w={700} color={palette.vio}>
                 Wrong product?
@@ -266,7 +230,7 @@ export function ItemDetail({ id }: { id: number }) {
               }}
             >
               <T size={12} w={700} color={palette.muted}>
-                Got it already ✓
+                Got it ✓
               </T>
             </Tap>
             <Tap
@@ -281,6 +245,9 @@ export function ItemDetail({ id }: { id: number }) {
               </T>
             </Tap>
           </View>
+          <T size={11} color={palette.muted} style={{ textAlign: 'center', marginTop: -6 }}>
+            added {item.added}
+          </T>
         </View>
       </ScrollView>
     </Appear>

@@ -52,7 +52,6 @@ function coverShots(items: Item[]): CoverShot[] {
 function ListBoard({ s, id, onOpen, onShare, onVis, onDate }: { s: AppState; id: string; onOpen: () => void; onShare: () => void; onVis: () => void; onDate: () => void }) {
   const l = s.lists.find((x) => x.id === id)!;
   const its = s.items.filter((i) => i.list === l.id);
-  const drops = its.filter((i) => i.drop);
   const days = listDays(s, l);
   const acc = listAccent(l);
   const overlay = { position: 'absolute' as const, borderRadius: 999, backgroundColor: 'rgba(12,12,12,0.72)' };
@@ -71,13 +70,6 @@ function ListBoard({ s, id, onOpen, onShare, onVis, onDate }: { s: AppState; id:
             <Tap onPress={onShare} accessibilityLabel={`Share ${l.name}`} style={[overlay, { top: 6, right: 6, width: 30, height: 30, alignItems: 'center', justifyContent: 'center' }]}>
               <Share color={brand.white} />
             </Tap>
-          ) : null}
-          {drops.length ? (
-            <View style={[overlay, { bottom: 7, left: 7, backgroundColor: brand.lime, paddingVertical: 2, paddingHorizontal: 7 }]}>
-              <T size={11} w={800} color={brand.limeInk}>
-                ↓ {drops[0].drop}
-              </T>
-            </View>
           ) : null}
         </BoardCover>
       </Tap>

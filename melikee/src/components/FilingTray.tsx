@@ -1,5 +1,5 @@
 /**
- * After an add: "In My wants ✓" with the price-alert bell, Undo and View, and
+ * After an add: "In My wants ✓" with Undo and View, and
  * a bar that drains over six seconds. The add already happened — this is just
  * the receipt.
  */
@@ -7,7 +7,6 @@ import { View } from 'react-native';
 
 import { FILING_SECONDS, listById, useApp } from '@/store/useApp';
 import { palette } from '@/theme/tokens';
-import { Bell } from '@/ui/icons';
 import { Appear, Drain } from '@/ui/motion';
 import { PhotoBox, T, Tap } from '@/ui/primitives';
 
@@ -15,13 +14,11 @@ export function FilingTray({ onCamera }: { onCamera: boolean }) {
   const filing = useApp((s) => s.filing);
   const item = useApp((s) => (s.filing ? s.items.find((i) => i.id === s.filing!.itemId) : undefined));
   const list = useApp((s) => (item ? listById(s, item.list) : undefined));
-  const updateItem = useApp((s) => s.updateItem);
   const undo = useApp((s) => s.undoFiling);
   const end = useApp((s) => s.endFiling);
   const go = useApp((s) => s.go);
 
   if (!filing || !item || !list) return null;
-  const alertOn = item.alert !== false;
 
   return (
     <Appear key={filing.key} style={{ position: 'absolute', left: 14, right: 14, bottom: onCamera ? 214 : 104, zIndex: 6 }}>
@@ -46,18 +43,9 @@ export function FilingTray({ onCamera }: { onCamera: boolean }) {
             In {list.name} ✓
           </T>
           <T size={11} color={palette.muted} numberOfLines={1}>
-            {item.name} · {item.price} · {alertOn ? 'alert if price drops' : 'no price alerts'}
+            {item.name} · {item.price}
           </T>
         </View>
-        <Tap
-          onPress={() => updateItem(item.id, { alert: !alertOn })}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: alertOn }}
-          accessibilityLabel="Price drop alert"
-          style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: alertOn ? palette.vio22 : palette.chip }}
-        >
-          <Bell size={15} color={alertOn ? palette.vio : palette.muted} fill={alertOn ? palette.vio : 'none'} />
-        </Tap>
         <Tap onPress={undo} style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
           <T size={12.5} w={700} color={palette.vio}>
             Undo
