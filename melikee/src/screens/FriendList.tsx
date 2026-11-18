@@ -56,12 +56,12 @@ export function FriendListScreen({ id }: { id: string }) {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               {days != null ? (
                 <View style={{ backgroundColor: brand.pink, borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9 }}>
-                  <T size={11} w={800} color={brand.white}>
+                  <T size={11} w={500} color={brand.white}>
                     {days === 0 ? 'today!' : `in ${days} days`}
                   </T>
                 </View>
               ) : null}
-              <T size={12} w={600} color={palette.soft}>
+              <T size={13} color={palette.muted}>
                 {left} of {list.items.length} up for dibs
               </T>
             </View>
@@ -71,13 +71,13 @@ export function FriendListScreen({ id }: { id: string }) {
       </View>
       {siblings.length > 1 ? (
         // All their lists as boards; the one you're on is outlined.
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 10, paddingHorizontal: 16, paddingBottom: 12 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 22, paddingBottom: 14 }}>
           {siblings.map((l) => (
             <MiniBoard
               key={l.id}
               width={128}
               shots={coverShots(l.items)}
-              accent={l.isBirthday ? brand.pink : l.listId === 'w' ? brand.lime : l.date === 'Dec 25' ? '#4fd18b' : palette.vio}
+              accent={palette.inset}
               name={l.name}
               sub={`${l.items.length} ${l.items.length === 1 ? 'shiny' : 'shinies'}`}
               selected={l.id === list.id}
@@ -89,37 +89,37 @@ export function FriendListScreen({ id }: { id: string }) {
         </ScrollView>
       ) : null}
       <SortRow by={by} onPick={setBy} note={`★ = ${friend.name} really wants`} />
-      <ScrollView contentContainerStyle={{ paddingTop: 2, paddingHorizontal: 16, paddingBottom: 110, flexDirection: 'row', flexWrap: 'wrap', gap: 11 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: 2, paddingHorizontal: 22, paddingBottom: 110, flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 22 }}>
         {items.map((a) => {
           const mine = !!dibs[a.id];
           const taken = !!a.taken;
           const choosing = !!a.pending;
           return (
-            <View key={a.id} style={{ width: '48.4%', backgroundColor: palette.card, borderWidth: 1, borderColor: mine ? palette.lime66 : palette.vio33, borderRadius: 16, overflow: 'hidden', opacity: taken ? 0.55 : 1 }}>
-              <View>
-                <PhotoBox uri={a.image} label={choosing ? 'still choosing' : 'photo'} style={{ aspectRatio: 1 }} />
+            <View key={a.id} style={{ width: '47.5%', gap: 8, opacity: taken ? 0.55 : 1 }}>
+              <View style={{ borderRadius: 6, overflow: 'hidden' }}>
+                <PhotoBox uri={a.image} label={choosing ? 'still choosing' : 'photo'} light style={{ aspectRatio: 1 }} />
                 {a.star ? (
-                <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(12,12,12,0.72)', borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
-                  <T size={11} w={800} color={brand.lime}>
-                    ★ Really wants
-                  </T>
-                </View>
-              ) : null}
+                  <View style={{ position: 'absolute', top: 7, left: 7, backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9 }}>
+                    <T size={11} w={500} color={palette.text}>
+                      ★ Really wants
+                    </T>
+                  </View>
+                ) : null}
               </View>
-              <View style={{ paddingTop: 9, paddingHorizontal: 11, flex: 1, gap: 2 }}>
-                <T size={13} w={700} numberOfLines={2} style={{ lineHeight: 17 }}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <T size={14} numberOfLines={2} style={{ lineHeight: 19 }}>
                   {a.name}
                 </T>
                 {!choosing ? (
-                  <T size={14} w={800} color={palette.limeText}>
+                  <T size={14} w={500} color={palette.text}>
                     {a.price}
                   </T>
                 ) : null}
-                <T size={12} color={palette.muted} numberOfLines={1}>
+                <T size={13} color={palette.muted} numberOfLines={1}>
                   {choosing ? 'still choosing the exact one' : a.store}
                 </T>
               </View>
-              <View style={{ paddingTop: 9, paddingHorizontal: 9, paddingBottom: 10 }}>
+              <View>
                 <Tap
                   disabled={taken || choosing}
                   accessibilityLabel={`${mine ? 'Drop dibs on' : 'Call dibs on'} ${a.name}`}
@@ -130,15 +130,15 @@ export function FriendListScreen({ id }: { id: string }) {
                     }
                     void toggle(list.id, a.id);
                   }}
-                  style={{ paddingVertical: 7, borderRadius: 999, alignItems: 'center', borderWidth: 1, borderColor: taken ? palette.vio33 : mine ? brand.lime : palette.vio55, backgroundColor: mine ? brand.lime : 'transparent' }}
+                  style={{ paddingVertical: 10, borderRadius: 999, alignItems: 'center', backgroundColor: taken || choosing ? palette.inset : mine ? palette.inset : palette.text }}
                 >
-                  <T size={12} w={800} color={taken ? palette.muted : mine ? brand.limeInk : palette.text}>
+                  <T size={13} w={500} color={taken || choosing ? palette.muted : mine ? palette.text : palette.bg}>
                     {choosing ? 'Still choosing' : taken ? `${a.takenBy ?? 'Someone'} has it` : mine ? 'Yours ✓' : a.chipIn ? 'Chip in' : 'Call dibs'}
                   </T>
                 </Tap>
                 {mine ? (
-                  <Tap onPress={() => (a.url ? void Linking.openURL(a.url).catch(() => undefined) : showToast(`Find it at ${a.store}`))} style={{ alignItems: 'center', paddingTop: 8 }}>
-                    <T size={12} w={700} color={palette.soft}>
+                  <Tap onPress={() => (a.url ? void Linking.openURL(a.url).catch(() => undefined) : showToast(`Find it at ${a.store}`))} style={{ alignItems: 'center', minHeight: 40, justifyContent: 'center' }}>
+                    <T size={13} w={500} color={palette.text} style={{ textDecorationLine: 'underline' }}>
                       Buy at {a.store} →
                     </T>
                   </Tap>
@@ -148,12 +148,12 @@ export function FriendListScreen({ id }: { id: string }) {
           );
         })}
         {items.length === 0 ? (
-          <T size={12} color={palette.muted} style={{ width: '100%', textAlign: 'center', paddingVertical: 16 }}>
+          <T size={14} color={palette.muted} style={{ width: '100%', paddingVertical: 16 }}>
             Nothing on this list yet.
           </T>
         ) : null}
-        <View style={{ width: '100%', backgroundColor: palette.inset, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 14 }}>
-          <T size={11} color={palette.muted} style={{ textAlign: 'center' }}>
+        <View style={{ width: '100%', borderTopWidth: 1, borderTopColor: palette.vio33, paddingTop: 14 }}>
+          <T size={12} color={palette.muted} style={{ textAlign: 'center' }}>
             Dibs are secret. {friend.name} will never know it was you.
           </T>
         </View>

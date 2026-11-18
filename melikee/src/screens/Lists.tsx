@@ -16,20 +16,20 @@ export function Lists() {
 
   return (
     <Appear style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: 16, paddingHorizontal: 18, paddingBottom: 110, gap: 10 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <T size={26} w={800} style={{ flex: 1, letterSpacing: -0.78 }}>
-            Your lists
+      <ScrollView contentContainerStyle={{ paddingTop: 16, paddingHorizontal: 22, paddingBottom: 110, gap: 18 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
+          <T size={38} w={300} style={{ flex: 1, letterSpacing: -1.2 }}>
+            Lists
           </T>
           <LimePill label="+ New list" onPress={() => openSheet({ type: 'newList' })} />
         </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 18 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 22 }}>
           {lists.map((l) => (
             <ListBoard key={l.id} s={state} id={l.id} onOpen={() => go({ name: 'list', id: l.id })} onShare={() => openSheet({ type: 'share', listId: l.id })} onVis={() => openSheet({ type: 'vis', listId: l.id })} onDate={() => openSheet({ type: 'bday' })} />
           ))}
         </View>
         {noItems ? (
-          <T size={12} color={palette.muted} style={{ textAlign: 'center', paddingVertical: 6, paddingHorizontal: 20, lineHeight: 18 }}>
+          <T size={13} color={palette.muted} style={{ paddingVertical: 6, lineHeight: 20 }}>
             You start with these four. Snap your first shiny and it lands in My wants — make more lists for anything else.
           </T>
         ) : null}
@@ -44,27 +44,27 @@ function ListBoard({ s, id, onOpen, onShare, onVis, onDate }: { s: AppState; id:
   const its = s.items.filter((i) => i.list === l.id);
   const days = listDays(s, l);
   const acc = listAccent(l);
-  const overlay = { position: 'absolute' as const, borderRadius: 999, backgroundColor: 'rgba(12,12,12,0.72)' };
+  const overlay = { position: 'absolute' as const, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.92)' };
   return (
-    <View style={{ width: '48%', gap: 7 }}>
+    <View style={{ width: '48%', gap: 8 }}>
       <Tap onPress={onOpen} accessibilityLabel={`${l.name}, ${shinies(its.length)}`}>
         <BoardCover shots={coverShots(its)} accent={acc} initial={l.name[0]} initialInk={l.id === 'w' ? brand.limeInk : brand.white}>
           {days != null ? (
-            <Tap onPress={l.isBirthday ? onDate : onOpen} accessibilityLabel={`${l.name} in ${days} days`} style={{ position: 'absolute', top: 7, left: 7, backgroundColor: l.isBirthday ? brand.pink : acc, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
-              <T size={11} w={800} color={l.isBirthday ? brand.white : brand.limeInk}>
+            <Tap onPress={l.isBirthday ? onDate : onOpen} accessibilityLabel={`${l.name} in ${days} days`} style={{ position: 'absolute', top: 7, left: 7, backgroundColor: l.isBirthday ? brand.pink : 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9 }}>
+              <T size={11} w={500} color={l.isBirthday ? brand.white : palette.text}>
                 {days === 0 ? 'today!' : days === 1 ? '1 day' : `${days} days`}
               </T>
             </Tap>
           ) : null}
           {l.vis !== 'me' ? (
             <Tap onPress={onShare} accessibilityLabel={`Share ${l.name}`} style={[overlay, { top: 6, right: 6, width: 30, height: 30, alignItems: 'center', justifyContent: 'center' }]}>
-              <Share color={brand.white} />
+              <Share color={palette.text} />
             </Tap>
           ) : null}
         </BoardCover>
       </Tap>
       <View style={{ gap: 2, paddingHorizontal: 2 }}>
-        <T size={15} w={800} numberOfLines={1} onPress={onOpen}>
+        <T size={15} numberOfLines={1} onPress={onOpen}>
           {l.name}
         </T>
         <T size={12} color={palette.muted}>

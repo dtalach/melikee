@@ -4,8 +4,7 @@ import { ScrollView, View } from 'react-native';
 import { priceValue } from '@/lib/match';
 import { listById, useApp, visSummary } from '@/store/useApp';
 import type { Item } from '@/store/types';
-import { brand, palette } from '@/theme/tokens';
-import { Chevron } from '@/ui/icons';
+import { palette } from '@/theme/tokens';
 import { Appear } from '@/ui/motion';
 import { BackHeader, GhostButton, OptionPill, PhotoBox, T, Tap } from '@/ui/primitives';
 import { VisIcon } from './shared';
@@ -27,13 +26,12 @@ export function sortItems<I extends { star?: boolean; price: string }>(items: I[
 
 export function SortRow({ by, onPick, note }: { by: SortKey; onPick: (k: SortKey) => void; note: string }) {
   return (
-    <View style={{ paddingHorizontal: 16, paddingBottom: 10, flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+    <View style={{ paddingHorizontal: 22, paddingBottom: 12, flexDirection: 'row', gap: 16, alignItems: 'center' }}>
       {SORTS.map(([k, l]) => (
         <OptionPill key={k} label={l} on={by === k} onPress={() => onPick(k)} />
       ))}
-      <T size={11} color={palette.muted} style={{ marginLeft: 'auto' }}>
-        {note}
-      </T>
+      {/* The ★ badge on each tile says it already; the note stays for screen readers. */}
+      <View accessible accessibilityLabel={note} />
     </View>
   );
 }
@@ -50,7 +48,7 @@ export function ListDetail({ id }: { id: string }) {
 
   return (
     <Appear style={{ flex: 1 }}>
-      <View style={{ paddingTop: 14, paddingHorizontal: 18, paddingBottom: 10 }}>
+      <View style={{ paddingTop: 14, paddingHorizontal: 22, paddingBottom: 12 }}>
         <BackHeader
           title={list.name}
           onBack={s.back}
@@ -58,20 +56,20 @@ export function ListDetail({ id }: { id: string }) {
             <Tap
               onPress={() => s.openSheet({ type: 'vis', listId: list.id })}
               accessibilityLabel="Who sees this list"
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: palette.vio44, borderRadius: 999, paddingVertical: 4, paddingLeft: 9, paddingRight: 10 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 32 }}
             >
-              <VisIcon vis={list.vis} size={12} />
-              <T size={12} w={600} color={palette.soft}>
+              <VisIcon vis={list.vis} size={12} color={palette.muted} />
+              <T size={13} color={palette.muted} style={{ textDecorationLine: 'underline' }}>
                 {visSummary(s, list)}
               </T>
-              <Chevron dir="down" size={10} strokeWidth={2} color={palette.soft} />
+
             </Tap>
           }
           right={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               {list.vis !== 'me' ? <GhostButton label="Share" size={12} pad={6} onPress={() => s.openSheet({ type: 'share', listId: list.id })} /> : null}
-              <Tap onPress={() => s.openSheet({ type: 'listSettings', listId: list.id })} accessibilityLabel="List settings" style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}>
-                <T size={18} w={700} color={palette.muted}>
+              <Tap onPress={() => s.openSheet({ type: 'listSettings', listId: list.id })} accessibilityLabel="List settings" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                <T size={18} color={palette.text}>
                   ⋯
                 </T>
               </Tap>
@@ -80,39 +78,39 @@ export function ListDetail({ id }: { id: string }) {
         />
       </View>
       <SortRow by={by} onPick={setBy} note="★ = really want" />
-      <ScrollView contentContainerStyle={{ paddingTop: 2, paddingHorizontal: 16, paddingBottom: 110, flexDirection: 'row', flexWrap: 'wrap', gap: 11 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: 2, paddingHorizontal: 22, paddingBottom: 110, flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 22 }}>
         <Tap
           onPress={() => s.openCamera({ dest: list.id })}
-          style={{ width: '48.4%', minHeight: 150, borderWidth: 1.5, borderStyle: 'dashed', borderColor: palette.vio55, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          style={{ width: '47.5%', aspectRatio: 1, alignSelf: 'flex-start', backgroundColor: palette.inset, borderRadius: 6, alignItems: 'center', justifyContent: 'center', gap: 6 }}
         >
-          <T size={26} color={palette.soft} style={{ lineHeight: 28 }}>
+          <T size={28} w={300} color={palette.text} style={{ lineHeight: 30 }}>
             +
           </T>
-          <T size={12} w={700} color={palette.soft} style={{ textAlign: 'center', paddingHorizontal: 8 }}>
+          <T size={13} color={palette.soft} style={{ textAlign: 'center', paddingHorizontal: 8 }}>
             Add to {list.name}
           </T>
         </Tap>
         {items.map((it) => (
-          <Tap key={it.id} onPress={() => s.go({ name: 'item', id: it.id })} style={{ width: '48.4%', backgroundColor: palette.card, borderWidth: 1, borderColor: it.pending ? palette.lime66 : palette.vio33, borderRadius: 16, overflow: 'hidden' }}>
-            <View>
-              <PhotoBox uri={it.image} fallback={it.photo} fit={it.pending ? 'cover' : 'contain'} style={{ aspectRatio: 1 }} />
+          <Tap key={it.id} onPress={() => s.go({ name: 'item', id: it.id })} style={{ width: '47.5%', gap: 8 }}>
+            <View style={{ borderRadius: 6, overflow: 'hidden' }}>
+              <PhotoBox uri={it.image} fallback={it.photo} fit={it.pending ? 'cover' : 'contain'} light style={{ aspectRatio: 1 }} />
               {it.star ? (
-                <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(12,12,12,0.72)', borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
-                  <T size={11} w={800} color={brand.lime}>
+                <View style={{ position: 'absolute', top: 7, left: 7, backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9 }}>
+                  <T size={11} w={500} color={palette.text}>
                     ★ Really want
                   </T>
                 </View>
               ) : null}
             </View>
-            <View style={{ paddingTop: 9, paddingHorizontal: 11, paddingBottom: 11, gap: 2 }}>
-              <T size={13} w={700} numberOfLines={2} style={{ lineHeight: 17 }}>
+            <View style={{ gap: 2 }}>
+              <T size={14} numberOfLines={2} style={{ lineHeight: 19 }}>
                 {it.name}
               </T>
-              <T size={14} w={800} color={it.pending ? palette.muted : palette.limeText}>
+              <T size={14} w={500} color={it.pending ? palette.muted : palette.text}>
                 {it.pending ? 'still matching' : it.price}
               </T>
               {!it.pending ? (
-                <T size={12} color={palette.muted} numberOfLines={1}>
+                <T size={13} color={palette.muted} numberOfLines={1}>
                   {[it.store, it.size].filter(Boolean).join(' · ')}
                 </T>
               ) : null}
