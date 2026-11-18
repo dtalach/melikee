@@ -3,7 +3,7 @@
  * mlk-drain, mlk-slap, mlk-flash, mlk-burst), as small Animated wrappers.
  */
 import { useEffect, useState, type ReactNode } from 'react';
-import { Animated, Easing, Platform, type StyleProp, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 
 const native = Platform.OS !== 'web';
 
@@ -179,4 +179,58 @@ export function SheetOut({ children, active, style }: { children: ReactNode; act
   const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [0, 600] });
   const opacity = v.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] });
   return <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>{children}</Animated.View>;
+}
+
+const FLAKES = [4, 11, 18, 26, 34, 41, 49, 57, 64, 71, 87, 93, 15, 38, 60, 97].map((x, i) => ({
+  x,
+  size: 2 + (i % 3),
+  opacity: 0.18 + (i % 4) * 0.08,
+  duration: 7000 + (i % 5) * 1600,
+  phase: ((i * 1.7) % 9) / 9,
+}));
+
+/**
+ * Faint snow drifting down behind a card's content: a few small white flecks
+ * falling at different speeds. Lies flat (no motion) when the phone asks for
+ * reduced motion. Fill the parent and put content after it.
+ */
+export function Snowfall({ height }: { height: number }) {
+  const [still, setStill] = useState(false);
+  useEffect(() => {
+    let on = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((r) => on && setStill(r))
+      .catch(() => undefined);
+    return () => {
+      on = false;
+    };
+  }, []);
+  return (
+    <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}>
+      {FLAKES.map((f, i) => (
+        <Flake key={i} f={f} height={height} still={still} />
+      ))}
+    </View>
+  );
+}
+
+function Flake({ f, height, still }: { f: (typeof FLAKES)[number]; height: number; still: boolean }) {
+  const v = useValue(f.phase);
+  useEffect(() => {
+    if (still) return;
+    let live = true;
+    const run = (from: number) => {
+      v.setValue(from);
+      Animated.timing(v, { toValue: 1, duration: f.duration * (1 - from), easing: Easing.linear, useNativeDriver: native }).start(({ finished }) => {
+        if (finished && live) run(0);
+      });
+    };
+    run(f.phase);
+    return () => {
+      live = false;
+      v.stopAnimation();
+    };
+  }, [v, f, still]);
+  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [-12, height + 12] });
+  return <Animated.View style={{ position: 'absolute', top: 0, left: `${f.x}%`, width: f.size, height: f.size, borderRadius: f.size, backgroundColor: '#ffffff', opacity: f.opacity, transform: [{ translateY }] }} />;
 }

@@ -13,7 +13,8 @@ import { ago, daysUntil, SOON_DAYS } from '@/lib/dates';
 import { trending } from '@/store/seed';
 import { useApp } from '@/store/useApp';
 import { brand, palette, paper } from '@/theme/tokens';
-import { Appear } from '@/ui/motion';
+import { GiftWrap } from '@/ui/gift';
+import { Appear, Snowfall } from '@/ui/motion';
 import { LimeFill, PhotoBox, T, Tap } from '@/ui/primitives';
 
 /** "AVA’S SWEET 16" — small, tracked-out caps. */
@@ -27,12 +28,10 @@ function Label({ children, color = paper.muted }: { children: string; color?: st
 
 /** The Christmas card shows from this many days out (about mid-October) until the day. */
 const XMAS_WINDOW = 70;
-const RIBBON = '#d3263a';
-const RIBBON_DARK = '#a51b2c';
-
 /**
  * The Christmas countdown, wrapped like a present: the black card is the box,
- * a red ribbon crosses it near the top right and a bow sits on the knot.
+ * a red ribbon crosses it near the top right, a bow sits on the knot and a
+ * little snow drifts down behind it.
  * The same for everyone: days to go, and a way to your own list.
  */
 function XmasBox({ days, onList, spaced }: { days: number; onList?: () => void; spaced: boolean }) {
@@ -41,12 +40,8 @@ function XmasBox({ days, onList, spaced }: { days: number; onList?: () => void; 
   const band = 12;
   return (
     <Tap onPress={onList} disabled={!onList} accessibilityLabel={`Christmas: ${days === 0 ? 'today' : `${days} ${days === 1 ? 'day' : 'days'} to go`}${onList ? '. Open your Christmas list' : ''}`} style={{ marginHorizontal: 24, marginTop: spaced ? 14 : 0, backgroundColor: paper.card, borderRadius: 22, overflow: 'hidden' }}>
-      {/* Ribbon: one band across, one down, each with a darker edge. */}
-      <View style={{ position: 'absolute', left: 0, right: 0, top: RY - band / 2, height: band, backgroundColor: RIBBON, borderTopWidth: 1, borderBottomWidth: 1, borderColor: RIBBON_DARK }} />
-      <View style={{ position: 'absolute', top: 0, bottom: 0, right: RX - band / 2, width: band, backgroundColor: RIBBON, borderLeftWidth: 1, borderRightWidth: 1, borderColor: RIBBON_DARK }} />
-      <View pointerEvents="none" style={{ position: 'absolute', top: RY - 28, right: RX - 39 }}>
-        <Bow />
-      </View>
+      <Snowfall height={200} />
+      <GiftWrap right={RX} top={RY} band={band} />
       <View style={{ paddingTop: RY + band / 2 + 18, paddingLeft: 24, paddingRight: RX + 24, paddingBottom: 20, gap: 2 }}>
         <Label color={paper.cardMuted}>Christmas</Label>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
@@ -67,18 +62,6 @@ function XmasBox({ days, onList, spaced }: { days: number; onList?: () => void; 
   );
 }
 
-/** A two-loop bow with tails, drawn to sit on the ribbon's knot. */
-function Bow() {
-  return (
-    <Svg width={78} height={62} viewBox="0 0 60 48">
-      <Path d="M27 22 C 16 6, 2 8, 6 20 C 9 29, 20 27, 27 22 Z" fill={RIBBON} stroke={RIBBON_DARK} strokeWidth={1.2} />
-      <Path d="M33 22 C 44 6, 58 8, 54 20 C 51 29, 40 27, 33 22 Z" fill={RIBBON} stroke={RIBBON_DARK} strokeWidth={1.2} />
-      <Path d="M28 25 L 20 44 L 25 41 L 28 46 L 30 27 Z" fill={RIBBON} stroke={RIBBON_DARK} strokeWidth={1} />
-      <Path d="M32 25 L 40 44 L 35 41 L 32 46 L 30 27 Z" fill={RIBBON} stroke={RIBBON_DARK} strokeWidth={1} />
-      <Path d="M25 18 h10 a3 3 0 0 1 3 3 v3 a3 3 0 0 1 -3 3 h-10 a3 3 0 0 1 -3 -3 v-3 a3 3 0 0 1 3 -3 z" fill={RIBBON_DARK} />
-    </Svg>
-  );
-}
 
 function Circle({ initial, ring, label, strong, onPress, a11y }: { initial: string; ring: string; label: string; strong?: boolean; onPress: () => void; a11y: string }) {
   return (
