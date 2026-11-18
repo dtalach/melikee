@@ -40,7 +40,8 @@ export type Pending = Person & { at: number };
 
 export type SyncResponse = {
   ok: true;
-  me: { uid: string; handle: string; findByPhone: boolean };
+  /** `birth`: the account's own birthday (month 1–12), only ever sent to the account itself. */
+  me: { uid: string; handle: string; findByPhone: boolean; birth?: { year: number; month: number; day: number } };
   friends: FriendView[];
   incoming: Pending[];
   outgoing: Pending[];
@@ -51,7 +52,7 @@ export type FriendsRequest =
   | { action: 'search'; secret: string; q: string }
   | { action: 'request' | 'accept' | 'decline' | 'cancel' | 'remove' | 'block'; secret: string; uid: string }
   | { action: 'access'; secret: string; uid: string; list: string; on: boolean }
-  | { action: 'settings'; secret: string; findByPhone: boolean }
+  | { action: 'settings'; secret: string; findByPhone?: boolean; birthday?: { month: number; day: number; year?: number } }
   | { action: 'dibs'; secret: string; uid: string; list: string; itemId: number; claim: boolean };
 
 export type FriendsError = {
