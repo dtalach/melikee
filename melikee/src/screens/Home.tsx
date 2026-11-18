@@ -17,7 +17,7 @@ export type HomeTab = 'foryou' | 'friends';
 
 export function Home() {
   const tab: HomeTab = useApp(homeSide);
-  const light = tab === 'friends';
+  const light = true;
   const setHomeTab = useApp((s) => s.setHomeTab);
   const unread = useApp((s) => s.notifs.filter((n) => !n.read).length);
   const go = useApp((s) => s.go);
@@ -40,20 +40,20 @@ export function Home() {
 
   return (
     <View style={{ flex: 1, backgroundColor: light ? paper.bg : palette.bg }}>
-      <View style={{ paddingTop: 10, paddingHorizontal: light ? 22 : 16, paddingBottom: light ? 0 : 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View style={{ paddingTop: 10, paddingHorizontal: 22, paddingBottom: tab === 'friends' ? 0 : 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: 2, padding: 3, borderRadius: 999, backgroundColor: light ? paper.avatar : palette.card, borderWidth: 1, borderColor: light ? paper.line : palette.vio33 }}>
           {seg('foryou', 'For you')}
           {seg('friends', 'Friends')}
         </View>
-        {/* The Feed has its own bell, drawn to match it. */}
-        {light ? null : (
+        {/* The Feed draws its own bell next to its title. */}
+        {tab === 'friends' ? null : (
           <>
-        <View style={{ flex: 1 }} />
-            <Tap onPress={() => go({ name: 'notifs' })} accessibilityLabel={`Notifications, ${unread} unread`} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.vio44, alignItems: 'center', justifyContent: 'center' }}>
-              <Bell size={17} color={palette.text} />
+            <View style={{ flex: 1 }} />
+            <Tap onPress={() => go({ name: 'notifs' })} accessibilityLabel={`Notifications, ${unread} unread`} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+              <Bell size={19} color={paper.text} />
               {unread ? (
-                <View style={{ position: 'absolute', top: -3, right: -3, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: brand.pink, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
-                  <T size={11} w={700} color={brand.white}>
+                <View style={{ position: 'absolute', top: 4, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: brand.pink, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
+                  <T size={11} w={500} color={brand.white}>
                     {unread}
                   </T>
                 </View>
