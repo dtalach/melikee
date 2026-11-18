@@ -652,6 +652,13 @@ export const useApp = create<AppState>()(
           return;
         }
         set((s) => applyFriends(s, r));
+        // A birthday given on this phone wins: make sure the account (and so friends) has it.
+        const p = get().profile;
+        const b = r.me.birth;
+        const m = MONTHS.indexOf(p.birthday.month) + 1;
+        if (p.birthdaySet && (!b || b.month !== m || b.day !== p.birthday.day || b.year !== p.birthday.year)) {
+          void friendAction(get().ownerSecret, { action: 'settings', birthday: { month: m, day: p.birthday.day, year: p.birthday.year } });
+        }
       },
       sendRequest: async (uid, name) => {
         const r = await friendAction(get().ownerSecret, { action: 'request', uid });
@@ -1119,8 +1126,20 @@ function applyFriends(s: AppState, r: SyncResponse): Partial<AppState> {
     requests,
     sent,
     findByPhone: r.me.findByPhone,
+    ...birthdayFromAccount(s, r.me.birth),
     notifs: fresh.length ? [...fresh, ...s.notifs] : s.notifs,
   };
+}
+
+/**
+ * The account knows the birthday this person signed up with. A phone that only
+ * has the placeholder (signed in before restores carried it, or verified before
+ * it was asked) takes it from there instead of asking again. Oct 14 is the old
+ * sample birthday some early accounts were given, so it doesn't count.
+ */
+function birthdayFromAccount(s: AppState, birth?: { year: number; month: number; day: number }): Partial<AppState> {
+  if (s.profile.birthdaySet !== false || !birth || !MONTHS[birth.month - 1] || (birth.month === 10 && birth.day === 14)) return {};
+  return { profile: { ...s.profile, birthday: { month: MONTHS[birth.month - 1], day: birth.day, year: birth.year }, birthdaySet: true } };
 }
 
 /** Photo captures shown before their search finished, by capture run. */

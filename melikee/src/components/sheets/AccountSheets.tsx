@@ -16,6 +16,11 @@ export function BdaySheet() {
   const showToast = useApp((s) => s.showToast);
   const [month, setMonth] = useState<Month>(p.birthday.month);
   const [day, setDay] = useState(String(p.birthday.day));
+  // First time giving it (the year was a placeholder): ask the year too. 13+ only.
+  const askYear = p.birthdaySet === false;
+  const thisYear = new Date().getFullYear();
+  const years = Array.from({ length: 80 }, (_, i) => String(thisYear - 13 - i));
+  const [year, setYear] = useState(askYear ? String(thisYear - 15) : String(p.birthday.year));
   const [remind, setRemind] = useState(p.remindGifters);
   const [countdown, setCountdown] = useState(p.showCountdown);
   return (
@@ -27,6 +32,7 @@ export function BdaySheet() {
       <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
         <Select value={month} options={MONTHS} onChange={setMonth} style={{ flex: 2 }} accessibilityLabel="Month" />
         <Select value={day} options={DAYS} onChange={setDay} style={{ flex: 1 }} accessibilityLabel="Day" />
+        {askYear ? <Select value={year} options={years} onChange={setYear} style={{ flex: 1.3 }} accessibilityLabel="Year" /> : null}
       </View>
       <ToggleRow title="Nudge gifters 2 weeks before" sub="one text to people with your link" on={remind} onPress={() => setRemind((x) => !x)} />
       <ToggleRow title="Show countdown to friends" sub="on your profile and in their Feed" on={countdown} onPress={() => setCountdown((x) => !x)} />
@@ -35,7 +41,9 @@ export function BdaySheet() {
         size={13.5}
         pad={12}
         onPress={() => {
-          setProfile({ birthday: { ...p.birthday, month, day: parseInt(day, 10) }, birthdaySet: true, remindGifters: remind, showCountdown: countdown });
+          setProfile({ birthday: { month, day: parseInt(day, 10), year: parseInt(year, 10) }, birthdaySet: true, remindGifters: remind, showCountdown: countdown });
+          // The account too, so friends count down to the right day.
+          void useApp.getState().syncFriends();
           close();
           showToast(`Birthday set — ${month} ${day}`);
         }}

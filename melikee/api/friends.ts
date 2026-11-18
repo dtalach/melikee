@@ -3,7 +3,7 @@
  * Every call carries the device secret; see src/lib/friendsContract.ts.
  */
 import type { FriendsRequest } from '../src/lib/friendsContract';
-import { accept, accountForSecret, block, end, friendDibs, FriendsError, request, search, setAccess, setFindByPhone, sync } from '../server/friends';
+import { accept, accountForSecret, block, end, friendDibs, FriendsError, request, search, setAccess, setBirthday, setFindByPhone, sync } from '../server/friends';
 import { isConfigured } from '../server/pages';
 
 type Req = { method?: string; body?: unknown };
@@ -59,8 +59,9 @@ export default async function handler(req: Req, res: Res) {
         await setAccess(me, needUid(), b.list, b.on);
         return res.status(200).json({ ok: true });
       case 'settings':
-        if (typeof b.findByPhone !== 'boolean') throw new FriendsError('bad_request', 'settings needs findByPhone.');
-        await setFindByPhone(me, b.findByPhone);
+        if (typeof b.findByPhone !== 'boolean' && !b.birthday) throw new FriendsError('bad_request', 'settings needs findByPhone or birthday.');
+        if (typeof b.findByPhone === 'boolean') await setFindByPhone(me, b.findByPhone);
+        if (b.birthday) await setBirthday(me, Number(b.birthday.month), Number(b.birthday.day), b.birthday.year == null ? undefined : Number(b.birthday.year));
         return res.status(200).json({ ok: true });
       case 'dibs':
         if (typeof b.list !== 'string' || typeof b.itemId !== 'number' || typeof b.claim !== 'boolean') throw new FriendsError('bad_request', 'dibs needs list, itemId and claim.');

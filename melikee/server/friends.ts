@@ -20,7 +20,7 @@ import { randomBytes } from 'node:crypto';
 
 import type { FriendListView, FriendView, Pending, Person, Relation, SearchResult, SyncResponse } from '../src/lib/friendsContract';
 import type { DibsView } from '../src/lib/pagesContract';
-import { allow, normalizePhone, phoneKey, sha, type Account } from './auth';
+import { ageOn, allow, normalizePhone, phoneKey, sha, type Account } from './auth';
 import { dibsKey, getStore, hash, pageKey, view, type DibsEntry, type PageDoc } from './pages';
 
 type Rel = { s: 'friends' | 'out' | 'in' | 'blocked'; at: number; access?: Record<string, boolean> };
@@ -224,6 +224,18 @@ export async function setFindByPhone(me: Me, on: boolean) {
   await saveAcct(me.key, { ...me.acct, findByPhone: on });
 }
 
+/**
+ * The account's birthday. Month and day are what friends see. A year is taken
+ * only if it keeps the account 13+ (otherwise the signed-up year stays).
+ */
+export async function setBirthday(me: Me, month: number, day: number, year?: number) {
+  if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(day) || day < 1 || day > 31) throw new FriendsError('bad_request', 'That’s not a date.');
+  const keepYear = me.acct.birth?.year ?? new Date().getFullYear() - 13;
+  const candidate = Number.isInteger(year) && year! > 1900 ? year! : keepYear;
+  const y = ageOn({ year: candidate, month, day }) >= 13 ? candidate : keepYear;
+  await saveAcct(me.key, { ...me.acct, birth: { year: y, month, day } });
+}
+
 // ── search ─────────────────────────────────────────────────────────────────
 
 /** A full US/Canadian phone number finds one account (if it allows it); anything else is a handle prefix. */
@@ -313,7 +325,7 @@ export async function sync(me: Me): Promise<SyncResponse> {
   }
   return {
     ok: true,
-    me: { uid: me.acct.uid, handle: String(me.acct.handle ?? ''), findByPhone: me.acct.findByPhone !== false },
+    me: { uid: me.acct.uid, handle: String(me.acct.handle ?? ''), findByPhone: me.acct.findByPhone !== false, birth: me.acct.birth },
     friends,
     incoming: incoming.sort((a, b) => b.at - a.at),
     outgoing: outgoing.sort((a, b) => b.at - a.at),
