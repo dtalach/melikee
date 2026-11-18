@@ -63,7 +63,53 @@ export async function accountForSecret(secret: unknown): Promise<Me | null> {
   if (!key) return null;
   const acct = await s.get<Account>(`acct:${key}`);
   if (!acct) return null;
-  return { key, acct: await withUid(key, acct) };
+  return listed({ key, acct: await withUid(key, acct) });
+}
+
+/**
+ * Make sure an account is findable: its handle on the account and in the
+ * search index. Accounts made before friends existed only get one when their
+ * phone next publishes; this fills it in from the page that account's device
+ * already published (`owns:<secretHash>` → handle).
+ */
+async function listed(me: Me): Promise<Me> {
+  if (me.acct.handle) return me;
+  const s = getStore();
+  const handle = await s.get<string>(`owns:${me.acct.secretHash}`);
+  if (handle == null) return me;
+  const h = String(handle);
+  const doc = await s.get<PageDoc>(pageKey(h));
+  if (!doc || doc.owner !== me.acct.secretHash) return me;
+  const acct = { ...me.acct, handle: h, name: me.acct.name || doc.name };
+  await saveAcct(me.key, acct);
+  await s.zadd(HANDLES, h);
+  await s.set(`huid:${h}`, acct.uid);
+  return { key: me.key, acct };
+}
+
+/**
+ * One pass over every published page, indexing the accounts behind them.
+ * Runs once (flag in the database); afterwards publishing keeps it current.
+ */
+const BACKFILL = 'idx:handles:v1';
+async function backfill() {
+  const s = getStore();
+  if (await s.get(BACKFILL)) return;
+  let n = 0;
+  for (const k of await s.scan('owns:*')) {
+    const secretHash = k.slice('owns:'.length);
+    const key = await s.get<string>(`owner:${secretHash}`);
+    const acct = key ? await s.get<Account>(`acct:${key}`) : null;
+    if (!key || !acct || acct.secretHash !== secretHash) continue;
+    const me = await listed({ key, acct: await withUid(key, acct) });
+    if (me.acct.handle) {
+      await s.zadd(HANDLES, String(me.acct.handle));
+      await s.set(`huid:${me.acct.handle}`, me.acct.uid);
+      n++;
+    }
+  }
+  await s.set(BACKFILL, { at: Date.now(), n });
+  console.log(`[friends] indexed ${n} existing accounts`);
 }
 
 async function accountForUid(uid: string): Promise<Me | null> {
@@ -184,6 +230,7 @@ export async function setFindByPhone(me: Me, on: boolean) {
 export async function search(me: Me, q: string): Promise<SearchResult[]> {
   if (!(await allow('search', me.acct.uid, 120, 3600))) throw new FriendsError('rate_limited', 'Too many searches. Try again in a bit.');
   const s = getStore();
+  await backfill().catch((e) => console.error('[friends] backfill', e));
   const text = q.trim().slice(0, 40);
   const digits = text.replace(/\D/g, '');
   let found: Me[] = [];
@@ -192,7 +239,7 @@ export async function search(me: Me, q: string): Promise<SearchResult[]> {
     if (e164) {
       const key = phoneKey(e164);
       const acct = await s.get<Account>(`acct:${key}`);
-      if (acct && acct.findByPhone !== false) found = [{ key, acct: await withUid(key, acct) }];
+      if (acct && acct.findByPhone !== false) found = [await listed({ key, acct: await withUid(key, acct) })];
     }
   } else {
     const prefix = text.toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_.]/g, '');
@@ -214,6 +261,8 @@ export async function search(me: Me, q: string): Promise<SearchResult[]> {
     if (mine?.s === 'blocked' || theirs?.s === 'blocked') continue;
     out.push({ ...person(them.acct), state: stateOf(mine) });
   }
+  // Counts only: what people search for stays private.
+  console.log(`[friends] search ${digits.length >= 10 && !/[a-z_]/i.test(text) ? 'phone' : 'handle'} found=${found.length} shown=${Math.min(out.length, 10)}`);
   return out.slice(0, 10);
 }
 
