@@ -26,6 +26,7 @@ import { brand, font, gift } from '@/theme/tokens';
 import { Sparkle } from '@/ui/icons';
 import { Appear, SlideUp } from '@/ui/motion';
 import { Avatar, LimeFill, T, Tap } from '@/ui/primitives';
+import { BoardCover, coverShots } from './shared';
 
 const NAME_CHIPS = ['Grandma', 'Mom', 'Dad', 'Aunt', 'A friend'];
 
@@ -54,8 +55,11 @@ export function GifterView(p: ViewProps) {
   const showToast = useApp((s) => s.showToast);
   const [asking, setAsking] = useState<number | null>(null);
   const [draft, setDraft] = useState('');
-  const owner = p.owner || 'Their';
+  // "Maya’s wishlist"; without a name, "Their wishlist" (never "Their’s").
+  const owner = p.owner || 'They';
+  const whose = p.owner ? `${p.owner}’s` : 'Their';
   const items = p.items.slice().sort((a, b) => (b.star ? 1 : 0) - (a.star ? 1 : 0));
+  const shots = coverShots(items.filter((i) => i.image && !i.pending));
 
   const confirmName = () => {
     const nm = draft.trim();
@@ -137,9 +141,16 @@ export function GifterView(p: ViewProps) {
                 MeLikee
               </T>
             </View>
-            <Avatar initial={owner[0]} size={58} ring={[brand.pink, gift.accent]} ringWidth={2.5} fill="#fff" color="#7a5fd0" gap="#fff" fontSize={21} />
+            {shots.length ? (
+              // The list as a board: its best photos, like the owner sees it.
+              <View style={{ alignSelf: 'stretch', maxWidth: 420, width: '100%', marginVertical: 4, borderRadius: 18, boxShadow: '0 6px 20px rgba(45,36,71,0.12)' }}>
+                <BoardCover shots={shots} accent={gift.thumb} initial="" initialInk={gift.text} gapColor={gift.page} />
+              </View>
+            ) : (
+              <Avatar initial={owner[0]} size={58} ring={[brand.pink, gift.accent]} ringWidth={2.5} fill="#fff" color="#7a5fd0" gap="#fff" fontSize={21} />
+            )}
             <T size={21} w={800} color={gift.text} style={{ letterSpacing: -0.42, textAlign: 'center' }}>
-              {owner}’s {p.isMain ? 'wishlist' : p.listName}
+              {whose} {p.isMain ? 'wishlist' : p.listName}
             </T>
             {p.note ? (
               <View style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: gift.bandLine, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, maxWidth: 280 }}>
@@ -153,11 +164,11 @@ export function GifterView(p: ViewProps) {
             </T>
             {sizeParts(p.sizes).length ? (
               <View
-                accessibilityLabel={`${owner}’s sizes: ${sizeParts(p.sizes).join(', ')}`}
+                accessibilityLabel={`${whose} sizes: ${sizeParts(p.sizes).join(', ')}`}
                 style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: gift.bandLine, borderRadius: 14, paddingVertical: 9, paddingHorizontal: 14, maxWidth: 320, alignItems: 'center', gap: 6 }}
               >
                 <T size={11} w={800} color={gift.meta} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
-                  {owner}’s sizes
+                  {whose} sizes
                 </T>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>
                   {sizeParts(p.sizes).map((part) => (
@@ -187,92 +198,110 @@ export function GifterView(p: ViewProps) {
               </T>
             ) : null}
           </Appear>
-          <View style={{ paddingTop: 12, paddingHorizontal: 18, gap: 9 }}>
+          <View style={{ paddingTop: 12, paddingHorizontal: 16, gap: 12 }}>
             {items.length === 0 ? (
               <T size={12.5} color={gift.meta} style={{ textAlign: 'center', paddingVertical: 12 }}>
                 Nothing on this list yet.
               </T>
             ) : null}
-            {items.map((i) => {
-              const choosing = !!i.pending;
-              const d = p.dibs[String(i.id)];
-              const mine = !choosing && !!d?.mine;
-              const other = !choosing && d && !d.mine ? d.name : null;
-              const busy = p.busy === i.id;
-              const btn = choosing
-                ? { label: 'Still choosing', bg: gift.band, fg: gift.meta, bd: 'transparent' }
-                : other
-                  ? { label: `${other} has it`, bg: gift.band, fg: gift.meta, bd: 'transparent' }
-                  : mine
-                    ? { label: 'Dibs yours ✓', bg: gift.fill, fg: gift.accent, bd: gift.accent66 }
-                    : null;
-              const meta = choosing ? 'still choosing the exact one' : [i.price, i.store, i.size].filter(Boolean).join(' · ');
-              return (
-                <View key={i.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: '#fff', borderWidth: 1, borderColor: mine ? gift.accent66 : gift.rowLine, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 12, boxShadow: '0 2px 8px rgba(45,36,71,0.06)', opacity: busy ? 0.6 : 1 }}>
-                  <View style={{ width: 46, height: 46, borderRadius: 10, backgroundColor: i.image && !choosing ? '#fff' : gift.thumb, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                    {i.image && !choosing ? (
-                      <Image source={{ uri: i.image }} resizeMode="contain" style={{ width: '100%', height: '100%' }} accessibilityIgnoresInvertColors />
-                    ) : (
-                      <T size={8} color={gift.meta}>
-                        photo
-                      </T>
-                    )}
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <T size={13} w={700} color={gift.text} style={{ lineHeight: 16 }}>
-                      {(i.star ? '★ ' : '') + i.name}
-                    </T>
-                    <T size={11} color={gift.meta} style={{ marginTop: 2 }}>
-                      {meta}
-                    </T>
-                    {i.note ? (
-                      <T size={11} color={gift.body} style={{ fontStyle: 'italic', marginTop: 3 }}>
-                        “{i.note}”
-                      </T>
-                    ) : null}
-                    {mine ? (
-                      <Tap onPress={() => (i.url ? Linking.openURL(i.url).catch(() => undefined) : showToast(`Find it at ${i.store}`))} style={{ marginTop: 4 }}>
-                        <T size={11.5} w={700} color={gift.accent}>
-                          Buy at {i.store} →
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 }}>
+              {items.map((i) => {
+                const choosing = !!i.pending;
+                const d = p.dibs[String(i.id)];
+                const mine = !choosing && !!d?.mine;
+                const other = !choosing && d && !d.mine ? d.name : null;
+                const busy = p.busy === i.id;
+                const btn = choosing
+                  ? { label: 'Still choosing', bg: gift.band, fg: gift.meta, bd: 'transparent' }
+                  : other
+                    ? { label: `${other} has it`, bg: gift.band, fg: gift.meta, bd: 'transparent' }
+                    : mine
+                      ? { label: 'Dibs yours ✓', bg: gift.fill, fg: gift.accent, bd: gift.accent66 }
+                      : null;
+                const meta = choosing ? 'still choosing the exact one' : [i.store, i.size].filter(Boolean).join(' · ');
+                return (
+                  <View key={i.id} style={{ width: '48.5%', backgroundColor: '#fff', borderWidth: 1, borderColor: mine ? gift.accent66 : gift.rowLine, borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 8px rgba(45,36,71,0.06)', opacity: busy ? 0.6 : 1 }}>
+                    <View style={{ aspectRatio: 1, backgroundColor: i.image && !choosing ? '#fff' : gift.thumb, alignItems: 'center', justifyContent: 'center' }}>
+                      {i.image && !choosing ? (
+                        <Image source={{ uri: i.image }} resizeMode="contain" style={{ width: '88%', height: '88%' }} accessibilityIgnoresInvertColors />
+                      ) : (
+                        <T size={12} color={gift.meta}>
+                          {choosing ? 'still choosing' : 'photo'}
                         </T>
+                      )}
+                      {i.star ? (
+                        <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: gift.text, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
+                          <T size={11} w={800} color={gift.page}>
+                            ★ Really wants
+                          </T>
+                        </View>
+                      ) : null}
+                    </View>
+                    <View style={{ paddingTop: 9, paddingHorizontal: 11, paddingBottom: 11, gap: 3, flex: 1 }}>
+                      <T size={13} w={700} color={gift.text} numberOfLines={2} style={{ lineHeight: 17 }}>
+                        {i.name}
+                      </T>
+                      {!choosing ? (
+                        <T size={14} w={800} color={gift.text}>
+                          {i.price}
+                        </T>
+                      ) : null}
+                      {meta ? (
+                        <T size={12} color={gift.meta} numberOfLines={1}>
+                          {meta}
+                        </T>
+                      ) : null}
+                      {i.note ? (
+                        <T size={12} color={gift.body} numberOfLines={2} style={{ fontStyle: 'italic' }}>
+                          “{i.note}”
+                        </T>
+                      ) : null}
+                      <View style={{ flex: 1 }} />
+                      <Tap
+                        disabled={choosing || !!other || busy}
+                        accessibilityLabel={btn?.label ?? `Call dibs on ${i.name}`}
+                        onPress={() => {
+                          if (!mine && !p.gifterName) {
+                            setDraft('');
+                            setAsking(i.id);
+                            return;
+                          }
+                          p.onDibs(i.id, !mine);
+                        }}
+                        style={{ marginTop: 6 }}
+                      >
+                        {btn ? (
+                          <View style={{ backgroundColor: btn.bg, borderWidth: 1.5, borderColor: btn.bd, paddingVertical: 8, borderRadius: 999, alignItems: 'center' }}>
+                            <T size={12} w={800} color={btn.fg} numberOfLines={1}>
+                              {btn.label}
+                            </T>
+                          </View>
+                        ) : (
+                          <LimeFill style={{ paddingVertical: 9, alignItems: 'center' }}>
+                            <T size={12} w={800} color={brand.limeInk}>
+                              Call dibs
+                            </T>
+                          </LimeFill>
+                        )}
                       </Tap>
-                    ) : null}
+                      {mine ? (
+                        <Tap onPress={() => (i.url ? Linking.openURL(i.url).catch(() => undefined) : showToast(`Find it at ${i.store}`))} style={{ alignItems: 'center', paddingTop: 8 }}>
+                          <T size={12} w={700} color={gift.accent}>
+                            Buy at {i.store} →
+                          </T>
+                        </Tap>
+                      ) : null}
+                    </View>
                   </View>
-                  <Tap
-                    disabled={choosing || !!other || busy}
-                    accessibilityLabel={btn?.label ?? `Call dibs on ${i.name}`}
-                    onPress={() => {
-                      if (!mine && !p.gifterName) {
-                        setDraft('');
-                        setAsking(i.id);
-                        return;
-                      }
-                      p.onDibs(i.id, !mine);
-                    }}
-                  >
-                    {btn ? (
-                      <View style={{ backgroundColor: btn.bg, borderWidth: 1.5, borderColor: btn.bd, paddingVertical: 7, paddingHorizontal: 13, borderRadius: 999 }}>
-                        <T size={11.5} w={800} color={btn.fg}>
-                          {btn.label}
-                        </T>
-                      </View>
-                    ) : (
-                      <LimeFill style={{ paddingVertical: 8.5, paddingHorizontal: 14.5 }}>
-                        <T size={11.5} w={800} color={brand.limeInk}>
-                          Call dibs
-                        </T>
-                      </LimeFill>
-                    )}
-                  </Tap>
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
             <View style={{ backgroundColor: gift.band, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 14 }}>
               <T size={11} color={gift.meta} style={{ textAlign: 'center', lineHeight: 16.5 }}>
-                Dibs are a secret between gifters — {owner} never sees what’s claimed. Buy it anywhere you like.
+                Dibs are a secret between gifters — {p.owner || 'the person whose list this is'} never sees what’s claimed. Buy it anywhere you like.
               </T>
             </View>
-            {joinCta(`Want a list like ${owner}’s?`)}
+            {joinCta(p.owner ? `Want a list like ${p.owner}’s?` : 'Want a list like this?')}
           </View>
         </ScrollView>
       )}
@@ -286,7 +315,7 @@ export function GifterView(p: ViewProps) {
                 Who’s calling dibs?
               </T>
               <T size={12} color={gift.body} style={{ lineHeight: 18 }}>
-                Other gifters see your name so nobody doubles up. {owner} never does.
+                Other gifters see your name so nobody doubles up. {p.owner || 'The wisher'} never does.
               </T>
               <TextInput
                 value={draft}
