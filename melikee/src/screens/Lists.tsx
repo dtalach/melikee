@@ -1,12 +1,11 @@
 import { ScrollView, View } from 'react-native';
 
 import { listAccent, listDays, shinies, useApp, visibleLists, visWord, type AppState } from '@/store/useApp';
-import type { Item } from '@/store/types';
 import { brand, palette } from '@/theme/tokens';
 import { Share } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
 import { LimePill, T, Tap } from '@/ui/primitives';
-import { BoardCover, VisIcon, type CoverShot } from './shared';
+import { BoardCover, coverShots, VisIcon } from './shared';
 
 export function Lists() {
   const state = useApp((s) => s);
@@ -37,15 +36,6 @@ export function Lists() {
       </ScrollView>
     </Appear>
   );
-}
-
-/** Starred first, then newest: the shinies a cover shows. */
-function coverShots(items: Item[]): CoverShot[] {
-  return [...items]
-    .sort((a, b) => Number(!!b.star) - Number(!!a.star) || (b.createdAt ?? 0) - (a.createdAt ?? 0))
-    .filter((i) => i.image || i.photo)
-    .slice(0, 3)
-    .map((i) => ({ uri: i.image, fallback: i.photo }));
 }
 
 /** A list as a Pinterest-style board: a photo cover, its name, and a line about it. */

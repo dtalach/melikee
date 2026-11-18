@@ -222,7 +222,6 @@ type Actions = {
   setFindByPhone: (on: boolean) => void;
 
   // feed + dibs
-  heart: (id: string) => void;
   wantToo: (id: string) => void;
   /** Call or drop dibs on a friend's shiny. */
   toggleFriendDibs: (listId: string, itemId: string) => Promise<void>;
@@ -677,11 +676,6 @@ export const useApp = create<AppState>()(
         });
       },
 
-      heart: (id) =>
-        set((s) => {
-          const on = !s.feed.find((f) => f.id === id)?.myHeart;
-          return { feed: s.feed.map((f) => (f.id === id ? { ...f, myHeart: on } : f)), feedLocal: { ...s.feedLocal, [id]: { ...s.feedLocal[id], heart: on } } };
-        }),
       wantToo: (id) => {
         const s = get();
         const f = s.feed.find((x) => x.id === id);
