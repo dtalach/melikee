@@ -5,7 +5,8 @@ import { brand, palette } from '@/theme/tokens';
 import { Share } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
 import { LimePill, T, Tap } from '@/ui/primitives';
-import { BoardCover, coverShots, VisIcon } from './shared';
+import { XMAS_GREEN } from '@/ui/gift';
+import { BoardCover, BoardWrap, coverShots, isXmasList, VisIcon } from './shared';
 
 export function Lists() {
   const state = useApp((s) => s);
@@ -44,14 +45,16 @@ function ListBoard({ s, id, onOpen, onShare, onVis, onDate }: { s: AppState; id:
   const its = s.items.filter((i) => i.list === l.id);
   const days = listDays(s, l);
   const acc = listAccent(l);
+  const xmas = isXmasList(l);
   const overlay = { position: 'absolute' as const, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.92)' };
   return (
     <View style={{ width: '48%', gap: 8 }}>
       <Tap onPress={onOpen} accessibilityLabel={`${l.name}, ${shinies(its.length)}`}>
         <BoardCover shots={coverShots(its)} accent={acc} initial={l.name[0]} initialInk={l.id === 'w' ? brand.limeInk : brand.white}>
+          {xmas ? <BoardWrap /> : null}
           {days != null ? (
-            <Tap onPress={l.isBirthday ? onDate : onOpen} accessibilityLabel={`${l.name} in ${days} days`} style={{ position: 'absolute', top: 7, left: 7, backgroundColor: l.isBirthday ? brand.pink : 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9 }}>
-              <T size={11} w={500} color={l.isBirthday ? brand.white : palette.text}>
+            <Tap onPress={l.isBirthday ? onDate : onOpen} accessibilityLabel={`${l.name} in ${days} days`} style={{ position: 'absolute', top: 7, left: 7, backgroundColor: l.isBirthday ? brand.pink : xmas ? XMAS_GREEN : 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9 }}>
+              <T size={11} w={500} color={l.isBirthday || xmas ? brand.white : palette.text}>
                 {days === 0 ? 'today!' : days === 1 ? '1 day' : `${days} days`}
               </T>
             </Tap>
