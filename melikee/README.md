@@ -159,6 +159,31 @@ Storage (Redis): `acct:<phoneKey>` gains `uid`, `handle`, `name`,
 `huid:<handle>` power search; `fr:<uid>` is a hash of that account's side of
 each relationship.
 
+## Ideas (gift inspiration)
+
+The Ideas tab is a scroll of specific products picked for this person
+(`src/screens/Ideas.tsx`, `src/lib/ideas.ts` → `POST /api/ideas` →
+`server/ideas.ts`).
+
+- **Signals, all first-party:** what's on their lists (starred first), sizes,
+  an age band (never the birth date), days to their birthday and dated lists
+  like Christmas, the month, device language and time zone, what they recently
+  typed or said on the capture screen, and how they reacted to earlier ideas
+  ("Want it" = liked, ✕ = not for me), plus the budget chip. Never their name,
+  handle or phone number, and nothing from other apps or sites (no cross-site
+  cookies or tracking: browsers block it, and it isn't appropriate for teens).
+- **One Claude call, two steps:** infer 3–5 taste themes from the evidence,
+  then suggest specific, currently sold products spread across themes and price
+  bands, never repeating what's on their lists, already shown, or turned down,
+  each with a short reason tied to their own signal. Age-appropriate rules are
+  in the prompt and anything matching their lists is filtered again on the
+  server.
+- **Fast:** no web search in that call. Photos load in the background through
+  the same lookup as captures (cached a week); "Want it" saves to My wants at
+  once and finds the real store and price behind the scenes.
+- **Limits and caching:** same signals → same ideas for 6 hours. 60 batches a
+  day per signed-in device, 20 per connection otherwise.
+
 ## Starting content
 
 A new account starts with four empty lists, My wants, Birthday, Christmas

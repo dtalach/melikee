@@ -177,6 +177,15 @@ export function TabFeed({ color }: { color: string }) {
   );
 }
 
+export function TabIdeas({ color }: { color: string }) {
+  return (
+    <Svg {...base(22)} fill="none" stroke={color} strokeWidth={1.4} strokeLinejoin="round">
+      <Path d="M7 1.5l1.3 4.2 4.2 1.3-4.2 1.3L7 12.5 5.7 8.3 1.5 7l4.2-1.3z" />
+      <Path d="M12.5 10.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z" />
+    </Svg>
+  );
+}
+
 export function TabLists({ color }: { color: string }) {
   return (
     <Svg {...base(22)} fill="none" stroke={color} strokeWidth={1.4}>

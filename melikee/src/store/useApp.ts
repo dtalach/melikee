@@ -12,6 +12,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { daysUntil, MONTHS, parseLabel, shortDate, type MonthDay } from '@/lib/dates';
 import { fetchSync, friendAction } from '@/lib/friends';
+import { buildSignals, fetchIdeas, type IdeaFeedback } from '@/lib/ideas';
+import type { Budget, Idea, Theme } from '@/lib/ideasContract';
 import type { SyncResponse } from '@/lib/friendsContract';
 import { find, imageFor, MISS, readPhoto, type Match, type Miss } from '@/lib/match';
 import type { VerifyResponse } from '@/lib/authContract';
@@ -138,6 +140,12 @@ type Content = {
   sent: SentInvite[];
   /** Others can find me by my full phone number. */
   findByPhone: boolean;
+  /** Gift inspiration: the current batch (persisted so the tab opens instantly) and how it was asked for. */
+  ideas: { cards: IdeaCard[]; themes: Theme[]; budget: Budget; at: number };
+  /** How the person reacted to ideas: the strongest taste signal there is. */
+  ideaFeedback: IdeaFeedback;
+  /** What they recently typed or said on the capture screen. */
+  recentQueries: string[];
   /** Feed entries I loved or added, kept across syncs (the Feed itself is rebuilt each time). */
   feedLocal: Record<string, { heart?: boolean; wanted?: boolean }>;
   linkHolders: LinkHolder[];
@@ -160,6 +168,9 @@ type Content = {
   ageBlocked: boolean;
 };
 
+/** An idea as the Ideas tab shows it. */
+export type IdeaCard = Idea & { image?: string; state?: 'wanted' | 'dismissed' };
+
 type Session = {
   stack: Route[];
   sheet: Sheet | null;
@@ -168,11 +179,14 @@ type Session = {
   filing: { itemId: number; key: number } | null;
   /** Whether your shared lists are live at melikee.app. */
   publishState: 'idle' | 'live' | 'taken' | 'off' | 'error' | 'signed_out';
+  /** Gift inspiration is fetching a batch. */
+  ideasLoading: boolean;
+  ideasError: string | null;
 };
 
 type Actions = {
   go: (r: Route) => void;
-  tab: (name: 'feed' | 'lists' | 'people' | 'me') => void;
+  tab: (name: 'feed' | 'ideas' | 'lists' | 'people' | 'me') => void;
   back: () => void;
   replace: (r: Route) => void;
   openSheet: (s: Sheet) => void;
@@ -221,6 +235,14 @@ type Actions = {
   blockFriend: (uid: string) => Promise<void>;
   setFindByPhone: (on: boolean) => void;
 
+  // gift inspiration
+  /** Fetch ideas: a fresh batch, or `more` added to the end. */
+  loadIdeas: (more?: boolean) => Promise<void>;
+  setIdeaBudget: (b: Budget) => void;
+  /** Save an idea to My wants (stores and price are found in the background). */
+  wantIdea: (id: string) => void;
+  dismissIdea: (id: string) => void;
+
   // feed + dibs
   wantToo: (id: string) => void;
   /** Call or drop dibs on a friend's shiny. */
@@ -260,6 +282,9 @@ function freshContent(): Content {
     sent: [],
     findByPhone: true,
     feedLocal: {},
+    ideas: { cards: [], themes: [], budget: 'any', at: 0 },
+    ideaFeedback: { liked: [], disliked: [] },
+    recentQueries: [],
     linkHolders: [],
     notifs: [],
     notifSettings: { drop: true, bday: true, too: true, coming: true, req: true },
@@ -304,6 +329,8 @@ export const useApp = create<AppState>()(
       capture: idleCapture,
       filing: null,
       publishState: 'idle',
+      ideasLoading: false,
+      ideasError: null,
 
       go: (r) => set((s) => ({ stack: [...s.stack, r], sheet: null })),
       replace: (r) => set((s) => ({ stack: [...s.stack.slice(0, -1), r], sheet: null })),
@@ -357,6 +384,10 @@ export const useApp = create<AppState>()(
           if (live()) set((s) => ({ capture: { ...s.capture, ...p } }));
         };
         const miss = (m: Miss) => patch({ phase: 'nomatch', miss: m });
+        if ((input.source === 'search' || input.source === 'voice') && input.query.trim()) {
+          const q = input.query.trim().slice(0, 80);
+          set((s) => ({ recentQueries: [q, ...s.recentQueries.filter((x) => x.toLowerCase() !== q.toLowerCase())].slice(0, 10) }));
+        }
         set((s) => ({
           capture: {
             ...s.capture,
@@ -687,6 +718,68 @@ export const useApp = create<AppState>()(
           { file: true },
         );
       },
+      loadIdeas: async (more) => {
+        const s0 = get();
+        if (s0.ideasLoading || !s0.phone) return;
+        set({ ideasLoading: true, ideasError: null });
+        const shown = more ? s0.ideas.cards.map((c) => c.name) : [];
+        const r = await fetchIdeas(s0.ownerSecret, buildSignals(s0, s0.ideas.budget, shown), 8);
+        if (!r.ok) {
+          set({ ideasLoading: false, ideasError: r.message });
+          return;
+        }
+        set((st) => {
+          const old = more ? st.ideas.cards : [];
+          const have = new Set(old.map((c) => c.id));
+          return { ideasLoading: false, ideas: { ...st.ideas, cards: [...old, ...r.ideas.filter((i) => !have.has(i.id))], themes: r.themes, at: Date.now() } };
+        });
+        void fillIdeaImages();
+      },
+      setIdeaBudget: (budget) => {
+        set((st) => ({ ideas: { ...st.ideas, budget, cards: [] } }));
+        void get().loadIdeas();
+      },
+      wantIdea: (id) => {
+        const s = get();
+        const card = s.ideas.cards.find((c) => c.id === id);
+        if (!card || card.state) return;
+        const itemId = s.addItem({
+          list: 'w',
+          name: card.name,
+          price: '—',
+          store: 'finding stores…',
+          upc: '—',
+          image: card.image,
+          added: `from Ideas · ${shortDate(Date.now())}`,
+          pending: true,
+          query: card.query,
+          alert: true,
+        });
+        set((st) => ({
+          ideas: { ...st.ideas, cards: st.ideas.cards.map((c) => (c.id === id ? { ...c, state: 'wanted' } : c)) },
+          ideaFeedback: { ...st.ideaFeedback, liked: [card.name, ...st.ideaFeedback.liked.filter((n) => n !== card.name)].slice(0, 40) },
+        }));
+        get().showToast('In My wants — finding the best price');
+        void find({ source: 'search', query: card.query })
+          .then((found) => {
+            const best = found[0];
+            if (!best) {
+              get().updateItem(itemId, { store: 'saved for later' });
+              return;
+            }
+            get().updateItem(itemId, { name: best.name, price: best.price, store: best.store, url: best.url, image: best.image ?? card.image, upc: best.upc ?? '—', others: best.others, checkedAt: Date.now(), pending: false });
+            fillImage({ ...best, image: best.image ?? card.image });
+          })
+          .catch(() => get().updateItem(itemId, { store: 'saved for later' }));
+      },
+      dismissIdea: (id) => {
+        const card = get().ideas.cards.find((c) => c.id === id);
+        if (!card) return;
+        set((st) => ({
+          ideas: { ...st.ideas, cards: st.ideas.cards.map((c) => (c.id === id ? { ...c, state: 'dismissed' } : c)) },
+          ideaFeedback: { ...st.ideaFeedback, disliked: [card.name, ...st.ideaFeedback.disliked.filter((n) => n !== card.name)].slice(0, 60) },
+        }));
+      },
       toggleFriendDibs: async (listId, itemId) => {
         const s = get();
         const list = s.friendLists.find((l) => l.id === listId);
@@ -785,8 +878,10 @@ export const useApp = create<AppState>()(
       version: 4,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => {
-        const { stack, sheet, toast, capture, filing, publishState, ...rest } = s;
+        const { stack, sheet, toast, capture, filing, publishState, ideasLoading, ideasError, ...rest } = s;
         void publishState;
+        void ideasLoading;
+        void ideasError;
         void stack;
         void sheet;
         void toast;
@@ -1090,6 +1185,27 @@ export function fillImage(m: { name: string; url?: string; image?: string; color
     })
     .catch(() => undefined)
     .finally(() => imageLookups.delete(key));
+}
+
+/**
+ * Photos for idea cards, two lookups at a time (each is a web search on the
+ * server, cached for a week). Ideas whose photo can't be found keep their
+ * coloured placeholder.
+ */
+const ideaImageTried = new Set<string>();
+async function fillIdeaImages() {
+  const next = () => useApp.getState().ideas.cards.find((c) => !c.image && !c.state && !ideaImageTried.has(c.id));
+  const worker = async () => {
+    for (let c = next(); c; c = next()) {
+      ideaImageTried.add(c.id);
+      const image = await imageFor({ name: c.name }).catch(() => null);
+      if (image) {
+        const id = c.id;
+        useApp.setState((st) => ({ ideas: { ...st.ideas, cards: st.ideas.cards.map((x) => (x.id === id ? { ...x, image } : x)) } }));
+      }
+    }
+  };
+  await Promise.all([worker(), worker()]);
 }
 
 /** Once per launch: find photos for saved shinies that never got one (one at a time). */
