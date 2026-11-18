@@ -2,7 +2,7 @@ import type { Month, MonthDay } from '@/lib/dates';
 import type { StoreOffer } from '@/lib/matchContract';
 import type { Sizes } from '@/lib/sizes';
 
-/** Private · Friends · Friends + link — the one sharing scale from the spec. */
+/** Only me · Friends · Anyone with the link — the one sharing scale (spec: Private · Friends · Friends + link). */
 export type Vis = 'me' | 'friends' | 'invite';
 
 export type LinkExpiry = 'date' | '30d' | 'always';

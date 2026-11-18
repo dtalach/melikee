@@ -35,7 +35,23 @@ export function T({
   style,
   ...rest
 }: TextProps & { size?: number; w?: Weight; color?: string; style?: StyleProp<TextStyle> }) {
-  return <Text {...rest} style={[{ fontFamily: font[w], fontSize: size, color }, style]} />;
+  return <Text {...rest} style={[{ fontFamily: font[w], fontSize: typeSize(size), color }, style]} />;
+}
+
+/**
+ * One type scale: 12 · 13 · 14 · 15 · 17 · 18, then display sizes as given.
+ * Anything smaller than 12 reads as 12 (except tiny badge text under 10), and
+ * in-between sizes (12.5, 13.5…) round up, so screens can't drift into a
+ * dozen near-identical sizes again.
+ */
+function typeSize(size: number) {
+  if (size < 10) return size;
+  if (size <= 12) return 12;
+  if (size <= 13) return 13;
+  if (size <= 14) return 14;
+  if (size <= 15) return 15;
+  if (size <= 17) return 17;
+  return size;
 }
 
 /** "WHAT FRIENDS SEE" — the small tracked-out caps label above a group. */
@@ -49,7 +65,8 @@ export function SectionLabel({ children, style, color = palette.muted }: { child
 
 // ——— press ———
 
-const HIT = { top: 8, bottom: 8, left: 4, right: 4 };
+/** Extra touch area around every tappable thing, so small links are easy to hit. */
+const HIT = { top: 12, bottom: 12, left: 8, right: 8 };
 
 export function Tap({ style, children, hitSlop = HIT, ...rest }: PressableProps & { style?: StyleProp<ViewStyle>; children?: ReactNode }) {
   return (

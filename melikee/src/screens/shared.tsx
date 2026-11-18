@@ -81,7 +81,7 @@ export function MiniBoard({ shots, accent, name, sub, onPress, selected, width, 
         <T size={13.5} w={800} numberOfLines={1}>
           {name}
         </T>
-        <T size={11} color={palette.muted} numberOfLines={1}>
+        <T size={12} color={palette.muted} numberOfLines={2}>
           {sub}
         </T>
       </View>

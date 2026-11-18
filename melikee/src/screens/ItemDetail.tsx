@@ -134,7 +134,7 @@ export function ItemDetail({ id }: { id: number }) {
                       Gifters see “still choosing” until then.
                     </T>
                   </View>
-                  <Tap onPress={fix}>
+                  <Tap onPress={fix} style={{ minHeight: 40, justifyContent: 'center', paddingHorizontal: 6 }}>
                     <T size={12} w={700} color={palette.vio}>
                       Pick it myself
                     </T>
@@ -216,34 +216,34 @@ export function ItemDetail({ id }: { id: number }) {
             </View>
           </Card>
 
-          <View style={{ flexDirection: 'row', gap: 22, justifyContent: 'center', paddingTop: 6 }}>
-            <Tap onPress={fix}>
-              <T size={12} w={700} color={palette.vio}>
-                Wrong product?
-              </T>
-            </Tap>
-            <Tap
-              onPress={() => {
-                removeItem(item.id);
-                back();
-                showToast('Nice — marked as got');
-              }}
-            >
-              <T size={12} w={700} color={palette.muted}>
-                Got it ✓
-              </T>
-            </Tap>
-            <Tap
-              onPress={() => {
-                removeItem(item.id);
-                back();
-                showToast(`Removed from ${list.name}`);
-              }}
-            >
-              <T size={12} w={700} color={brand.pink}>
-                Remove
-              </T>
-            </Tap>
+          <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap', paddingTop: 6 }}>
+            {[
+              { label: 'Wrong product?', color: palette.text, onPress: fix },
+              {
+                label: 'Got it ✓',
+                color: palette.soft,
+                onPress: () => {
+                  removeItem(item.id);
+                  back();
+                  showToast('Nice — marked as got');
+                },
+              },
+              {
+                label: 'Remove',
+                color: brand.pink,
+                onPress: () => {
+                  removeItem(item.id);
+                  back();
+                  showToast(`Removed from ${list.name}`);
+                },
+              },
+            ].map((x) => (
+              <Tap key={x.label} onPress={x.onPress} style={{ minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: palette.vio33 }}>
+                <T size={13} w={700} color={x.color}>
+                  {x.label}
+                </T>
+              </Tap>
+            ))}
           </View>
           <T size={11} color={palette.muted} style={{ textAlign: 'center', marginTop: -6 }}>
             added {item.added}

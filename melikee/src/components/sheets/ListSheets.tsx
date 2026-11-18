@@ -29,7 +29,7 @@ export function ShareSheet({ listId }: { listId: string }) {
     const up = list.vis !== 'invite';
     if (up) s.setVis(list.id, 'invite');
     setCopied(true);
-    s.showToast(up ? 'Link copied — list is now Friends + link' : 'Link copied — send it to anyone');
+    s.showToast(up ? 'Link copied — anyone with the link can see this list now' : 'Link copied — send it to anyone');
   };
   const send = () => {
     if (list.vis !== 'invite') s.setVis(list.id, 'invite');
@@ -38,9 +38,9 @@ export function ShareSheet({ listId }: { listId: string }) {
 
   const visNote =
     list.vis === 'me'
-      ? 'Heads up: this list is private. Copying the link makes it Friends + link.'
+      ? 'Heads up: this list is only for you. Copying the link lets anyone with it see the list.'
       : list.vis === 'friends'
-        ? 'Copying the link switches this list to Friends + link.'
+        ? 'Copying the link lets anyone with it see this list, as well as your friends.'
         : 'Friends in the app see it in their Feed too.';
   const expiryLabel: Record<LinkExpiry, string> = {
     date: days != null ? `Till ${dayAfter(list.isBirthday ? s.profile.birthday : list.date!)}` : 'Till the date',
@@ -131,9 +131,9 @@ function dayAfter(d: { month: Month; day: number }) {
 }
 
 const VIS_OPTS: { k: Vis; title: string; body: string; Icon: typeof Lock }[] = [
-  { k: 'me', title: 'Private', body: 'Only you. Great for saving ideas before you decide.', Icon: Lock },
+  { k: 'me', title: 'Only me', body: 'Nobody else sees it. Great for saving ideas before you decide.', Icon: Lock },
   { k: 'friends', title: 'Friends', body: 'The friends you pick. It shows up in their Feed.', Icon: People },
-  { k: 'invite', title: 'Friends + link', body: 'Also anyone with your link, no app needed. Best for family and birthdays.', Icon: LinkIcon },
+  { k: 'invite', title: 'Anyone with the link', body: 'Your friends, plus anyone you send the link to, no app needed. Best for family and birthdays.', Icon: LinkIcon },
 ];
 
 /** "Who sees …?" — the one sharing scale, with a plain-language consequence. */
@@ -153,7 +153,7 @@ export function VisSheet({ listId }: { listId: string }) {
     else if (d === 'friends') note = `Your link stops working${linkN ? ` for the ${linkN} ${linkN === 1 ? 'person' : 'people'} who have it` : ''}. Friends keep access.`;
     else note = 'You’ll get a link to send to anyone. Gifters can call dibs without the app.';
   }
-  const cta = d === cur ? 'Done' : d === 'me' ? 'Make it private' : d === 'friends' ? 'Share with friends' : 'Share with friends + link';
+  const cta = d === cur ? 'Done' : d === 'me' ? 'Keep it to me' : d === 'friends' ? 'Share with friends' : 'Share with the link';
 
   const confirm = () => {
     if (d === cur) {
@@ -282,7 +282,7 @@ export function ListSettingsSheet({ listId }: { listId: string }) {
   const [armed, setArmed] = useState(false);
   const days = listDays(s, list);
   const isMain = list.id === 'w';
-  const summary = list.vis === 'me' ? 'Private · only you' : `${friendsWithAccess(s, list.id).length} friends${list.vis === 'invite' ? ' + link' : ''}`;
+  const summary = list.vis === 'me' ? 'Only me' : `${friendsWithAccess(s, list.id).length} friends${list.vis === 'invite' ? ' · anyone with the link' : ''}`;
 
   return (
     <>
