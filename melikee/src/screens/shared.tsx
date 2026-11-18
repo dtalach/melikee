@@ -52,11 +52,11 @@ export function coverShots(items: { image?: string; photo?: string; star?: boole
 export function MiniBoard({ shots, accent, name, sub, onPress, selected, width, label }: { shots: CoverShot[]; accent: string; name: string; sub: string; onPress: () => void; selected?: boolean; width: number | `${number}%`; label?: string }) {
   return (
     <Tap onPress={onPress} accessibilityLabel={label ?? `${name}, ${sub}`} accessibilityState={selected != null ? { selected } : undefined} style={{ width, gap: 6 }}>
-      <View style={{ borderRadius: 18, borderWidth: 2, borderColor: selected ? brand.lime : 'transparent' }}>
+      <View style={{ borderRadius: 8, borderWidth: 1.5, borderColor: selected ? palette.text : 'transparent', padding: 1 }}>
         <BoardCover shots={shots} accent={accent} initial={name[0] ?? ''} initialInk={accent === brand.lime ? brand.limeInk : brand.white} />
       </View>
       <View style={{ paddingHorizontal: 2 }}>
-        <T size={13.5} w={800} numberOfLines={1}>
+        <T size={13.5} numberOfLines={1}>
           {name}
         </T>
         <T size={12} color={palette.muted} numberOfLines={2}>
@@ -76,18 +76,21 @@ export function BoardCover({ shots, accent, initial, initialInk, children, gapCo
   const tile = (i: number, style: object) => {
     const s = shots[i];
     if (s) return <PhotoBox key={i} uri={s.uri} fallback={s.fallback} label="" fit="contain" style={style} />;
-    return <View key={i} style={[style, { backgroundColor: accent, opacity: shots.length ? 0.28 : i === 0 ? 1 : 0.55 }]} />;
+    // Mono: empty spots are a quiet grey, not the list's colour.
+    return <View key={i} style={[style, { backgroundColor: i === 0 && !shots.length ? palette.inset : palette.ph1 }]} />;
   };
+  void accent;
+  void initialInk;
   return (
-    <View style={{ aspectRatio: 1.35, borderRadius: 16, overflow: 'hidden', flexDirection: 'row', gap: 2, backgroundColor: gapColor }}>
+    <View style={{ aspectRatio: 1.35, borderRadius: 6, overflow: 'hidden', flexDirection: 'row', gap: 2, backgroundColor: gapColor }}>
       {tile(0, { flex: 2 })}
       <View style={{ flex: 1, gap: 2 }}>
         {tile(1, { flex: 1 })}
         {tile(2, { flex: 1 })}
       </View>
       {shots.length === 0 ? (
-        <View pointerEvents="none" style={{ position: 'absolute', left: 12, bottom: 8 }}>
-          <T size={34} w={800} color={initialInk} style={{ letterSpacing: -1 }}>
+        <View pointerEvents="none" style={{ position: 'absolute', left: 12, bottom: 6 }}>
+          <T size={40} w={300} color={palette.muted} style={{ letterSpacing: -1 }}>
             {initial}
           </T>
         </View>

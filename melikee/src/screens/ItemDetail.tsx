@@ -6,14 +6,14 @@
 import { useState } from 'react';
 import { Linking, ScrollView, View } from 'react-native';
 
-import { listAccent, listById, useApp, visWord } from '@/store/useApp';
+import { listById, useApp, visWord } from '@/store/useApp';
 import { brand, palette } from '@/theme/tokens';
 import { Chevron, Share, Sparkle } from '@/ui/icons';
 import { Appear, Spin } from '@/ui/motion';
-import { Card, Field, LimeButton, LimeFill, PhotoBox, T, Tap, Toggle } from '@/ui/primitives';
+import { Card, Field, LimeButton, PhotoBox, SectionLabel, T, Tap, TextLink, Toggle } from '@/ui/primitives';
 
-/** Round, dark buttons that stay visible on any photo, white or dark. */
-const photoButton = { position: 'absolute' as const, top: 12, width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(12,12,12,0.62)', alignItems: 'center' as const, justifyContent: 'center' as const };
+/** Round white buttons that stay visible on any photo. */
+const photoButton = { position: 'absolute' as const, top: 12, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.94)', alignItems: 'center' as const, justifyContent: 'center' as const, boxShadow: '0 1px 4px rgba(0,0,0,0.12)' };
 
 export function ItemDetail({ id }: { id: number }) {
   const item = useApp((s) => s.items.find((i) => i.id === id));
@@ -28,14 +28,10 @@ export function ItemDetail({ id }: { id: number }) {
   if (!item || !list) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-        <T size={14} w={700}>
+        <T size={22} w={300}>
           That shiny’s gone.
         </T>
-        <Tap onPress={back}>
-          <T size={12.5} w={700} color={palette.vio}>
-            Go back
-          </T>
-        </Tap>
+        <TextLink label="Go back" onPress={back} />
       </View>
     );
   }
@@ -59,54 +55,49 @@ export function ItemDetail({ id }: { id: number }) {
   return (
     <Appear style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
-        <View style={{ marginTop: 8, marginHorizontal: 14, borderRadius: 22, overflow: 'hidden' }}>
-          <PhotoBox uri={item.image} fallback={item.photo} label="no photo yet" fit={item.pending ? 'cover' : 'contain'} style={{ height: 300 }} />
+        <View style={{ marginTop: 8, marginHorizontal: 22, borderRadius: 6, overflow: 'hidden' }}>
+          <PhotoBox uri={item.image} fallback={item.photo} label="no photo yet" fit={item.pending ? 'cover' : 'contain'} light style={{ aspectRatio: 1 }} />
           <Tap onPress={back} accessibilityLabel="Back" style={[photoButton, { left: 12 }]}>
-            <Chevron size={20} strokeWidth={2} color={brand.white} />
+            <Chevron size={18} strokeWidth={1.4} color={palette.text} />
           </Tap>
           {list.vis !== 'me' ? (
             <Tap onPress={() => openSheet({ type: 'share', listId: list.id })} accessibilityLabel={`Share ${list.name}`} style={[photoButton, { right: 12 }]}>
-              <Share size={16} color={brand.white} />
+              <Share size={16} color={palette.text} />
             </Tap>
           ) : null}
         </View>
 
-        <View style={{ paddingTop: 18, paddingHorizontal: 20, gap: 6 }}>
-          <Tap onPress={() => openSheet({ type: 'vis', listId: list.id })} accessibilityLabel={`${list.name}, ${visWord(list.vis)}. Change who sees it`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: listAccent(list) }} />
-            <T size={12} w={600} color={palette.muted}>
-              {list.name} · {visWord(list.vis)} ▾
-            </T>
+        <View style={{ paddingTop: 20, paddingHorizontal: 22, gap: 6 }}>
+          <Tap onPress={() => openSheet({ type: 'vis', listId: list.id })} accessibilityLabel={`${list.name}, ${visWord(list.vis)}. Change who sees it`} style={{ alignSelf: 'flex-start', minHeight: 32, justifyContent: 'center' }}>
+            <SectionLabel>
+              {list.name} · {visWord(list.vis)}
+            </SectionLabel>
           </Tap>
-          <T size={24} w={800} style={{ letterSpacing: -0.48, lineHeight: 29 }}>
+          <T size={26} w={300} style={{ letterSpacing: -0.6, lineHeight: 32 }}>
             {item.name}
           </T>
         </View>
 
-        <View style={{ paddingTop: 12, paddingHorizontal: 20, gap: 16 }}>
+        <View style={{ paddingTop: 12, paddingHorizontal: 22, gap: 18 }}>
           {item.pending ? (
-            <Card border={palette.lime66} style={{ paddingVertical: 12, paddingHorizontal: 14, gap: 10 }}>
+            <Card style={{ paddingVertical: 14, gap: 12 }}>
               {item.suggest ? (
                 <>
                   <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-                    <PhotoBox uri={item.suggest.image} label="" style={{ width: 46, height: 46, borderRadius: 10 }} />
+                    <PhotoBox uri={item.suggest.image} label="" light style={{ width: 52, height: 52, borderRadius: 6 }} />
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <T size={11} w={700} color={palette.limeText} style={{ letterSpacing: 0.66 }}>
-                        WE THINK WE FOUND IT
-                      </T>
-                      <T size={13.5} w={700} style={{ marginTop: 2 }}>
+                      <SectionLabel>We think we found it</SectionLabel>
+                      <T size={14} style={{ marginTop: 3 }}>
                         {item.suggest.name}
                       </T>
-                      <T size={11.5} color={palette.muted}>
+                      <T size={13} color={palette.muted}>
                         {item.suggest.price} · {item.suggest.store} · {item.url && !item.query ? 'from your link' : 'matched for you'}
                       </T>
                     </View>
                   </View>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
                     <LimeButton
                       label="Yes, that's it"
-                      size={13}
-                      pad={10}
                       flex
                       onPress={() => {
                         const sg = item.suggest!;
@@ -114,109 +105,80 @@ export function ItemDetail({ id }: { id: number }) {
                         showToast(`Matched — ${sg.name}`);
                       }}
                     />
-                    <Tap onPress={fix} style={{ flex: 1, paddingVertical: 10, borderRadius: 999, borderWidth: 1, borderColor: palette.vio55, alignItems: 'center' }}>
-                      <T size={13} w={700}>
-                        No, let me pick
-                      </T>
-                    </Tap>
+                    <TextLink label="No, let me pick" onPress={fix} />
                   </View>
                 </>
               ) : (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <Spin period={1400}>
-                    <Sparkle size={14} color={brand.lime} />
+                    <Sparkle size={13} color={palette.text} />
                   </Spin>
                   <View style={{ flex: 1 }}>
-                    <T size={12.5} w={600}>
-                      Still matching. We’ll ping you when we find it.
-                    </T>
-                    <T size={11} color={palette.muted}>
+                    <T size={14}>Still matching. We’ll ping you when we find it.</T>
+                    <T size={13} color={palette.muted}>
                       Gifters see “still choosing” until then.
                     </T>
                   </View>
-                  <Tap onPress={fix} style={{ minHeight: 40, justifyContent: 'center', paddingHorizontal: 6 }}>
-                    <T size={12} w={700} color={palette.vio}>
-                      Pick it myself
-                    </T>
-                  </Tap>
+                  <TextLink label="Pick it myself" onPress={fix} />
                 </View>
               )}
             </Card>
           ) : (
             <View style={{ gap: 12 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                <T size={22} w={800} color={palette.limeText}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <T size={32} w={300} style={{ letterSpacing: -0.8 }}>
                   {item.price}
                 </T>
-                <T size={13} color={palette.muted}>
+                <T size={14} color={palette.muted}>
                   at {item.store}
                 </T>
                 {stores.length > 1 ? (
                   <Tap onPress={() => setCompare((x) => !x)} accessibilityState={{ expanded: compare }}>
-                    <T size={13} w={700} color={palette.vio}>
-                      · {compare ? 'hide stores' : `${stores.length - 1} more ${stores.length === 2 ? 'store' : 'stores'}`}
+                    <T size={14} color={palette.muted} style={{ textDecorationLine: 'underline' }}>
+                      {compare ? 'hide stores' : `${stores.length - 1} more ${stores.length === 2 ? 'store' : 'stores'}`}
                     </T>
                   </Tap>
                 ) : null}
               </View>
               {compare ? (
-                <Card style={{ paddingVertical: 2, paddingHorizontal: 14 }}>
+                <View>
                   {stores.map((st, i) => (
-                    <Tap key={st.store + i} onPress={() => open(st.url, st.store)} accessibilityLabel={`Open at ${st.store}`} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: i < stores.length - 1 ? 1 : 0, borderBottomColor: palette.vio22 }}>
-                      <T size={13} w={600}>
-                        {st.store}
-                      </T>
-                      <T size={13} w={700} color={st.best ? palette.limeText : palette.muted}>
+                    <Tap key={st.store + i} onPress={() => open(st.url, st.store)} accessibilityLabel={`Open at ${st.store}`} style={{ flexDirection: 'row', justifyContent: 'space-between', minHeight: 48, alignItems: 'center', borderTopWidth: 1, borderTopColor: palette.vio33 }}>
+                      <T size={14}>{st.store}</T>
+                      <T size={14} w={st.best ? 500 : 400} color={st.best ? palette.text : palette.muted}>
                         {st.price}
                       </T>
                     </Tap>
                   ))}
-                </Card>
+                </View>
               ) : null}
-              <Tap onPress={() => open(item.url)}>
-                <LimeFill style={{ paddingVertical: 13, alignItems: 'center' }}>
-                  <T size={14} w={800} color={brand.limeInk}>
-                    Open at {item.store}
-                  </T>
-                </LimeFill>
-              </Tap>
+              <LimeButton label={`Open at ${item.store}`} onPress={() => open(item.url)} />
             </View>
           )}
 
 
-          <T size={11} w={700} color={palette.muted} style={{ letterSpacing: 0.66, marginBottom: -8, marginTop: 4 }}>
-            FOR GIFTERS
-          </T>
-          <Card style={{ paddingTop: 2, paddingBottom: 4, paddingHorizontal: 14 }}>
-            <Tap onPress={() => updateItem(item.id, { star: !item.star })} accessibilityRole="switch" accessibilityState={{ checked: !!item.star }} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: palette.vio22 }}>
-              <T size={17} color={item.star ? brand.lime : palette.muted}>
-                ★
-              </T>
+          <SectionLabel style={{ marginBottom: -10, marginTop: 10 }}>For gifters</SectionLabel>
+          <View>
+            <Tap onPress={() => updateItem(item.id, { star: !item.star })} accessibilityRole="switch" accessibilityState={{ checked: !!item.star }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, borderTopWidth: 1, borderTopColor: palette.vio33 }}>
               <View style={{ flex: 1 }}>
-                <T size={13} w={700}>
-                  Really want this
-                </T>
-                <T size={11} color={palette.muted}>
+                <T size={14}>Really want this</T>
+                <T size={13} color={palette.muted}>
                   gifters see it at the top
                 </T>
               </View>
               <Toggle on={!!item.star} />
             </Tap>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: palette.vio22 }}>
-              <T size={12} color={palette.muted} style={{ width: 82 }}>
-                Size / color
-              </T>
-              <Field value={item.size ?? ''} onChangeText={(v) => updateItem(item.id, { size: v })} placeholder="e.g. 8.5, black" style={{ flex: 1, minWidth: 0, paddingVertical: 8, paddingHorizontal: 10 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: palette.vio33 }}>
+              <SectionLabel style={{ width: 112 }}>Size / color</SectionLabel>
+              <Field value={item.size ?? ''} onChangeText={(v) => updateItem(item.id, { size: v })} placeholder="e.g. 8.5, black" style={{ flex: 1, minWidth: 0, paddingVertical: 10, paddingHorizontal: 12 }} />
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9 }}>
-              <T size={12} color={palette.muted} style={{ width: 82 }}>
-                Note
-              </T>
-              <Field value={item.note ?? ''} onChangeText={(v) => updateItem(item.id, { note: v })} placeholder="e.g. not the pink one" style={{ flex: 1, minWidth: 0, paddingVertical: 8, paddingHorizontal: 10 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: palette.vio33 }}>
+              <SectionLabel style={{ width: 112 }}>Note</SectionLabel>
+              <Field value={item.note ?? ''} onChangeText={(v) => updateItem(item.id, { note: v })} placeholder="e.g. not the pink one" style={{ flex: 1, minWidth: 0, paddingVertical: 10, paddingHorizontal: 12 }} />
             </View>
-          </Card>
+          </View>
 
-          <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap', paddingTop: 6 }}>
+          <View style={{ flexDirection: 'row', gap: 20, justifyContent: 'center', flexWrap: 'wrap', paddingTop: 4, borderTopWidth: 1, borderTopColor: palette.vio33 }}>
             {[
               { label: 'Wrong product?', color: palette.text, onPress: fix },
               {
@@ -238,14 +200,10 @@ export function ItemDetail({ id }: { id: number }) {
                 },
               },
             ].map((x) => (
-              <Tap key={x.label} onPress={x.onPress} style={{ minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: palette.vio33 }}>
-                <T size={13} w={700} color={x.color}>
-                  {x.label}
-                </T>
-              </Tap>
+              <TextLink key={x.label} label={x.label} color={x.color} onPress={x.onPress} />
             ))}
           </View>
-          <T size={11} color={palette.muted} style={{ textAlign: 'center', marginTop: -6 }}>
+          <T size={12} color={palette.muted} style={{ textAlign: 'center', marginTop: -10 }}>
             added {item.added}
           </T>
         </View>
