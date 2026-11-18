@@ -98,13 +98,6 @@ export function FriendListScreen({ id }: { id: string }) {
           const choosing = !!a.pending;
           return (
             <View key={a.id} style={{ width: '48.4%', backgroundColor: palette.card, borderWidth: 1, borderColor: mine ? palette.lime66 : palette.vio33, borderRadius: 16, overflow: 'hidden', opacity: taken ? 0.55 : 1 }}>
-              {a.drop ? (
-                <View style={{ position: 'absolute', top: 6, left: 6, zIndex: 1, backgroundColor: brand.lime, paddingVertical: 2, paddingHorizontal: 7, borderRadius: 6 }}>
-                  <T size={11} w={800} color={brand.limeInk}>
-                    ↓ {a.drop}
-                  </T>
-                </View>
-              ) : null}
               <PhotoBox uri={a.image} style={{ height: 96 }} />
               <View style={{ paddingTop: 9, paddingHorizontal: 11, flex: 1 }}>
                 <T size={12} w={600} style={{ lineHeight: 16 }}>

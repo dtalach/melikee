@@ -4,7 +4,7 @@ import { ScrollView, View } from 'react-native';
 import { priceValue } from '@/lib/match';
 import { listById, useApp, visSummary } from '@/store/useApp';
 import type { Item } from '@/store/types';
-import { brand, palette } from '@/theme/tokens';
+import { palette } from '@/theme/tokens';
 import { Chevron } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
 import { BackHeader, GhostButton, OptionPill, PhotoBox, T, Tap } from '@/ui/primitives';
@@ -94,13 +94,6 @@ export function ListDetail({ id }: { id: string }) {
         </Tap>
         {items.map((it) => (
           <Tap key={it.id} onPress={() => s.go({ name: 'item', id: it.id })} style={{ width: '48.4%', backgroundColor: palette.card, borderWidth: 1, borderColor: it.pending ? palette.lime66 : palette.vio33, borderRadius: 16, overflow: 'hidden' }}>
-            {it.drop ? (
-              <View style={{ position: 'absolute', top: 6, left: 6, zIndex: 1, backgroundColor: brand.lime, paddingVertical: 2, paddingHorizontal: 7, borderRadius: 6 }}>
-                <T size={11} w={800} color={brand.limeInk}>
-                  ↓ {it.drop}
-                </T>
-              </View>
-            ) : null}
             <PhotoBox uri={it.image} fallback={it.photo} fit={it.pending ? 'cover' : 'contain'} style={{ height: 96 }} />
             <View style={{ paddingVertical: 9, paddingHorizontal: 11 }}>
               <T size={12} w={600} style={{ lineHeight: 16 }}>
