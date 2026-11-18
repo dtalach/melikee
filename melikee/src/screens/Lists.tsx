@@ -1,11 +1,12 @@
 import { ScrollView, View } from 'react-native';
 
 import { listAccent, listDays, shinies, useApp, visibleLists, visWord, type AppState } from '@/store/useApp';
+import type { Item } from '@/store/types';
 import { brand, palette } from '@/theme/tokens';
 import { Share } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
-import { Card, LimePill, T, Tap } from '@/ui/primitives';
-import { ListCover, VisIcon } from './shared';
+import { LimePill, T, Tap } from '@/ui/primitives';
+import { BoardCover, VisIcon, type CoverShot } from './shared';
 
 export function Lists() {
   const state = useApp((s) => s);
@@ -23,9 +24,11 @@ export function Lists() {
           </T>
           <LimePill label="+ New list" onPress={() => openSheet({ type: 'newList' })} />
         </View>
-        {lists.map((l) => (
-          <ListRow key={l.id} s={state} id={l.id} onOpen={() => go({ name: 'list', id: l.id })} onShare={() => openSheet({ type: 'share', listId: l.id })} onVis={() => openSheet({ type: 'vis', listId: l.id })} onDate={() => openSheet({ type: 'bday' })} />
-        ))}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 18 }}>
+          {lists.map((l) => (
+            <ListBoard key={l.id} s={state} id={l.id} onOpen={() => go({ name: 'list', id: l.id })} onShare={() => openSheet({ type: 'share', listId: l.id })} onVis={() => openSheet({ type: 'vis', listId: l.id })} onDate={() => openSheet({ type: 'bday' })} />
+          ))}
+        </View>
         {noItems ? (
           <T size={12} color={palette.muted} style={{ textAlign: 'center', paddingVertical: 6, paddingHorizontal: 20, lineHeight: 18 }}>
             You start with these four. Snap your first shiny and it lands in My wants — make more lists for anything else.
@@ -36,51 +39,63 @@ export function Lists() {
   );
 }
 
-function ListRow({ s, id, onOpen, onShare, onVis, onDate }: { s: AppState; id: string; onOpen: () => void; onShare: () => void; onVis: () => void; onDate: () => void }) {
+/** Starred first, then newest: the shinies a cover shows. */
+function coverShots(items: Item[]): CoverShot[] {
+  return [...items]
+    .sort((a, b) => Number(!!b.star) - Number(!!a.star) || (b.createdAt ?? 0) - (a.createdAt ?? 0))
+    .filter((i) => i.image || i.photo)
+    .slice(0, 3)
+    .map((i) => ({ uri: i.image, fallback: i.photo }));
+}
+
+/** A list as a Pinterest-style board: a photo cover, its name, and a line about it. */
+function ListBoard({ s, id, onOpen, onShare, onVis, onDate }: { s: AppState; id: string; onOpen: () => void; onShare: () => void; onVis: () => void; onDate: () => void }) {
   const l = s.lists.find((x) => x.id === id)!;
   const its = s.items.filter((i) => i.list === l.id);
   const drops = its.filter((i) => i.drop);
   const days = listDays(s, l);
   const acc = listAccent(l);
+  const overlay = { position: 'absolute' as const, borderRadius: 999, backgroundColor: 'rgba(12,12,12,0.72)' };
   return (
-    <Card onPress={onOpen} style={{ padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-      <ListCover accent={acc} count={its.length} initial={l.name[0]} initialInk={l.id === 'w' ? brand.limeInk : brand.white} />
-      <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-        <T size={14} w={800}>
-          {l.name}
-        </T>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <Tap onPress={onVis} accessibilityLabel={`Sharing: ${visWord(l.vis)}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: palette.vio44, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
-            <VisIcon vis={l.vis} />
-            <T size={11} w={600} color={palette.soft}>
-              {visWord(l.vis)}
-            </T>
-          </Tap>
+    <View style={{ width: '48%', gap: 7 }}>
+      <Tap onPress={onOpen} accessibilityLabel={`${l.name}, ${shinies(its.length)}`}>
+        <BoardCover shots={coverShots(its)} accent={acc} initial={l.name[0]} initialInk={l.id === 'w' ? brand.limeInk : brand.white}>
           {days != null ? (
-            <Tap onPress={l.isBirthday ? onDate : undefined} accessibilityLabel={`${l.name} in ${days} days`} style={{ backgroundColor: l.isBirthday ? brand.pink : acc, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
+            <Tap onPress={l.isBirthday ? onDate : onOpen} accessibilityLabel={`${l.name} in ${days} days`} style={{ position: 'absolute', top: 7, left: 7, backgroundColor: l.isBirthday ? brand.pink : acc, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
               <T size={11} w={800} color={l.isBirthday ? brand.white : brand.limeInk}>
                 {days === 0 ? 'today!' : days === 1 ? '1 day' : `${days} days`}
               </T>
             </Tap>
           ) : null}
-          <T size={11} color={palette.muted}>
-            {shinies(its.length)}
-          </T>
-          {drops.length ? (
-            <T size={11} w={700} color={palette.limeText}>
-              ↓ {drops[0].drop} price drop
-            </T>
+          {l.vis !== 'me' ? (
+            <Tap onPress={onShare} accessibilityLabel={`Share ${l.name}`} style={[overlay, { top: 6, right: 6, width: 30, height: 30, alignItems: 'center', justifyContent: 'center' }]}>
+              <Share color={brand.white} />
+            </Tap>
           ) : null}
-        </View>
-      </View>
-      {l.vis !== 'me' ? (
-        <Tap onPress={onShare} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: palette.vio55, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 }}>
-          <Share color={palette.text} />
-          <T size={11.5} w={700}>
-            Share
+          {drops.length ? (
+            <View style={[overlay, { bottom: 7, left: 7, backgroundColor: brand.lime, paddingVertical: 2, paddingHorizontal: 7 }]}>
+              <T size={11} w={800} color={brand.limeInk}>
+                ↓ {drops[0].drop}
+              </T>
+            </View>
+          ) : null}
+        </BoardCover>
+      </Tap>
+      <View style={{ gap: 3, paddingHorizontal: 2 }}>
+        <T size={15} w={800} numberOfLines={1} onPress={onOpen}>
+          {l.name}
+        </T>
+        <Tap onPress={onVis} accessibilityLabel={`Sharing: ${visWord(l.vis)}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <T size={11.5} color={palette.muted}>
+            {shinies(its.length)} ·
+          </T>
+          <VisIcon vis={l.vis} color={palette.muted} />
+          <T size={11.5} color={palette.muted} numberOfLines={1} style={{ flexShrink: 1 }}>
+            {visWord(l.vis)}
           </T>
         </Tap>
-      ) : null}
-    </Card>
+      </View>
+    </View>
   );
 }
+

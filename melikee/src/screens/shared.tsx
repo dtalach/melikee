@@ -5,7 +5,7 @@ import type { Vis } from '@/store/types';
 import { brand, palette } from '@/theme/tokens';
 import { Eye, LinkIcon, Lock, People, Sparkle } from '@/ui/icons';
 import { Breathe, Twinkle } from '@/ui/motion';
-import { LimeFill, RadialGround, T, Tap } from '@/ui/primitives';
+import { LimeFill, PhotoBox, RadialGround, T, Tap } from '@/ui/primitives';
 
 export function VisIcon({ vis, size = 11, color = palette.soft }: { vis: Vis; size?: number; color?: string }) {
   if (vis === 'me') return <Lock size={size} color={color} />;
@@ -58,20 +58,35 @@ export function EmptyGlow({ title, body, cta, onCta, icon, children, fill, foote
   );
 }
 
-/** The 2×2 cover on a list row: thumbnails, or the list's color when empty. */
-export function ListCover({ accent, count, initial, initialInk }: { accent: string; count: number; initial: string; initialInk: string }) {
-  const cells = [0, 1, 2, 3];
+/** One photo on a board cover: the store's, else the user's own shot. */
+export type CoverShot = { uri?: string; fallback?: string };
+
+/**
+ * A board cover, like a Pinterest board: one big photo on the left and two
+ * stacked on the right, from the list's shinies. Empty spots take the list's
+ * color, faded; an empty list shows its initial on the color.
+ */
+export function BoardCover({ shots, accent, initial, initialInk, children }: { shots: CoverShot[]; accent: string; initial: string; initialInk: string; children?: ReactNode }) {
+  const tile = (i: number, style: object) => {
+    const s = shots[i];
+    if (s) return <PhotoBox key={i} uri={s.uri} fallback={s.fallback} label="" fit="contain" style={style} />;
+    return <View key={i} style={[style, { backgroundColor: accent, opacity: shots.length ? 0.28 : i === 0 ? 1 : 0.55 }]} />;
+  };
   return (
-    <View style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', backgroundColor: accent, borderWidth: 2, borderColor: accent, flexDirection: 'row', flexWrap: 'wrap', gap: 2 }}>
-      {cells.map((x) => (
-        <View key={x} style={{ width: 23, height: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: count === 0 ? accent : x < count ? palette.ph2 : palette.inset }}>
-          {count === 0 && x === 0 ? (
-            <T size={11} w={800} color={initialInk}>
-              {initial}
-            </T>
-          ) : null}
+    <View style={{ aspectRatio: 1.35, borderRadius: 16, overflow: 'hidden', flexDirection: 'row', gap: 2, backgroundColor: palette.bg }}>
+      {tile(0, { flex: 2 })}
+      <View style={{ flex: 1, gap: 2 }}>
+        {tile(1, { flex: 1 })}
+        {tile(2, { flex: 1 })}
+      </View>
+      {shots.length === 0 ? (
+        <View pointerEvents="none" style={{ position: 'absolute', left: 12, bottom: 8 }}>
+          <T size={34} w={800} color={initialInk} style={{ letterSpacing: -1 }}>
+            {initial}
+          </T>
         </View>
-      ))}
+      ) : null}
+      {children}
     </View>
   );
 }
