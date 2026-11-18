@@ -10,17 +10,17 @@ import { ago, daysUntil, SOON_DAYS } from '@/lib/dates';
 import { trending } from '@/store/seed';
 import { useApp } from '@/store/useApp';
 import { brand, palette, ringSoon } from '@/theme/tokens';
-import { Bell } from '@/ui/icons';
+
 import { Appear } from '@/ui/motion';
 import { Avatar, DaysTag, LimeFill, PhotoBox, T, Tap } from '@/ui/primitives';
 import { EmptyGlow } from './shared';
 
+/** Friends' side of Home: their birthdays, their new wants, ideas everyone likes. */
 export function Feed() {
   const friends = useApp((s) => s.friends);
   const feed = useApp((s) => s.feed);
   const friendLists = useApp((s) => s.friendLists);
   const friendDibs = useApp((s) => s.friendDibs);
-  const unread = useApp((s) => s.notifs.filter((n) => !n.read).length);
   const go = useApp((s) => s.go);
   const openSheet = useApp((s) => s.openSheet);
   const wantToo = useApp((s) => s.wantToo);
@@ -46,24 +46,7 @@ export function Feed() {
   return (
     <Appear style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
-        <View style={{ paddingTop: 12, paddingHorizontal: 18, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <T size={26} w={800} style={{ letterSpacing: -0.78 }}>
-            The Feed
-          </T>
-          <T size={12} color={palette.muted} numberOfLines={1} style={{ flex: 1 }}>
-            what your people want
-          </T>
-          <Tap onPress={() => go({ name: 'notifs' })} accessibilityLabel={`Notifications, ${unread} unread`} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.vio44, alignItems: 'center', justifyContent: 'center' }}>
-            <Bell size={17} color={palette.text} />
-            {unread ? (
-              <View style={{ position: 'absolute', top: -3, right: -3, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: brand.pink, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
-                <T size={11} w={700} color={brand.white}>
-                  {unread}
-                </T>
-              </View>
-            ) : null}
-          </Tap>
-        </View>
+        <View style={{ height: 6 }} />
 
         {empty ? (
           <EmptyGlow

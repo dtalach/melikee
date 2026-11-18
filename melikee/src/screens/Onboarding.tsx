@@ -1,7 +1,7 @@
 /**
  * Onboarding. MeLikee is 13+ only, and every account is a verified phone.
  *
- *   sign up:  birthday (13+) → phone → code → handle → parent (under 18, optional)
+ *   sign up:  birthday (13+) → phone → code → name + handle → parent (under 18, optional)
  *             → where new shinies go → find your people
  *   sign in:  phone → code → back in, with the lists you'd shared
  *   verify:   for anyone already using the app without a verified phone
@@ -18,10 +18,10 @@ import { useApp } from '@/store/useApp';
 import { brand, font, palette } from '@/theme/tokens';
 import { Chevron, Sparkle } from '@/ui/icons';
 import { Appear } from '@/ui/motion';
-import { AccentButton, Field, LimeButton, Radio, RadialGround, Select, T, Tap } from '@/ui/primitives';
+import { AccentButton, Field, LimeButton, RadialGround, Select, T, Tap } from '@/ui/primitives';
 
 type Mode = 'signup' | 'signin' | 'verify';
-type Step = 'welcome' | 'verifyIntro' | 'birthday' | 'phone' | 'code' | 'handle' | 'parent' | 'sharing' | 'people';
+type Step = 'welcome' | 'verifyIntro' | 'birthday' | 'phone' | 'code' | 'handle' | 'parent';
 
 const RESEND_SECONDS = 30;
 
@@ -69,7 +69,8 @@ export function Onboarding() {
 
   const [handle, setHandle] = useState(profile.handle);
   const [parent, setParent] = useState(profile.parent?.contact ?? '');
-  const [priv, setPriv] = useState(false);
+  // Optional: family see "David's wishlist" instead of "@dtalach's".
+  const [firstName, setFirstName] = useState(profile.name && profile.name !== profile.handle ? profile.name : '');
   const h = handle.trim();
   const hStatus = useHandleCheck(h);
   const hOk = hStatus === 'free' || hStatus === 'unknown';
@@ -79,8 +80,9 @@ export function Onboarding() {
       ? ['welcome', 'phone', 'code']
       : mode === 'verify'
         ? ['verifyIntro', 'phone', 'code']
-        : ['welcome', 'birthday', 'phone', 'code', 'handle', ...(age < 18 ? (['parent'] as Step[]) : []), 'sharing', 'people'];
+        : ['welcome', 'birthday', 'phone', 'code', 'handle', ...(age < 18 ? (['parent'] as Step[]) : [])];
   const index = order.indexOf(step);
+  const last = index === order.length - 1;
   const go = (s: Step) => {
     setError(null);
     setStep(s);
@@ -140,9 +142,9 @@ export function Onboarding() {
     next();
   };
 
-  const done = () => {
-    finish({ handle: h, birthday: birth, parent: parent.trim(), privateDefault: priv });
-    showToast(`Welcome, @${h}`);
+  const done = (parentContact = parent) => {
+    finish({ handle: h, name: firstName.trim(), birthday: birth, parent: parentContact.trim() });
+    showToast(firstName.trim() ? `Welcome, ${firstName.trim()}` : `Welcome, @${h}`);
   };
 
   // ── layout pieces ──
@@ -344,7 +346,16 @@ export function Onboarding() {
 
           {step === 'handle' ? (
             <>
-              {title('Pick a handle', 'This is how friends find you. You can change it later.')}
+              {title('What should we call you?', 'Your handle is how friends find you. Family see your first name on your lists.')}
+              <Field
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="First name (optional)"
+                autoCapitalize="words"
+                maxLength={40}
+                accessibilityLabel="First name"
+                style={{ fontSize: 15, fontFamily: font[600], paddingVertical: 13, paddingHorizontal: 14, borderRadius: 14 }}
+              />
               <View style={inputBox}>
                 <T size={15} w={600} color={palette.muted}>
                   @
@@ -362,7 +373,7 @@ export function Onboarding() {
                 {handleNote(h, hStatus)}
               </T>
               <View style={{ flex: 1 }} />
-              {nextBtn('Next', next, !hOk)}
+              {last ? nextBtn('Start', () => done(), !hOk) : nextBtn('Next', next, !hOk)}
             </>
           ) : null}
 
@@ -376,12 +387,8 @@ export function Onboarding() {
                 </T>
               </View>
               <View style={{ flex: 1 }} />
-              {nextBtn(parent.trim() ? 'Send request' : 'Next')}
-              <Tap
-                onPress={() => {
-                  setParent('');
-                  next();
-                }}
+              {nextBtn(parent.trim() ? 'Send request' : 'Start', () => done())}
+              <Tap onPress={() => done('')}
                 style={{ alignItems: 'center', padding: 12 }}
               >
                 <T size={13.5} w={700} color={palette.soft}>
@@ -391,47 +398,6 @@ export function Onboarding() {
             </>
           ) : null}
 
-          {step === 'sharing' ? (
-            <>
-              {title('Where do new shinies go?', 'You can change any list later.')}
-              {(
-                [
-                  [false, 'My wants, shared with friends', 'Friends you approve see what you add. Best for getting gifts right.'],
-                  [true, 'Private until I share', 'Everything starts just for you. Share a list when you’re ready.'],
-                ] as const
-              ).map(([p, t, sub]) => (
-                <Tap
-                  key={t}
-                  onPress={() => setPriv(p)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: priv === p }}
-                  style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: priv === p ? palette.vio : palette.vio33, backgroundColor: priv === p ? palette.vio22 : 'transparent' }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <T size={14.5} w={700}>
-                      {t}
-                    </T>
-                    <T size={12} color={palette.muted} style={{ marginTop: 2, lineHeight: 17.5 }}>
-                      {sub}
-                    </T>
-                  </View>
-                  <View style={{ marginTop: 2 }}>
-                    <Radio on={priv === p} />
-                  </View>
-                </Tap>
-              ))}
-              <View style={{ flex: 1 }} />
-              {nextBtn('Next')}
-            </>
-          ) : null}
-
-          {step === 'people' ? (
-            <>
-              {title('Bring your people', 'Share your list link with friends and family — they can call dibs without the app. Find friends on MeLikee from the Friends tab.')}
-              <View style={{ flex: 1 }} />
-              {nextBtn('Start snapping', done)}
-            </>
-          ) : null}
         </Appear>
       </ScrollView>
     </View>

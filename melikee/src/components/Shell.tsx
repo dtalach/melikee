@@ -8,11 +8,10 @@ import { AppState, BackHandler, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Camera } from '@/screens/Camera';
-import { Feed } from '@/screens/Feed';
 import { FriendListScreen } from '@/screens/FriendList';
 import { Friends } from '@/screens/Friends';
 import { GifterPage } from '@/screens/Gifter';
-import { Ideas } from '@/screens/Ideas';
+import { Home } from '@/screens/Home';
 import { ItemDetail } from '@/screens/ItemDetail';
 import { ListDetail } from '@/screens/ListDetail';
 import { Lists } from '@/screens/Lists';
@@ -116,9 +115,8 @@ function Screen({ route }: { route: Route }) {
     case 'camera':
       return <Camera />;
     case 'feed':
-      return <Feed />;
     case 'ideas':
-      return <Ideas />;
+      return <Home />;
     case 'lists':
       return <Lists />;
     case 'list':
@@ -138,6 +136,6 @@ function Screen({ route }: { route: Route }) {
     case 'gifter':
       return <GifterPage listId={route.listId} preview />;
     default:
-      return <Feed />;
+      return <Home />;
   }
 }

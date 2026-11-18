@@ -169,19 +169,10 @@ export function TrendLine({ color }: { color: string }) {
 }
 
 // Dock tab icons.
-export function TabFeed({ color }: { color: string }) {
+export function TabHome({ color }: { color: string }) {
   return (
     <Svg {...base(22)} fill="none" stroke={color} strokeWidth={1.4} strokeLinejoin="round">
-      <Path d="M8 1.5l1.5 4.6 4.8.1-3.9 2.8 1.5 4.6L8 10.8l-3.9 2.8 1.5-4.6-3.9-2.8 4.8-.1z" />
-    </Svg>
-  );
-}
-
-export function TabIdeas({ color }: { color: string }) {
-  return (
-    <Svg {...base(22)} fill="none" stroke={color} strokeWidth={1.4} strokeLinejoin="round">
-      <Path d="M7 1.5l1.3 4.2 4.2 1.3-4.2 1.3L7 12.5 5.7 8.3 1.5 7l4.2-1.3z" />
-      <Path d="M12.5 10.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z" />
+      <Path d="M2.2 7.2L8 2.3l5.8 4.9v6.3a.8.8 0 01-.8.8H10V9.8H6v4.5H3a.8.8 0 01-.8-.8z" />
     </Svg>
   );
 }
